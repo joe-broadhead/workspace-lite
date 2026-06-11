@@ -383,26 +383,46 @@ var GmailService = (function() {
 
   // ─── DRAFTS ───
 
+  function findDraftById(id) {
+    var drafts = GmailApp.getDrafts()
+    if (Array.isArray(drafts)) {
+      for (var i = 0; i < drafts.length; i++) {
+        if (drafts[i].getId() === id) return drafts[i]
+      }
+    } else if (drafts && typeof drafts.next === 'function') {
+      while (drafts.hasNext()) {
+        var d = drafts.next()
+        if (d.getId() === id) return d
+      }
+    }
+    return null
+  }
+
   function listDrafts(params) {
     const maxResults = optionalNumber(params, 'maxResults', 20)
     try {
       var drafts = GmailApp.getDrafts()
       var results = []
       var count = 0
-      while (drafts.hasNext() && count < maxResults) {
+      var draftArray = Array.isArray(drafts) ? drafts : []
+      while (!Array.isArray(drafts) && drafts.hasNext && drafts.hasNext() && count < maxResults) {
         results.push(draftToJSON(drafts.next()))
+        count++
+      }
+      for (var i = 0; i < draftArray.length && count < maxResults; i++) {
+        results.push(draftToJSON(draftArray[i]))
         count++
       }
       return ok(results)
     } catch(e) {
-      return err('LIST_FAILED', 'Could not list drafts')
+      return err('LIST_FAILED', e.message || 'Could not list drafts')
     }
   }
 
   function getDraft(params) {
     const id = requireParam(params, 'draftId')
     try {
-      var draft = GmailApp.getDrafts().find(function(d) { return d.getId() === id })
+      var draft = findDraftById(id)
       if (!draft) return err('NOT_FOUND', 'Draft not found: ' + id)
       return ok({ draft: draftToJSON(draft) })
     } catch(e) {
@@ -428,7 +448,7 @@ var GmailService = (function() {
   function updateDraft(params) {
     const id = requireParam(params, 'draftId')
     try {
-      var draft = GmailApp.getDrafts().find(function(d) { return d.getId() === id })
+      var draft = findDraftById(id)
       if (!draft) return err('NOT_FOUND', 'Draft not found: ' + id)
 
       var msg = draft.getMessage()
@@ -453,7 +473,7 @@ var GmailService = (function() {
   function deleteDraft(params) {
     const id = requireParam(params, 'draftId')
     try {
-      var draft = GmailApp.getDrafts().find(function(d) { return d.getId() === id })
+      var draft = findDraftById(id)
       if (!draft) return err('NOT_FOUND', 'Draft not found: ' + id)
       draft.deleteDraft()
       return ok({ deleted: true, draftId: id })
@@ -465,7 +485,7 @@ var GmailService = (function() {
   function sendDraft(params) {
     const id = requireParam(params, 'draftId')
     try {
-      var draft = GmailApp.getDrafts().find(function(d) { return d.getId() === id })
+      var draft = findDraftById(id)
       if (!draft) return err('NOT_FOUND', 'Draft not found: ' + id)
       draft.send()
       return ok({ sent: true, draftId: id })
