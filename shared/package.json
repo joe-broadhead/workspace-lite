@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "./annotations": "./src/annotations.js",
-    "./response": "./src/response.js",
-    "./schemas": "./src/schemas.js"
+    ".": "./dist/index.js",
+    "./schemas": "./dist/schemas.js",
+    "./annotations": "./dist/annotations.js",
+    "./response": "./dist/response.js"
   },
   "scripts": {
     "build": "tsc",

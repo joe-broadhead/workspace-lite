@@ -8,13 +8,16 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b packages/*",
+    "build": "npm run build:shared && npm run build:packages",
+    "build:shared": "cd shared && npm run build",
+    "build:packages": "tsc -b packages/*",
     "build:drive": "cd packages/drive && npm run build",
+    "typecheck": "npm run build:shared && tsc -b packages/* --noEmit",
+    "clean": "rm -rf packages/*/dist shared/dist packages/*/*.tsbuildinfo shared/*.tsbuildinfo *.tsbuildinfo",
     "dev:drive": "cd packages/drive && npm run dev",
-    "deploy:apps-script:drive": "cd packages/drive/apps-script && clasp push",
-    "deploy:webapp:drive": "cd packages/drive/apps-script && clasp deploy --description \"Production\"",
-    "token:show:drive": "cd packages/drive/apps-script && clasp run getProxyToken",
-    "lint": "tsc --noEmit"
+    "install:deps": "npm install",
+    "deploy:drive": "cd packages/drive/apps-script && clasp push",
+    "postinstall": "npm run build:shared"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

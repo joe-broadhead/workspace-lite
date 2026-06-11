@@ -5,3 +5,8 @@ dist/
 *.log
 .DS_Store
 .clasp.json
+*.swp
+*.swo
+*~
+.vscode/
+coverage/

@@ -1,11 +1,11 @@
 {
-  "name": "@google-apps-script-mcp/drive",
-  "version": "1.0.0",
+  "name": "@google-apps-script-mcp/calendar",
+  "version": "0.0.1",
   "private": true,
+  "description": "Google Calendar MCP server via Apps Script proxy",
   "type": "module",
-  "description": "Google Drive MCP server via Apps Script proxy",
   "bin": {
-    "google-workspace-drive": "./dist/index.js"
+    "google-workspace-calendar": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

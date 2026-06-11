@@ -1,9 +1,8 @@
-
-import { formatResponse } from '../shared/response.js'
+import { formatResponse } from '@google-apps-script-mcp/shared'
 import {
   fileSetSharingSchema, fileAddEditorSchema, fileAddViewerSchema,
   fileRemoveEditorSchema, fileRemoveViewerSchema, fileGetSchema,
-} from '../shared/schemas.js'
+} from '@google-apps-script-mcp/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveManageTools(server: { tool: Function }) {
