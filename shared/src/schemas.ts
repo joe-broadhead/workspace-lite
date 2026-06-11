@@ -89,3 +89,146 @@ export const fileRemoveViewerSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   email: z.string().email().describe('Email to remove as viewer.'),
 }
+
+// ─── CALENDAR SCHEMAS ───
+
+export const calendarEventIdSchema = z.string().min(1).describe('Calendar event ID.')
+
+export const calendarListEventsSchema = {
+  calendarId: z.string().optional().describe('Calendar ID. Omit for default.'),
+  timeMin: z.string().optional().describe('Start time ISO string (default: now).'),
+  timeMax: z.string().optional().describe('End time ISO string (default: +30d).'),
+  maxResults: z.number().int().min(1).max(100).default(50).describe('Max events.'),
+  page: z.number().int().min(0).default(0).describe('Page number.'),
+}
+
+export const calendarSearchEventsSchema = {
+  query: z.string().min(1).max(500).describe('Text to search in event titles/descriptions.'),
+  timeMin: z.string().optional().describe('Start time ISO string.'),
+  timeMax: z.string().optional().describe('End time ISO string.'),
+  maxResults: z.number().int().min(1).max(100).default(50).describe('Max results.'),
+}
+
+export const calendarFreeBusySchema = {
+  timeMin: z.string().optional().describe('Start time ISO string (default: now).'),
+  timeMax: z.string().optional().describe('End time ISO string (default: +7d).'),
+}
+
+export const calendarGetEventSchema = {
+  eventId: calendarEventIdSchema,
+  calendarId: z.string().optional().describe('Calendar ID.'),
+}
+
+export const calendarCreateEventSchema = {
+  title: z.string().min(1).max(1000).describe('Event title.'),
+  startTime: z.string().describe('Start time ISO string.'),
+  endTime: z.string().describe('End time ISO string.'),
+  calendarId: z.string().optional().describe('Calendar ID.'),
+  description: z.string().max(10000).optional().describe('Description.'),
+  location: z.string().max(500).optional().describe('Location.'),
+  guests: z.string().optional().describe('Comma-separated emails.'),
+}
+
+export const calendarUpdateEventSchema = {
+  eventId: calendarEventIdSchema,
+  calendarId: z.string().optional().describe('Calendar ID.'),
+  title: z.string().min(1).max(1000).optional().describe('New title.'),
+  description: z.string().max(10000).optional().describe('New description.'),
+  location: z.string().max(500).optional().describe('New location.'),
+  startTime: z.string().optional().describe('New start time ISO.'),
+  endTime: z.string().optional().describe('New end time ISO.'),
+}
+
+export const calendarDeleteEventSchema = {
+  eventId: calendarEventIdSchema,
+  calendarId: z.string().optional().describe('Calendar ID.'),
+}
+
+// ─── GMAIL SCHEMAS ───
+
+export const gmailMessageIdSchema = z.string().min(1).describe('Gmail message ID.')
+export const gmailThreadIdSchema = z.string().min(1).describe('Gmail thread ID.')
+export const gmailDraftIdSchema = z.string().min(1).describe('Gmail draft ID.')
+export const gmailEmailSchema = z.string().email().max(320).describe('Email address.')
+export const gmailSubjectSchema = z.string().min(1).max(1000).describe('Email subject.')
+export const gmailBodySchema = z.string().min(1).max(100000).describe('Email body.')
+
+export const gmailSearchMessagesSchema = {
+  query: z.string().max(500).optional().describe('Gmail search query.'),
+  isUnread: z.string().optional().describe('Set to "true" for unread only.'),
+  isStarred: z.string().optional().describe('Set to "true" for starred only.'),
+  from: z.string().max(320).optional().describe('Filter by sender.'),
+  to: z.string().max(320).optional().describe('Filter by recipient.'),
+  subject: z.string().max(500).optional().describe('Filter by subject.'),
+  before: z.string().optional().describe('Before date (YYYY/MM/DD).'),
+  after: z.string().optional().describe('After date (YYYY/MM/DD).'),
+  label: z.string().max(100).optional().describe('Filter by label.'),
+  maxResults: z.number().int().min(1).max(100).default(20).describe('Max results.'),
+  page: z.number().int().min(0).default(0).describe('Page number.'),
+}
+
+export const gmailListThreadsSchema = {
+  query: z.string().max(500).optional().describe('Search query.'),
+  isUnread: z.string().optional(), isStarred: z.string().optional(),
+  from: z.string().max(320).optional(), subject: z.string().max(500).optional(),
+  label: z.string().max(100).optional(),
+  maxResults: z.number().int().min(1).max(100).default(20).describe('Max threads.'),
+  page: z.number().int().min(0).default(0).describe('Page number.'),
+}
+
+export const gmailGetMessageSchema = { messageId: gmailMessageIdSchema }
+export const gmailGetThreadSchema = { threadId: gmailThreadIdSchema }
+export const gmailListDraftsSchema = { maxResults: z.number().int().min(1).max(100).default(20).optional().describe('Max drafts.') }
+export const gmailGetDraftSchema = { draftId: gmailDraftIdSchema }
+export const gmailDeleteDraftSchema = { draftId: gmailDraftIdSchema }
+export const gmailSendDraftSchema = { draftId: gmailDraftIdSchema }
+
+export const gmailSendSchema = {
+  to: gmailEmailSchema.describe('Recipient email.'),
+  subject: gmailSubjectSchema.describe('Email subject.'),
+  body: gmailBodySchema.describe('Plain text body.'),
+  cc: z.string().max(1000).optional().describe('CC recipient(s).'),
+  bcc: z.string().max(1000).optional().describe('BCC recipient(s).'),
+  htmlBody: z.string().max(200000).optional().describe('HTML body.'),
+}
+
+export const gmailCreateDraftSchema = gmailSendSchema
+
+export const gmailUpdateDraftSchema = {
+  draftId: gmailDraftIdSchema,
+  to: z.string().max(320).optional(),
+  subject: z.string().max(1000).optional(),
+  body: z.string().max(100000).optional(),
+  cc: z.string().max(1000).optional(),
+  bcc: z.string().max(1000).optional(),
+}
+
+export const gmailMarkReadSchema = { messageId: gmailMessageIdSchema }
+export const gmailMarkUnreadSchema = { messageId: gmailMessageIdSchema }
+export const gmailArchiveSchema = { messageId: gmailMessageIdSchema }
+export const gmailStarSchema = { messageId: gmailMessageIdSchema }
+export const gmailUnstarSchema = { messageId: gmailMessageIdSchema }
+export const gmailTrashMessageSchema = { messageId: gmailMessageIdSchema }
+export const gmailUntrashMessageSchema = { messageId: gmailMessageIdSchema }
+export const gmailDeleteMessageSchema = { messageId: gmailMessageIdSchema }
+export const gmailTrashThreadSchema = { threadId: gmailThreadIdSchema }
+export const gmailUntrashThreadSchema = { threadId: gmailThreadIdSchema }
+
+export const gmailLabelSchema = {
+  messageId: gmailMessageIdSchema,
+  labelName: z.string().min(1).max(100).describe('Label name.'),
+}
+
+export const gmailReplySchema = {
+  messageId: gmailMessageIdSchema,
+  body: gmailBodySchema.describe('Reply body.'),
+  htmlBody: z.string().max(200000).optional().describe('HTML body.'),
+}
+
+export const gmailReplyAllSchema = gmailReplySchema
+
+export const gmailForwardSchema = {
+  messageId: gmailMessageIdSchema,
+  to: gmailEmailSchema.describe('Recipient email.'),
+  htmlBody: z.string().max(200000).optional(),
+}

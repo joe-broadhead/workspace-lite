@@ -169,6 +169,8 @@ var GmailService = (function() {
     }
   }
 
+  function q(val) { return val ? (val.indexOf(' ') >= 0 ? '"' + val.replace(/"/g, '\\"') + '"' : val) : '' }
+
   function buildSearchQuery(params) {
     var query = params.query || ''
     var isUnread = optionalString(params, 'isUnread')
@@ -182,12 +184,12 @@ var GmailService = (function() {
 
     if (isUnread === 'true') query += ' is:unread'
     if (isStarred === 'true') query += ' is:starred'
-    if (from) query += ' from:' + from
-    if (to) query += ' to:' + to
-    if (subject) query += ' subject:' + subject
-    if (before) query += ' before:' + before
-    if (after) query += ' after:' + after
-    if (label) query += ' label:' + label
+    if (from) query += ' from:' + q(from)
+    if (to) query += ' to:' + q(to)
+    if (subject) query += ' subject:' + q(subject)
+    if (before) query += ' before:' + q(before)
+    if (after) query += ' after:' + q(after)
+    if (label) query += ' label:' + q(label)
 
     return query.trim() || 'in:inbox'
   }

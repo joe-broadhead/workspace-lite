@@ -20,8 +20,8 @@ MCP servers that expose Google Workspace services through Apps Script web app pr
 | Package | Status | Tools | Description |
 |---------|--------|-------|-------------|
 | `packages/drive` | ✅ Live | 14 | Full Drive CRUD: list, search, read, create, update, copy, move, share, trash |
-| `packages/gmail` | 🔲 Planned | TBD | Search, read, send, labels, drafts, threads |
-| `packages/calendar` | 🔲 Planned | TBD | List events, create, update, delete, availability |
+| `packages/gmail` | ✅ Live | 30 | Search, read, send, reply, forward, drafts, labels, trash |
+| `packages/calendar` | ✅ Live | 9 | List events, search, create, update, delete, free/busy |
 | `packages/sheets` | 🔲 Planned | TBD | Read/write ranges, create sheets, formatting |
 
 ## Quick Start
