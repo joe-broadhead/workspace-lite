@@ -16,7 +16,7 @@ export function formatList(
   result: ProxyResponse,
   opts: { itemsKey: string; noun: string; itemSummary: (item: unknown) => string; hint?: string }
 ) {
-  const items = (result.data as Record<string, unknown[]>)?.[opts.itemsKey] || []
+  const items = Array.isArray(result.data) ? result.data : ((result.data as Record<string, unknown[]>)?.[opts.itemsKey] || [])
   const lines = items.map(opts.itemSummary)
   const pagination = result.pagination
   let text = `Found ${items.length} ${opts.noun}${items.length !== 1 ? 's' : ''}${pagination?.hasMore ? ' (more available)' : ''}\n\n${lines.join('\n')}`
