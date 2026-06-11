@@ -1,8 +1,9 @@
-import { WRITE, formatResponse } from '@google-apps-script-mcp/shared'
+
+import { formatResponse } from '../shared/response.js'
 import {
   folderCreateSchema, fileCreateSchema, fileCopySchema, fileMoveSchema,
   fileUpdateMetaSchema, fileUpdateContentSchema,
-} from '@google-apps-script-mcp/shared/schemas'
+} from '../shared/schemas.js'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveWriteTools(server: { tool: Function }) {
@@ -10,7 +11,6 @@ export function registerDriveWriteTools(server: { tool: Function }) {
     'drive_create_folder',
     'Create a new folder in Drive. Optionally specify a parent folder ID.',
     folderCreateSchema,
-    WRITE,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('folderCreate', args)
       return formatResponse(result, {
@@ -23,7 +23,6 @@ export function registerDriveWriteTools(server: { tool: Function }) {
     'drive_create_file',
     'Create a new file in Drive with content. Specify mimeType for non-text files (e.g. text/markdown, application/json).',
     fileCreateSchema,
-    WRITE,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileCreate', args)
       return formatResponse(result, {
@@ -37,7 +36,6 @@ export function registerDriveWriteTools(server: { tool: Function }) {
     'drive_copy_file',
     'Copy a Drive file. Optionally rename and/or move to a different folder.',
     fileCopySchema,
-    WRITE,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileCopy', args)
       return formatResponse(result, {
@@ -50,7 +48,6 @@ export function registerDriveWriteTools(server: { tool: Function }) {
     'drive_move_file',
     'Move a file to a different folder.',
     fileMoveSchema,
-    WRITE,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileMove', args)
       return formatResponse(result, {
@@ -63,7 +60,6 @@ export function registerDriveWriteTools(server: { tool: Function }) {
     'drive_update_metadata',
     'Update a file\'s name and/or description.',
     fileUpdateMetaSchema,
-    WRITE,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileUpdateMeta', args)
       return formatResponse(result, {
@@ -76,7 +72,6 @@ export function registerDriveWriteTools(server: { tool: Function }) {
     'drive_update_content',
     'Overwrite a file\'s content with new text. This replaces the entire file content.',
     fileUpdateContentSchema,
-    WRITE,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileUpdateContent', args)
       return formatResponse(result, {

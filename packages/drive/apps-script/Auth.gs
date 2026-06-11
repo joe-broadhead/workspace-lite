@@ -1,6 +1,6 @@
 const SCRIPT_PROPERTY_KEY = 'PROXY_AUTH_TOKEN'
 
-function generateToken(): string {
+function generateToken() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let token = ''
   for (let i = 0; i < 48; i++) {
@@ -9,7 +9,7 @@ function generateToken(): string {
   return token
 }
 
-function getOrCreateToken(): string {
+function getOrCreateToken() {
   const props = PropertiesService.getScriptProperties()
   let token = props.getProperty(SCRIPT_PROPERTY_KEY)
   if (!token) {
@@ -19,13 +19,13 @@ function getOrCreateToken(): string {
   return token
 }
 
-function getToken(): string {
+function getToken() {
   const props = PropertiesService.getScriptProperties()
   return props.getProperty(SCRIPT_PROPERTY_KEY) || 'NOT_SET'
 }
 
-function validateRequest(e: GoogleAppsScript.Events.DoPost): boolean {
-  const authHeader = e.parameter?.token || ''
+function validateRequest(e) {
+  const authHeader = (e.parameter || {}).token || ''
   const expected = getOrCreateToken()
   return authHeader === expected
 }

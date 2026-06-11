@@ -1,5 +1,6 @@
-import { READ_ONLY, formatResponse, formatPermissions } from '@google-apps-script-mcp/shared'
-import { fileGetSchema, fileExportSchema, folderGetSchema, fileGetSchema as permsSchema } from '@google-apps-script-mcp/shared/schemas'
+
+import { formatResponse, formatPermissions } from '../shared/response.js'
+import { fileGetSchema, fileExportSchema, folderGetSchema } from '../shared/schemas.js'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveReadTools(server: { tool: Function }) {
@@ -7,7 +8,6 @@ export function registerDriveReadTools(server: { tool: Function }) {
     'drive_get_file',
     'Get detailed metadata for a Drive file by ID. Returns id, name, mimeType, url, size, created, updated, starred, trashed, owner, parents.',
     fileGetSchema,
-    READ_ONLY,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileGet', args)
       return formatResponse(result, {
@@ -21,7 +21,6 @@ export function registerDriveReadTools(server: { tool: Function }) {
     'drive_read_file',
     'Read the content of a Drive file as text. Works for Docs, Sheets, plain text, markdown, JSON, etc. Content is truncated at 500KB.',
     fileExportSchema,
-    READ_ONLY,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileExport', args)
       const data = result.data as Record<string, unknown>
@@ -40,7 +39,6 @@ export function registerDriveReadTools(server: { tool: Function }) {
     'drive_get_folder',
     'Get metadata for a Drive folder by ID. Returns id, name, url, created, updated, owner, parents.',
     folderGetSchema,
-    READ_ONLY,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('folderGet', args)
       return formatResponse(result, {
@@ -53,8 +51,7 @@ export function registerDriveReadTools(server: { tool: Function }) {
   server.tool(
     'drive_get_permissions',
     'Get sharing permissions for a Drive file. Returns sharing access level, permission level, owner, editors, and viewers.',
-    permsSchema,
-    READ_ONLY,
+    fileGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileGetPermissions', args)
       const data = result.data as Record<string, unknown>

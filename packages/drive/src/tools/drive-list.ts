@@ -1,5 +1,5 @@
-import { READ_ONLY, formatList, formatBytes } from '@google-apps-script-mcp/shared'
-import { fileListSchema, fileSearchSchema, folderListSchema } from '@google-apps-script-mcp/shared/schemas'
+import { formatList, formatBytes } from '../shared/response.js'
+import { fileListSchema, fileSearchSchema, folderListSchema } from '../shared/schemas.js'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveListTools(server: { tool: Function }) {
@@ -7,7 +7,6 @@ export function registerDriveListTools(server: { tool: Function }) {
     'drive_about',
     'Get Drive storage information including total storage, used storage, and root folder ID.',
     {},
-    READ_ONLY,
     async () => {
       const result = await callProxy('about')
       const d = result.data as Record<string, unknown>
@@ -24,7 +23,6 @@ export function registerDriveListTools(server: { tool: Function }) {
     'drive_list_files',
     'List files in Drive. Optionally filter by folderId. Returns file name, id, mimeType, url, size, last updated, owner. Paginate with pageToken.',
     fileListSchema,
-    READ_ONLY,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileList', args)
       return formatList(result, {
@@ -43,7 +41,6 @@ export function registerDriveListTools(server: { tool: Function }) {
     'drive_search_files',
     'Search Drive files with Google Drive query syntax. Supports: mimeType, name, modifiedTime, fullText, parents, starred, trashed. Example: "name contains \'report\'" or "mimeType = \'application/pdf\'".',
     fileSearchSchema,
-    READ_ONLY,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileSearch', args)
       return formatList(result, {
@@ -62,7 +59,6 @@ export function registerDriveListTools(server: { tool: Function }) {
     'drive_list_folders',
     'List contents of a Drive folder (subfolders and files). If no folderId, lists root folder.',
     folderListSchema,
-    READ_ONLY,
     async (args: Record<string, unknown>) => {
       const action = args.folderId ? 'folderList' : 'folderListRoot'
       const result = await callProxy(action, args)
