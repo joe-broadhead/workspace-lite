@@ -1,4 +1,5 @@
-import { formatList, formatResponse } from '@google-apps-script-mcp/shared'
+import { formatList } from '@google-apps-script-mcp/shared'
+import { calendarListEventsSchema, calendarSearchEventsSchema, calendarFreeBusySchema } from '@google-apps-script-mcp/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerCalendarListTools(server: { tool: Function }) {
@@ -9,7 +10,7 @@ export function registerCalendarListTools(server: { tool: Function }) {
       return { content: [{ type: 'text' as const, text: 'Calendars:\n\n' + cals.map((c: Record<string, unknown>) => `${c.name} (${c.id})`).join('\n') }] }
     })
 
-  server.tool('calendar_list_events', 'List events from a calendar within a time range. Default: next 30 days from default calendar.', {},
+  server.tool('calendar_list_events', 'List events from a calendar within a time range. Default: next 30 days from default calendar.', calendarListEventsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('listEvents', args)
       return formatList(result, { itemsKey: 'items', noun: 'event',
@@ -17,7 +18,7 @@ export function registerCalendarListTools(server: { tool: Function }) {
         hint: 'Use calendar_get_event with an eventId for full details.' })
     })
 
-  server.tool('calendar_search_events', 'Search events by title/description text query.', {},
+  server.tool('calendar_search_events', 'Search events by title/description text query.', calendarSearchEventsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('searchEvents', args)
       return formatList(result, { itemsKey: 'items', noun: 'result',
@@ -25,7 +26,7 @@ export function registerCalendarListTools(server: { tool: Function }) {
         hint: 'Use calendar_get_event for full details.' })
     })
 
-  server.tool('calendar_find_freebusy', 'Find busy slots in your calendar. Default: next 7 days.', {},
+  server.tool('calendar_find_freebusy', 'Find busy slots in your calendar. Default: next 7 days.', calendarFreeBusySchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('findFreeBusy', args)
       const data = result.data as Record<string, unknown>

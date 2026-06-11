@@ -1,15 +1,16 @@
-import { formatList, formatResponse } from '@google-apps-script-mcp/shared'
+import { formatList } from '@google-apps-script-mcp/shared'
+import { gmailSearchMessagesSchema, gmailListThreadsSchema } from '@google-apps-script-mcp/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerGmailListTools(server: { tool: Function }) {
-  server.tool('gmail_profile', 'Get Gmail profile info: authenticated email.', {},
+  server.tool('gmail_profile', 'Get Gmail profile info.', {},
     async () => {
       const result = await callProxy('profile')
       const d = result.data as Record<string, unknown>
       return { content: [{ type: 'text' as const, text: `Gmail: ${d.email}` }] }
     })
 
-  server.tool('gmail_search_messages', 'Search Gmail messages. Supports query syntax: isUnread, isStarred, from, to, subject, before, after, label. Paginate with page.', {},
+  server.tool('gmail_search_messages', 'Search Gmail messages. Supports query syntax, filters, pagination.', gmailSearchMessagesSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('searchMessages', args)
       return formatList(result, { itemsKey: 'items', noun: 'message',
@@ -17,7 +18,7 @@ export function registerGmailListTools(server: { tool: Function }) {
         hint: 'Use gmail_get_message with a messageId to read full content.' })
     })
 
-  server.tool('gmail_list_threads', 'List Gmail threads. Same query/filter support as gmail_search_messages but groups by thread.', {},
+  server.tool('gmail_list_threads', 'List Gmail threads. Same filters as search_messages.', gmailListThreadsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('listThreads', args)
       return formatList(result, { itemsKey: 'items', noun: 'thread',

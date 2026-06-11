@@ -1,8 +1,9 @@
 import { formatResponse } from '@google-apps-script-mcp/shared'
+import { calendarGetEventSchema } from '@google-apps-script-mcp/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerCalendarReadTools(server: { tool: Function }) {
-  server.tool('calendar_get_event', 'Get full details of a calendar event.', {},
+  server.tool('calendar_get_event', 'Get full details of a calendar event.', calendarGetEventSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('getEvent', args)
       const ev = (result.data as Record<string, unknown>)?.event as Record<string, unknown>
