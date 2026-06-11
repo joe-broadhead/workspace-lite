@@ -27,6 +27,13 @@ var GmailService = (function() {
       case 'deleteDraft':          return deleteDraft(params)
       case 'sendDraft':            return sendDraft(params)
 
+      // REPLY & FORWARD
+      case 'reply':                return reply(params)
+      case 'replyAll':             return replyAll(params)
+      case 'forward':              return forwardMsg(params)
+      case 'createDraftReply':     return createDraftReply(params)
+      case 'createDraftReplyAll':  return createDraftReplyAll(params)
+
       // DESTRUCTIVE
       case 'trashMessage':         return trashMessage(params)
       case 'untrashMessage':       return untrashMessage(params)
@@ -491,6 +498,82 @@ var GmailService = (function() {
       return ok({ sent: true, draftId: id })
     } catch(e) {
       return err('SEND_FAILED', 'Could not send draft: ' + id)
+    }
+  }
+
+  // ─── REPLY & FORWARD ───
+
+  function reply(params) {
+    var id = requireParam(params, 'messageId')
+    var body = requireParam(params, 'body')
+    var options = {}
+    if (params.htmlBody) options.htmlBody = String(params.htmlBody)
+    try {
+      var msg = GmailApp.getMessageById(id)
+      msg.reply(body, options)
+      return ok({ replied: true, messageId: id })
+    } catch(e) {
+      return err('REPLY_FAILED', e.message || 'Could not reply to message: ' + id)
+    }
+  }
+
+  function replyAll(params) {
+    var id = requireParam(params, 'messageId')
+    var body = requireParam(params, 'body')
+    var options = {}
+    if (params.htmlBody) options.htmlBody = String(params.htmlBody)
+    try {
+      var msg = GmailApp.getMessageById(id)
+      msg.replyAll(body, options)
+      return ok({ repliedAll: true, messageId: id })
+    } catch(e) {
+      return err('REPLY_FAILED', e.message || 'Could not reply all to message: ' + id)
+    }
+  }
+
+  function forwardMsg(params) {
+    var id = requireParam(params, 'messageId')
+    var to = requireParam(params, 'to')
+    var options = {}
+    if (params.htmlBody) options.htmlBody = String(params.htmlBody)
+    try {
+      var msg = GmailApp.getMessageById(id)
+      msg.forward(to, options)
+      return ok({ forwarded: true, messageId: id, to: to })
+    } catch(e) {
+      return err('FORWARD_FAILED', e.message || 'Could not forward message: ' + id)
+    }
+  }
+
+  function createDraftReply(params) {
+    var id = requireParam(params, 'messageId')
+    var body = requireParam(params, 'body')
+    var options = {}
+    if (params.htmlBody) options.htmlBody = String(params.htmlBody)
+    if (params.cc) options.cc = String(params.cc)
+    if (params.bcc) options.bcc = String(params.bcc)
+    try {
+      var msg = GmailApp.getMessageById(id)
+      var draft = msg.createDraftReply(body, options)
+      return ok({ draft: draftToJSON(draft) })
+    } catch(e) {
+      return err('DRAFT_FAILED', e.message || 'Could not create draft reply: ' + id)
+    }
+  }
+
+  function createDraftReplyAll(params) {
+    var id = requireParam(params, 'messageId')
+    var body = requireParam(params, 'body')
+    var options = {}
+    if (params.htmlBody) options.htmlBody = String(params.htmlBody)
+    if (params.cc) options.cc = String(params.cc)
+    if (params.bcc) options.bcc = String(params.bcc)
+    try {
+      var msg = GmailApp.getMessageById(id)
+      var draft = msg.createDraftReplyAll(body, options)
+      return ok({ draft: draftToJSON(draft) })
+    } catch(e) {
+      return err('DRAFT_FAILED', e.message || 'Could not create draft reply all: ' + id)
     }
   }
 
