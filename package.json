@@ -1,0 +1,23 @@
+{
+  "name": "google-apps-script-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MCP servers for Google Workspace via Apps Script proxy — Drive, Calendar, Sheets, Gmail",
+  "workspaces": [
+    "shared",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/*",
+    "build:drive": "cd packages/drive && npm run build",
+    "dev:drive": "cd packages/drive && npm run dev",
+    "deploy:apps-script:drive": "cd packages/drive/apps-script && clasp push",
+    "deploy:webapp:drive": "cd packages/drive/apps-script && clasp deploy --description \"Production\"",
+    "token:show:drive": "cd packages/drive/apps-script && clasp run getProxyToken",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}
