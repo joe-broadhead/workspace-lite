@@ -1,0 +1,7 @@
+**/.clasp.json
+node_modules/**
+.git/**
+.gitignore
+package.json
+package-lock.json
+tsconfig.json
