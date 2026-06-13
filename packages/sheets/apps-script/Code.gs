@@ -29,7 +29,8 @@ function doPost(e) {
   try {
     return respond(SheetsService.handle(body.action, body.params || {}))
   } catch(ex) {
-    console.error('[sheets-proxy] action=%s error=%s', body.action, ex.message || String(ex))
-    return respond(err('INTERNAL_ERROR', 'An internal error occurred. Check developer console logs for details.'))
+    const correlationId = Utilities.getUuid()
+    console.error('[sheets-proxy] correlationId=%s action=%s error=%s', correlationId, body.action, ex && ex.message ? ex.message : String(ex))
+    return respond(err('INTERNAL_ERROR', 'An internal error occurred. See Apps Script logs with correlationId ' + correlationId + '.', correlationId))
   }
 }

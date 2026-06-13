@@ -73,14 +73,14 @@ var DriveService = (() => {
     pathDepth: 50,
   }
 
-  function ok(data) {
-    const payload = JSON.stringify(data || {});
+  function ok(data, pagination, warnings) {
+    const payload = JSON.stringify({ data: data, pagination: pagination, warnings: warnings });
     if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
-    return { success: true, data: data };
+    return { success: true, data: data, pagination: pagination, warnings: warnings };
   }
 
-  function err(code, message) {
-    return { success: false, error: { code: code, message: message } };
+  function err(code, message, correlationId) {
+    return { success: false, error: { code: code, message: message, correlationId: correlationId } };
   }
 
   function limitExceeded(name, requested, max) {
@@ -148,9 +148,14 @@ var DriveService = (() => {
   function trap(fn, errorCode, errorMsg) {
     try {
       const result = fn();
-      return result && result.success === false ? result : ok(result);
+      return result && typeof result.success === 'boolean' ? result : ok(result);
     }
-    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+    catch (e) {
+      const correlationId = Utilities.getUuid();
+      console.error('[drive-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
+      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
+      return err(errorCode, message, correlationId);
+    }
   }
 
   function validateDriveId(id) {
@@ -259,7 +264,7 @@ var DriveService = (() => {
     }
 
     const hasMore = files.hasNext();
-    return { success: true, data: allFiles, nextPageToken: hasMore ? String(end) : undefined, hasMore: hasMore };
+    return ok(allFiles, { nextPageToken: hasMore ? String(end) : undefined, hasMore: hasMore });
   }
 
   function fileSearch(params) {
@@ -274,7 +279,7 @@ var DriveService = (() => {
       results.push(fileToJSON(files.next()));
       count++;
     }
-    return ok(results);
+    return ok(results, { hasMore: files.hasNext() });
   }
 
   function fileExport(params) {
@@ -656,10 +661,15 @@ var DriveService = (() => {
         const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
       } catch(ex) {
-        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
+        const correlationId = Utilities.getUuid();
+        console.error('[drive-proxy] correlationId=%s batchAction=%s error=%s', correlationId, op.action, ex && ex.message ? ex.message : String(ex));
+        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: 'Batch operation failed. See Apps Script logs with correlationId ' + correlationId + '.', correlationId: correlationId }});
       }
     }
-    return ok(batchResultData_(results, operationWeight));
+    const response = batchResponse_(results, operationWeight);
+    const payload = JSON.stringify(response);
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    return response;
   }
 
   function batch(params) {

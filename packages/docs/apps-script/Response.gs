@@ -1,9 +1,9 @@
-function ok(data, pagination) {
-  return { success: true, data: data, pagination: pagination }
+function ok(data, pagination, warnings) {
+  return { success: true, data: data, pagination: pagination, warnings: warnings }
 }
 
-function err(code, message) {
-  return { success: false, error: { code: code, message: message } }
+function err(code, message, correlationId) {
+  return { success: false, error: { code: code, message: message, correlationId: correlationId } }
 }
 
 function respond(response) {

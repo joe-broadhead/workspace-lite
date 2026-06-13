@@ -1,4 +1,4 @@
-import type { ProxyResponse } from './response.js'
+import { validateProxyResponse, type ProxyResponse } from './response.js'
 
 export interface ProxyClient {
   callProxy(action: string, params?: Record<string, unknown>): Promise<ProxyResponse>
@@ -20,8 +20,20 @@ export function createProxyClient(service: string): ProxyClient {
         signal: AbortSignal.timeout(30000),
       })
       if (!res.ok) throw new Error(`Proxy returned ${res.status} ${res.statusText}`)
-      const data = (await res.json()) as ProxyResponse
-      if (!data.success) throw new Error(`[${data.error?.code}] ${data.error?.message}`)
+      const body = await res.text()
+      let json: unknown
+      try {
+        json = JSON.parse(body)
+      } catch {
+        throw new Error('Proxy returned malformed response: expected JSON')
+      }
+      const data = validateProxyResponse(json)
+      if (!data.success) {
+        const error = data.error
+        if (!error) throw new Error('Proxy returned malformed response: error must be an object')
+        const correlation = error.correlationId ? ` (correlationId: ${error.correlationId})` : ''
+        throw new Error(`[${error.code}] ${error.message}${correlation}`)
+      }
       return data
     },
   }

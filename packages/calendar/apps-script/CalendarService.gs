@@ -47,14 +47,14 @@ const CalendarService = (() => {
     return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
   }
 
-  function ok(data) {
-    const payload = JSON.stringify(data || {});
+  function ok(data, pagination, warnings) {
+    const payload = JSON.stringify({ data: data, pagination: pagination, warnings: warnings });
     if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
-    return { success: true, data };
+    return { success: true, data: data, pagination: pagination, warnings: warnings };
   }
 
-  function err(code, message) {
-    return { success: false, error: { code, message } };
+  function err(code, message, correlationId) {
+    return { success: false, error: { code: code, message: message, correlationId: correlationId } };
   }
 
   function limitExceeded(name, requested, max) {
@@ -120,9 +120,14 @@ const CalendarService = (() => {
   function trap(fn, errorCode, errorMsg) {
     try {
       const result = fn();
-      return result && result.success === false ? result : ok(result);
+      return result && typeof result.success === 'boolean' ? result : ok(result);
     }
-    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+    catch (e) {
+      const correlationId = Utilities.getUuid();
+      console.error('[calendar-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
+      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
+      return err(errorCode, message, correlationId);
+    }
   }
 
   // ─── Calendar helpers ───
@@ -247,11 +252,10 @@ const CalendarService = (() => {
         results.push(e);
       }
 
-      return {
-        events: results,
+      return ok({ items: results }, {
         nextPageToken: events.length === maxResults ? String(page + 1) : undefined,
         hasMore: events.length === maxResults,
-      };
+      });
     }, 'LIST_FAILED', function(e) { return e.message || 'Could not list events'; });
   }
 
@@ -275,10 +279,7 @@ const CalendarService = (() => {
         results.push(eventToJSON(events[i]));
       }
 
-      return {
-        events: results,
-        hasMore: events.length === maxResults,
-      };
+      return ok({ items: results }, { hasMore: events.length === maxResults });
     }, 'SEARCH_FAILED', function(e) { return e.message || 'Search failed'; });
   }
 
@@ -309,7 +310,10 @@ const CalendarService = (() => {
     return trap(function() {
       const options = { timeMin: window.start.toISOString(), timeMax: window.end.toISOString(), maxResults: LIMITS.pageSize };
       const result = Calendar.Events.instances(calendarId, eventId, options);
-      return { eventId: eventId, calendarId: calendarId, instances: result.items || [] };
+      return ok(
+        { eventId: eventId, calendarId: calendarId, items: result.items || [] },
+        { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken },
+      );
     }, 'LIST_FAILED', function(e) { return e.message || 'Could not get event instances'; });
   }
 
@@ -578,10 +582,15 @@ const CalendarService = (() => {
         const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
       } catch(ex) {
-        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
+        const correlationId = Utilities.getUuid();
+        console.error('[calendar-proxy] correlationId=%s batchAction=%s error=%s', correlationId, op.action, ex && ex.message ? ex.message : String(ex));
+        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: 'Batch operation failed. See Apps Script logs with correlationId ' + correlationId + '.', correlationId: correlationId }});
       }
     }
-    return ok(batchResultData_(results, operationWeight));
+    const response = batchResponse_(results, operationWeight);
+    const payload = JSON.stringify(response);
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    return response;
   }
 
   function batch(params) {

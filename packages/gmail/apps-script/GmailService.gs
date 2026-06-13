@@ -97,16 +97,16 @@ const GmailService = (() => {
     return def;
   }
 
-  function ok(data, pagination) {
-    const payload = JSON.stringify(data || {});
+  function ok(data, pagination, warnings) {
+    const payload = JSON.stringify({ data: data, pagination: pagination, warnings: warnings });
     if (payload.length > LIMITS.responseBytes) {
       return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
     }
-    return { success: true, data: data, pagination: pagination };
+    return { success: true, data: data, pagination: pagination, warnings: warnings };
   }
 
-  function err(code, message) {
-    return { success: false, error: { code, message } };
+  function err(code, message, correlationId) {
+    return { success: false, error: { code: code, message: message, correlationId: correlationId } };
   }
 
   function limitExceeded(name, requested, max) {
@@ -141,9 +141,14 @@ const GmailService = (() => {
   function trap(fn, errorCode, errorMsg) {
     try {
       const result = fn();
-      return result && result.success === false ? result : ok(result);
+      return result && typeof result.success === 'boolean' ? result : ok(result);
     }
-    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+    catch (e) {
+      const correlationId = Utilities.getUuid();
+      console.error('[gmail-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
+      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
+      return err(errorCode, message, correlationId);
+    }
   }
 
   function toString(val) {
@@ -318,7 +323,9 @@ const GmailService = (() => {
     try {
       threads = GmailApp.search(query, start, threadScanLimit);
     } catch (e) {
-      return err('SEARCH_FAILED', e.message || 'Search query failed');
+      const correlationId = Utilities.getUuid();
+      console.error('[gmail-proxy] correlationId=%s code=SEARCH_FAILED error=%s', correlationId, e && e.message ? e.message : String(e));
+      return err('SEARCH_FAILED', 'Search query failed. See Apps Script logs with correlationId ' + correlationId + '.', correlationId);
     }
 
     const results = [];
@@ -332,9 +339,10 @@ const GmailService = (() => {
       }
     }
 
+    const hasMore = threads.length === threadScanLimit;
     return ok(results, {
-      nextPageToken: String(page + 1),
-      hasMore: threads.length === threadScanLimit,
+      nextPageToken: hasMore ? String(page + 1) : undefined,
+      hasMore: hasMore,
       threadsScanned: threads.length,
       messagesScanned: messagesScanned,
     });
@@ -361,7 +369,9 @@ const GmailService = (() => {
     try {
       threads = GmailApp.search(query, start, maxResults);
     } catch (e) {
-      return err('SEARCH_FAILED', e.message || 'Search query failed');
+      const correlationId = Utilities.getUuid();
+      console.error('[gmail-proxy] correlationId=%s code=SEARCH_FAILED error=%s', correlationId, e && e.message ? e.message : String(e));
+      return err('SEARCH_FAILED', 'Search query failed. See Apps Script logs with correlationId ' + correlationId + '.', correlationId);
     }
 
     const results = [];
@@ -369,9 +379,10 @@ const GmailService = (() => {
       results.push(threadToJSON(threads[i]));
     }
 
+    const hasMore = threads.length === maxResults;
     return ok(results, {
-      nextPageToken: String(page + 1),
-      hasMore: threads.length === maxResults,
+      nextPageToken: hasMore ? String(page + 1) : undefined,
+      hasMore: hasMore,
     });
   }
 
@@ -426,7 +437,9 @@ const GmailService = (() => {
       GmailApp.sendEmail(to, subject, body, options);
       return ok({ sent: true, to: to, subject: subject });
     } catch (e) {
-      return err('SEND_FAILED', e.message || 'Could not send email');
+      const correlationId = Utilities.getUuid();
+      console.error('[gmail-proxy] correlationId=%s code=SEND_FAILED error=%s', correlationId, e && e.message ? e.message : String(e));
+      return err('SEND_FAILED', 'Could not send email. See Apps Script logs with correlationId ' + correlationId + '.', correlationId);
     }
   }
 
@@ -541,7 +554,9 @@ const GmailService = (() => {
 
       return ok(results, hasMore ? { nextPageToken: String(page + 1), hasMore } : undefined);
     } catch (e) {
-      return err('LIST_FAILED', e.message || 'Could not list drafts');
+      const correlationId = Utilities.getUuid();
+      console.error('[gmail-proxy] correlationId=%s code=LIST_FAILED error=%s', correlationId, e && e.message ? e.message : String(e));
+      return err('LIST_FAILED', 'Could not list drafts. See Apps Script logs with correlationId ' + correlationId + '.', correlationId);
     }
   }
 
@@ -769,10 +784,15 @@ const GmailService = (() => {
         const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
       } catch(ex) {
-        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
+        const correlationId = Utilities.getUuid();
+        console.error('[gmail-proxy] correlationId=%s batchAction=%s error=%s', correlationId, op.action, ex && ex.message ? ex.message : String(ex));
+        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: 'Batch operation failed. See Apps Script logs with correlationId ' + correlationId + '.', correlationId: correlationId }});
       }
     }
-    return ok(batchResultData_(results, operationWeight));
+    const response = batchResponse_(results, operationWeight);
+    const payload = JSON.stringify(response);
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    return response;
   }
 
   function batch(params) {

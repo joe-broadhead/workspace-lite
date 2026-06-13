@@ -82,12 +82,12 @@ const SlidesService = (() => {
     return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
   }
 
-  function ok(data) {
-    const payload = JSON.stringify(data || {});
+  function ok(data, pagination, warnings) {
+    const payload = JSON.stringify({ data: data, pagination: pagination, warnings: warnings });
     if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
-    return { success: true, data };
+    return { success: true, data: data, pagination: pagination, warnings: warnings };
   }
-  function err(code, message) { return { success: false, error: { code, message } }; }
+  function err(code, message, correlationId) { return { success: false, error: { code: code, message: message, correlationId: correlationId } }; }
 
   function limitExceeded(name, requested, max) {
     return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
@@ -101,9 +101,14 @@ const SlidesService = (() => {
   function trap(fn, errorCode, errorMsg) {
     try {
       const result = fn();
-      return result && result.success === false ? result : ok(result);
+      return result && typeof result.success === 'boolean' ? result : ok(result);
     }
-    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+    catch (e) {
+      const correlationId = Utilities.getUuid();
+      console.error('[slides-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
+      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
+      return err(errorCode, message, correlationId);
+    }
   }
 
   function runBatch(handle) {
@@ -132,15 +137,20 @@ const SlidesService = (() => {
             error: result.success ? undefined : result.error,
           });
         } catch (ex) {
+          const correlationId = Utilities.getUuid();
+          console.error('[slides-proxy] correlationId=%s batchAction=%s error=%s', correlationId, op.action, ex && ex.message ? ex.message : String(ex));
           results.push({
             index: i,
             action: op.action,
             success: false,
-            error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) },
+            error: { code: 'INTERNAL_ERROR', message: 'Batch operation failed. See Apps Script logs with correlationId ' + correlationId + '.', correlationId: correlationId },
           });
         }
       }
-      return ok(batchResultData_(results, operationWeight));
+      const response = batchResponse_(results, operationWeight);
+      const payload = JSON.stringify(response);
+      if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+      return response;
     };
   }
 
@@ -407,7 +417,11 @@ const SlidesService = (() => {
         layout: layout ? layout.getLayoutName() : 'default',
         bottomY: computeLowestY(slide) + 8,
       });
-    } catch (e) { return err('CREATE_FAILED', `Could not add slide: ${e.message}`); }
+    } catch (e) {
+      const correlationId = Utilities.getUuid();
+      console.error('[slides-proxy] correlationId=%s code=CREATE_FAILED error=%s', correlationId, e && e.message ? e.message : String(e));
+      return err('CREATE_FAILED', 'Could not add slide. See Apps Script logs with correlationId ' + correlationId + '.', correlationId);
+    }
   }
 
   function slideDelete(params) {

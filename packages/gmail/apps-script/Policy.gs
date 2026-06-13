@@ -175,11 +175,19 @@ function batchResultData_(results, operationWeight) {
     if (!results[i].success) failed++
   }
   return {
-    results: results,
     status: failed === 0 ? 'SUCCESS' : (failed === results.length ? 'FAILED' : 'PARTIAL_SUCCESS'),
     totalOperations: results.length,
     succeeded: results.length - failed,
     failed: failed,
     operationWeight: operationWeight,
   }
+}
+
+function batchResponse_(results, operationWeight) {
+  const data = batchResultData_(results, operationWeight)
+  if (data.failed > 0) {
+    return { success: true, data: data, partial: true, results: results }
+  }
+  data.results = results
+  return { success: true, data: data }
 }
