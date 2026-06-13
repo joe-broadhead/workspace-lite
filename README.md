@@ -32,8 +32,8 @@ MCP servers exposing all Google Workspace services through Apps Script web app p
 | `calendar` | 15 | ✅ | List events, search, create/update/delete, free/busy, multi-calendar, quick add, event series, color, respond |
 | `sheets` | 27 | ✅ | Create/read/write/append, formulas, formatting, charts, sort, freeze, merge, notes, data validation, conditional formatting, row ops |
 | `slides` | 18 | ✅ | Create, add/delete/duplicate/move slides, text, images, shapes, tables, auto-position, notes, backgrounds, lines |
-| `docs` | 19 | ✅ | Create/read, paragraphs, headings, lists, tables, images, page breaks, text formatting, headers/footers, TOC, footnotes, JSON export |
-| **Total** | **141** | all 6 | |
+| `docs` | 17 | ✅ | Create/read, paragraphs, headings, lists, tables, images, page breaks, text formatting, headers/footers, JSON export |
+| **Total** | **139** | all 6 | |
 
 ## Quick Start (one-time setup)
 

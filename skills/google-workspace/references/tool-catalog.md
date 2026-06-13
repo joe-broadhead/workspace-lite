@@ -184,7 +184,7 @@
 | `slides_replace_all_text` | `presentationId`, `findText`, `replaceText` |
 | **Batch** | `slides_batch` | `presentationId`, `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
 
-## Docs — 19 tools
+## Docs — 17 tools
 
 **Manage:**
 | Tool | Params |
@@ -204,8 +204,6 @@
 | `docs_insert_image` | `documentId`, `imageUrl`, `append?` (default true) |
 | `docs_insert_horizontal_rule` | `documentId`, `append?` (default true) |
 | `docs_insert_page_break` | `documentId`, `append?` (default true) |
-| `docs_insert_footnote` | `documentId`, `text`, `paragraphIndex?` — attach to paragraph or document body |
-| `docs_insert_table_of_contents` | `documentId` — auto-populates from headings |
 
 **Edit:**
 | Tool | Params |

@@ -22,8 +22,6 @@ Create, read, and programmatically build documents with paragraphs, headings, li
 | `docs_set_header` | Set the document header text (empty string to clear). |
 | `docs_set_footer` | Set the document footer text (empty string to clear). |
 | `docs_get_as_json` | Get the full document as structured JSON with all content, formatting, and structure. |
-| `docs_insert_footnote` | Insert a footnote at a specific paragraph or at the end of the document body. |
-| `docs_insert_table_of_contents` | Insert a table of contents that auto-populates from document headings. |
 | `docs_batch` | Execute multiple operations (up to 20) in a single round-trip. |
 
 ## Key Features

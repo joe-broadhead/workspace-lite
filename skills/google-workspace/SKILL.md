@@ -1,7 +1,7 @@
 ---
 name: google-workspace
 version: 1.0.0
-description: "Google Workspace automation: Drive (29 tools), Gmail (33), Calendar (15), Sheets (27), Slides (18), Docs (19). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, or write documents."
+description: "Google Workspace automation: Drive (29 tools), Gmail (33), Calendar (15), Sheets (27), Slides (18), Docs (17). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, or write documents."
 metadata:
   requires:
     bins: []

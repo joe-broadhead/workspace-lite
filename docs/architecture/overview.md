@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 141 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 139 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
@@ -47,7 +47,7 @@ workspace-lite/
 │   ├── calendar/               # 15 tools
 │   ├── sheets/                 # 27 tools
 │   ├── slides/                 # 18 tools
-│   └── docs/                   # 19 tools
+│   └── docs/                   # 17 tools
 ├── scripts/
 │   └── setup.sh                # One-shot setup: clasp login → create → push → deploy guide → bootstrap
 ├── skills/
