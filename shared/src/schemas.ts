@@ -255,16 +255,28 @@ export const sheetsRangeWriteSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
   range: z.string().describe('Starting cell or range in A1 notation (e.g. "A1" or "A1:C3").'),
-  values: z.array(z.array(z.string())).describe('2D array of values to write.'),
+  values: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))).describe('2D array of values to write.'),
 }
 
 export const sheetsAppendRowsSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  values: z.array(z.array(z.string())).describe('2D array of rows to append.'),
+  values: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))).describe('2D array of rows to append.'),
 }
 
 export const sheetsClearRangeSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
+}
+
+export const sheetsGetFormulasSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
+}
+
+export const sheetsGetNotesSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
   range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
@@ -374,8 +386,9 @@ export const sheetsSetNoteSchema = {
 }
 
 export const sheetsBatchSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet).'),
+    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeGetFormulas, rangeGetNotes, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet).'),
     params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas for parameter details.'),
   })).min(1).max(20).describe('Ordered list of operations to execute.'),
 }
@@ -467,10 +480,36 @@ export const slidesSlideNotesSchema = {
   notes: z.string().optional().describe('Speaker notes text. If provided, sets notes. If omitted, returns current notes.'),
 }
 
+export const slidesDeleteElementSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the element to delete.'),
+}
+
+export const slidesGetElementTextSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the shape element to read text from.'),
+}
+
+export const slidesFormatTextSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the shape element to format.'),
+  bold: z.boolean().optional().describe('Set bold.'),
+  italic: z.boolean().optional().describe('Set italic.'),
+  underline: z.boolean().optional().describe('Set underline.'),
+  fontFamily: z.string().optional().describe('Font family (e.g. "Arial").'),
+  fontSize: z.number().int().min(1).max(400).optional().describe('Font size in points.'),
+  foregroundColor: z.string().optional().describe('Text color (CSS).'),
+  backgroundColor: z.string().optional().describe('Background color (CSS).'),
+  linkUrl: z.string().optional().describe('Set hyperlink URL.'),
+}
+
 export const slidesBatchSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: presentationGet, slideAdd, slideDelete, slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert, tableInsert, slideElementsList, slideNotes, textReplaceAll).'),
+    action: z.string().describe('Action to perform (same names as individual tools: presentationGet, slideAdd, slideDelete, slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert, tableInsert, slideElementsList, elementDelete, elementGetText, elementFormatText, slideNotes, textReplaceAll).'),
     params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
@@ -492,6 +531,23 @@ export const docsInsertParagraphSchema = {
   text: z.string().optional().describe('Paragraph text content.'),
   heading: z.enum(['NORMAL', 'HEADING1', 'HEADING2', 'HEADING3', 'HEADING4', 'HEADING5', 'HEADING6']).default('NORMAL').optional().describe('Heading level. NORMAL is body text.'),
   append: z.boolean().default(true).describe('If true, appends to end of document. If false, inserts at the beginning.'),
+}
+
+export const docsUpdateParagraphSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  paragraphIndex: z.number().int().min(0).describe('Index of the paragraph to update (0-based).'),
+  heading: z.enum(['NORMAL', 'HEADING1', 'HEADING2', 'HEADING3', 'HEADING4', 'HEADING5', 'HEADING6']).optional().describe('New heading level. NORMAL is body text.'),
+  text: z.string().optional().describe('New paragraph text content.'),
+}
+
+export const docsDeleteParagraphSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  paragraphIndex: z.number().int().min(0).describe('Index of the paragraph to delete (0-based).'),
+}
+
+export const docsHeaderFooterSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  text: z.string().describe('Header/footer text. Use empty string to clear.'),
 }
 
 export const docsSetTextSchema = {
@@ -553,7 +609,7 @@ export const docsFormatTextSchema = {
 export const docsBatchSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: documentGet, paragraphInsert, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText).'),
+    action: z.string().describe('Action to perform (same names as individual tools: documentGet, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet).'),
     params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }

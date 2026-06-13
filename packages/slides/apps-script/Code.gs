@@ -6,7 +6,7 @@ function doGet(e) {
     markBootstrapped()
     return respond(ok({ status: 'bootstrapped', token: getOrCreateToken(), note: 'Save this token as GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN. This endpoint will not return the token again.' }))
   }
-  return respond(ok({ status: 'healthy', version: '1.0.0', service: 'google-workspace-proxy-slides' }))
+  return respond(ok({ status: 'healthy', version: '1.0.0', service: 'google-workspace-proxy-sheets' }))
 }
 
 function getProxyToken() { return getToken() }

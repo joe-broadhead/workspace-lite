@@ -1,4 +1,25 @@
 var SlidesService = (function() {
+
+  const SHAPE_TYPE_MAP = {
+    RECTANGLE: SlidesApp.ShapeType.RECTANGLE,
+    ROUND_RECTANGLE: SlidesApp.ShapeType.ROUND_RECTANGLE,
+    ELLIPSE: SlidesApp.ShapeType.ELLIPSE,
+    TRIANGLE: SlidesApp.ShapeType.TRIANGLE,
+    ARROW_RIGHT: SlidesApp.ShapeType.RIGHT_ARROW,
+    ARROW_LEFT: SlidesApp.ShapeType.LEFT_ARROW,
+    STAR_5: SlidesApp.ShapeType.STAR_5,
+    HEXAGON: SlidesApp.ShapeType.HEXAGON,
+    CLOUD: SlidesApp.ShapeType.CLOUD,
+    FLOW_CHART_PROCESS: SlidesApp.ShapeType.FLOW_CHART_PROCESS,
+    FLOW_CHART_DECISION: SlidesApp.ShapeType.FLOW_CHART_DECISION,
+    WAVE: SlidesApp.ShapeType.WAVE,
+    CHEVRON: SlidesApp.ShapeType.CHEVRON,
+    PENTAGON: SlidesApp.ShapeType.PENTAGON,
+    TRAPEZOID: SlidesApp.ShapeType.TRAPEZOID,
+  }
+
+  const lowestYCache = new WeakMap()
+
   function handle(action, params) {
     switch (action) {
       case 'presentationCreate':  return presentationCreate(params)
@@ -14,15 +35,21 @@ var SlidesService = (function() {
       case 'slideElementsList':   return slideElementsList(params)
       case 'slideNotes':          return slideNotes(params)
       case 'textReplaceAll':      return textReplaceAll(params)
+      case 'elementDelete':       return elementDelete(params)
+      case 'elementGetText':      return elementGetText(params)
+      case 'elementFormatText':   return elementFormatText(params)
       case 'batch':               return batch(params)
-      default: return err('UNKNOWN_ACTION', 'Unknown action: ' + action)
+      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
     }
   }
 
+  function ok(data) { return { success: true, data } }
+  function err(code, message) { return { success: false, error: { code, message } } }
+
   function requireParam(params, name) {
-    var val = params[name]
-    if (val === undefined || val === null) throw new Error('Missing required parameter: ' + name)
-    if (typeof val === 'string' && !val.trim()) throw new Error('Missing required parameter: ' + name)
+    const val = params[name]
+    if (val === undefined || val === null) throw new Error(`Missing required parameter: ${name}`)
+    if (typeof val === 'string' && !val.trim()) throw new Error(`Missing required parameter: ${name}`)
     return typeof val === 'string' ? val.trim() : val
   }
 
@@ -31,7 +58,7 @@ var SlidesService = (function() {
   }
 
   function optionalNumber(params, name, def) {
-    var val = params[name]
+    const val = params[name]
     if (typeof val === 'number' && !isNaN(val)) return val
     if (typeof val === 'string' && !isNaN(Number(val))) return Number(val)
     return def
@@ -45,37 +72,43 @@ var SlidesService = (function() {
   }
 
   function validatePresentationId(id) {
-    if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error('Invalid presentation ID: ' + id)
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error(`Invalid presentation ID: ${id}`)
   }
 
   function getPresentation(id) {
     validatePresentationId(id)
     try { return SlidesApp.openById(id) }
-    catch(e) { return null }
+    catch (e) { return null }
   }
 
   function getSlide(presentation, slideIndex) {
-    var slides = presentation.getSlides()
+    const slides = presentation.getSlides()
     if (slideIndex < 0 || slideIndex >= slides.length) return null
     return slides[slideIndex]
   }
 
   function resolveSlide(presentationId, slideIndex) {
-    var pres = getPresentation(presentationId)
-    if (!pres) return { err: 'NOT_FOUND', msg: 'Presentation not found: ' + presentationId }
-    var slide = getSlide(pres, slideIndex)
-    if (!slide) return { err: 'NOT_FOUND', msg: 'Slide index out of range: ' + slideIndex }
-    return { pres: pres, slide: slide }
+    const pres = getPresentation(presentationId)
+    if (!pres) return { err: 'NOT_FOUND', msg: `Presentation not found: ${presentationId}` }
+    const slide = getSlide(pres, slideIndex)
+    if (!slide) return { err: 'NOT_FOUND', msg: `Slide index out of range: ${slideIndex}` }
+    return { pres, slide }
   }
 
   function getLowestY(slide) {
-    var elements = slide.getPageElements()
-    var lowest = 0
-    for (var i = 0; i < elements.length; i++) {
-      var bottom = elements[i].getTop() + elements[i].getHeight()
+    let val = lowestYCache.get(slide)
+    if (val !== undefined) return val
+    let lowest = 0
+    for (const el of slide.getPageElements()) {
+      const bottom = el.getTop() + el.getHeight()
       if (bottom > lowest) lowest = bottom
     }
+    lowestYCache.set(slide, lowest)
     return lowest
+  }
+
+  function invalidateLowestY(slide) {
+    lowestYCache.delete(slide)
   }
 
   function applyAutoPosition(r, params, fallbackLeft, fallbackTop, fallbackWidth, fallbackHeight) {
@@ -93,19 +126,27 @@ var SlidesService = (function() {
   }
 
   function presentationToJSON(pres) {
-    var slides = pres.getSlides()
-    var list = []
-    for (var i = 0; i < slides.length; i++) {
-      var s = slides[i]
-      var layout = s.getLayout()
+    const slides = pres.getSlides()
+    const list = []
+    for (let i = 0; i < slides.length; i++) {
+      const s = slides[i]
+      const layout = s.getLayout()
       list.push({
         objectId: s.getObjectId(),
         index: i,
         layout: layout ? layout.getLayoutName() : null,
-        numElements: s.getPageElements().length
+        numElements: s.getPageElements().length,
       })
     }
-    return { id: pres.getId(), name: pres.getName(), url: pres.getUrl(), pageWidth: pres.getPageWidth(), pageHeight: pres.getPageHeight(), numSlides: slides.length, slides: list }
+    return {
+      id: pres.getId(),
+      name: pres.getName(),
+      url: pres.getUrl(),
+      pageWidth: pres.getPageWidth(),
+      pageHeight: pres.getPageHeight(),
+      numSlides: slides.length,
+      slides: list,
+    }
   }
 
   function elementToJSON(el) {
@@ -115,66 +156,73 @@ var SlidesService = (function() {
       left: el.getLeft(),
       top: el.getTop(),
       width: el.getWidth(),
-      height: el.getHeight()
+      height: el.getHeight(),
     }
+  }
+
+  function findElement(slide, objectId) {
+    for (const el of slide.getPageElements()) {
+      if (el.getObjectId() === objectId) return el
+    }
+    return null
   }
 
   // ── Presentation management ──
 
   function presentationCreate(params) {
-    var name = requireParam(params, 'name')
+    const name = requireParam(params, 'name')
     try {
-      var pres = SlidesApp.create(name)
+      const pres = SlidesApp.create(name)
       return ok({ presentation: presentationToJSON(pres) })
-    } catch(e) { return err('CREATE_FAILED', 'Could not create presentation: ' + name) }
+    } catch (e) { return err('CREATE_FAILED', `Could not create presentation: ${name}`) }
   }
 
   function presentationGet(params) {
-    var id = requireParam(params, 'presentationId')
-    var pres = getPresentation(id)
-    if (!pres) return err('NOT_FOUND', 'Presentation not found: ' + id)
+    const id = requireParam(params, 'presentationId')
+    const pres = getPresentation(id)
+    if (!pres) return err('NOT_FOUND', `Presentation not found: ${id}`)
     return ok({ presentation: presentationToJSON(pres) })
   }
 
   // ── Slide management ──
 
   function slideAdd(params) {
-    var id = requireParam(params, 'presentationId')
-    var titleText = optionalString(params, 'titleText', null)
-    var bodyText = optionalString(params, 'bodyText', null)
+    const id = requireParam(params, 'presentationId')
+    const titleText = optionalString(params, 'titleText', null)
+    const bodyText = optionalString(params, 'bodyText', null)
 
-    var pres = getPresentation(id)
-    if (!pres) return err('NOT_FOUND', 'Presentation not found: ' + id)
+    const pres = getPresentation(id)
+    if (!pres) return err('NOT_FOUND', `Presentation not found: ${id}`)
 
     try {
-      var layouts = pres.getLayouts()
-      var layout = layouts.length > 0 ? layouts[0] : null
+      const layouts = pres.getLayouts()
+      let layout = layouts.length > 0 ? layouts[0] : null
 
       if (titleText && layouts.length > 1) {
-        for (var i = 0; i < layouts.length; i++) {
-          if (layouts[i].getLayoutName().toLowerCase().indexOf('title') >= 0) {
-            layout = layouts[i]
+        for (const l of layouts) {
+          if (l.getLayoutName().toLowerCase().indexOf('title') >= 0) {
+            layout = l
             break
           }
         }
       }
 
-      var slide
+      let slide
       if (pres.getSlides().length === 0) {
-        slide = pres.getSlides()[0] // First slide uses default layout
+        slide = pres.getSlides()[0]
         if (titleText) {
-          var shapes = slide.getShapes()
-          for (var j = 0; j < shapes.length; j++) {
-            var text = shapes[j].getText()
+          const shapes = slide.getShapes()
+          for (const shape of shapes) {
+            const text = shape.getText()
             if (text) {
-              try { text.setText(titleText); break } catch(t) {}
+              try { text.setText(titleText); break } catch (t) {}
             }
           }
           if (bodyText) {
-            for (var k = 0; k < shapes.length; k++) {
-              var t2 = shapes[k].getText()
+            for (const shape of shapes) {
+              const t2 = shape.getText()
               if (t2 && t2.getStartIndex() === 0 && t2.getEndIndex() === titleText.length) {
-                try { t2.appendText('\n\n' + bodyText) } catch(t) {}
+                try { t2.appendText(`\n\n${bodyText}`) } catch (t) {}
                 break
               }
             }
@@ -183,13 +231,11 @@ var SlidesService = (function() {
       } else {
         slide = pres.appendSlide(layout)
         if (titleText) {
-          var titleShape = null
-          var bodyShape = null
-          var pageEls = slide.getPageElements()
-          for (var m = 0; m < pageEls.length; m++) {
-            var el = pageEls[m]
+          let titleShape = null
+          let bodyShape = null
+          for (const el of slide.getPageElements()) {
             if (el.getPageElementType() === SlidesApp.PageElementType.SHAPE) {
-              var shape = el.asShape()
+              const shape = el.asShape()
               if (shape.getText()) {
                 if (!titleShape) titleShape = shape
                 else if (!bodyShape) bodyShape = shape
@@ -197,284 +243,407 @@ var SlidesService = (function() {
             }
           }
           if (titleShape) {
-            try { titleShape.getText().setText(titleText) } catch(t) {}
+            try { titleShape.getText().setText(titleText) } catch (t) {}
             if (bodyText && bodyShape) {
-              try { bodyShape.getText().setText(bodyText) } catch(t) {}
-            } else if (bodyText && titleShape) {
-              try { titleShape.getText().appendText('\n' + bodyText) } catch(t) {}
+              try { bodyShape.getText().setText(bodyText) } catch (t) {}
+            } else if (bodyText) {
+              try { titleShape.getText().appendText(`\n${bodyText}`) } catch (t) {}
             }
           } else {
-            slide.insertTextBox(titleText + (bodyText ? '\n' + bodyText : ''))
+            slide.insertTextBox(titleText + (bodyText ? `\n${bodyText}` : ''))
           }
         } else if (bodyText) {
-          var shapes = slide.getShapes()
+          const shapes = slide.getShapes()
           if (shapes.length > 0) {
-            try { shapes[0].getText().setText(bodyText) } catch(t) { slide.insertTextBox(bodyText) }
+            try { shapes[0].getText().setText(bodyText) } catch (t) { slide.insertTextBox(bodyText) }
           } else {
             slide.insertTextBox(bodyText)
           }
         }
       }
 
-      return ok({ slideIndex: pres.getSlides().length - 1, objectId: slide.getObjectId(), layout: layout ? layout.getLayoutName() : 'default', bottomY: getLowestY(slide) + 8 })
-    } catch(e) { return err('CREATE_FAILED', 'Could not add slide: ' + e.message) }
+      invalidateLowestY(slide)
+      return ok({
+        slideIndex: pres.getSlides().length - 1,
+        objectId: slide.getObjectId(),
+        layout: layout ? layout.getLayoutName() : 'default',
+        bottomY: getLowestY(slide) + 8,
+      })
+    } catch (e) { return err('CREATE_FAILED', `Could not add slide: ${e.message}`) }
   }
 
   function slideDelete(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     try {
       r.slide.remove()
-      return ok({ deleted: true, slideIndex: slideIndex })
-    } catch(e) { return err('DELETE_FAILED', 'Could not delete slide: ' + e.message) }
+      return ok({ deleted: true, slideIndex })
+    } catch (e) { return err('DELETE_FAILED', `Could not delete slide: ${e.message}`) }
   }
 
   function slideDuplicate(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     try {
-      var dup = r.slide.duplicate()
-      return ok({ duplicated: true, originalIndex: slideIndex, newIndex: r.pres.getSlides().length - 1, newObjectId: dup.getObjectId() })
-    } catch(e) { return err('DUPLICATE_FAILED', 'Could not duplicate slide: ' + e.message) }
+      const dup = r.slide.duplicate()
+      invalidateLowestY(r.slide)
+      return ok({
+        duplicated: true,
+        originalIndex: slideIndex,
+        newIndex: r.pres.getSlides().length - 1,
+        newObjectId: dup.getObjectId(),
+      })
+    } catch (e) { return err('DUPLICATE_FAILED', `Could not duplicate slide: ${e.message}`) }
   }
 
   function slideMove(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
-    var newIndex = requireParam(params, 'newIndex')
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const newIndex = requireParam(params, 'newIndex')
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     try {
       r.slide.move(newIndex)
       return ok({ moved: true, fromIndex: slideIndex, toIndex: newIndex })
-    } catch(e) { return err('MOVE_FAILED', 'Could not move slide: ' + e.message) }
+    } catch (e) { return err('MOVE_FAILED', `Could not move slide: ${e.message}`) }
   }
 
   // ── Content insertion ──
 
   function textBoxInsert(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
-    var text = requireParam(params, 'text')
-    var autoPosition = optionalBool(params, 'autoPosition', true)
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const text = requireParam(params, 'text')
+    const autoPosition = optionalBool(params, 'autoPosition', true)
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72)
 
-    var left = params.left !== undefined ? Number(params.left) : 72
-    var top = params.top !== undefined ? Number(params.top) : 72
-    var width = params.width !== undefined ? Number(params.width) : 576
-    var height = params.height !== undefined ? Number(params.height) : 72
+    const left = params.left !== undefined ? Number(params.left) : 72
+    const top = params.top !== undefined ? Number(params.top) : 72
+    const width = params.width !== undefined ? Number(params.width) : 576
+    const height = params.height !== undefined ? Number(params.height) : 72
 
     try {
-      var tb = r.slide.insertTextBox(text, left, top, width, height)
-      return ok({ objectId: tb.getObjectId(), left: tb.getLeft(), top: tb.getTop(), width: tb.getWidth(), height: tb.getHeight() })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert text box: ' + e.message) }
+      const tb = r.slide.insertTextBox(text, left, top, width, height)
+      invalidateLowestY(r.slide)
+      return ok({
+        objectId: tb.getObjectId(),
+        left: tb.getLeft(),
+        top: tb.getTop(),
+        width: tb.getWidth(),
+        height: tb.getHeight(),
+      })
+    } catch (e) { return err('INSERT_FAILED', `Could not insert text box: ${e.message}`) }
   }
 
   function imageInsert(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
-    var imageUrl = requireParam(params, 'imageUrl')
-    var autoPosition = optionalBool(params, 'autoPosition', true)
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const imageUrl = requireParam(params, 'imageUrl')
+    const autoPosition = optionalBool(params, 'autoPosition', true)
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, 300, 200)
 
-    var left = params.left !== undefined ? Number(params.left) : 72
-    var top = params.top !== undefined ? Number(params.top) : 72
-    var width = params.width !== undefined ? Number(params.width) : 300
-    var height = params.height !== undefined ? Number(params.height) : 200
+    const left = params.left !== undefined ? Number(params.left) : 72
+    const top = params.top !== undefined ? Number(params.top) : 72
+    const width = params.width !== undefined ? Number(params.width) : 300
+    const height = params.height !== undefined ? Number(params.height) : 200
 
     try {
-      var img = r.slide.insertImage(imageUrl, left, top, width, height)
-      return ok({ objectId: img.getObjectId(), left: img.getLeft(), top: img.getTop(), width: img.getWidth(), height: img.getHeight() })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert image: ' + e.message) }
+      const img = r.slide.insertImage(imageUrl, left, top, width, height)
+      invalidateLowestY(r.slide)
+      return ok({
+        objectId: img.getObjectId(),
+        left: img.getLeft(),
+        top: img.getTop(),
+        width: img.getWidth(),
+        height: img.getHeight(),
+      })
+    } catch (e) { return err('INSERT_FAILED', `Could not insert image: ${e.message}`) }
   }
 
   function shapeInsert(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
-    var shapeType = requireParam(params, 'shapeType')
-    var autoPosition = optionalBool(params, 'autoPosition', true)
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const shapeType = requireParam(params, 'shapeType')
+    const autoPosition = optionalBool(params, 'autoPosition', true)
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, 300, 200)
 
-    var left = params.left !== undefined ? Number(params.left) : 72
-    var top = params.top !== undefined ? Number(params.top) : 200
-    var width = params.width !== undefined ? Number(params.width) : 300
-    var height = params.height !== undefined ? Number(params.height) : 200
+    const left = params.left !== undefined ? Number(params.left) : 72
+    const top = params.top !== undefined ? Number(params.top) : 200
+    const width = params.width !== undefined ? Number(params.width) : 300
+    const height = params.height !== undefined ? Number(params.height) : 200
 
     try {
-      var typeMap = {
-        RECTANGLE: SlidesApp.ShapeType.RECTANGLE,
-        ROUND_RECTANGLE: SlidesApp.ShapeType.ROUND_RECTANGLE,
-        ELLIPSE: SlidesApp.ShapeType.ELLIPSE,
-        TRIANGLE: SlidesApp.ShapeType.TRIANGLE,
-        ARROW_RIGHT: SlidesApp.ShapeType.RIGHT_ARROW,
-        ARROW_LEFT: SlidesApp.ShapeType.LEFT_ARROW,
-        STAR_5: SlidesApp.ShapeType.STAR_5,
-        HEXAGON: SlidesApp.ShapeType.HEXAGON,
-        CLOUD: SlidesApp.ShapeType.CLOUD,
-        FLOW_CHART_PROCESS: SlidesApp.ShapeType.FLOW_CHART_PROCESS,
-        FLOW_CHART_DECISION: SlidesApp.ShapeType.FLOW_CHART_DECISION,
-        WAVE: SlidesApp.ShapeType.WAVE,
-        CHEVRON: SlidesApp.ShapeType.CHEVRON,
-        PENTAGON: SlidesApp.ShapeType.PENTAGON,
-        TRAPEZOID: SlidesApp.ShapeType.TRAPEZOID
-      }
-      var st = typeMap[shapeType] || SlidesApp.ShapeType.RECTANGLE
-      var shape = r.slide.insertShape(st, left, top, width, height)
-      return ok({ objectId: shape.getObjectId(), shapeType: shapeType, left: shape.getLeft(), top: shape.getTop(), width: shape.getWidth(), height: shape.getHeight() })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert shape: ' + e.message) }
+      const st = SHAPE_TYPE_MAP[shapeType] || SlidesApp.ShapeType.RECTANGLE
+      const shape = r.slide.insertShape(st, left, top, width, height)
+      invalidateLowestY(r.slide)
+      return ok({
+        objectId: shape.getObjectId(),
+        shapeType,
+        left: shape.getLeft(),
+        top: shape.getTop(),
+        width: shape.getWidth(),
+        height: shape.getHeight(),
+      })
+    } catch (e) { return err('INSERT_FAILED', `Could not insert shape: ${e.message}`) }
   }
 
   function tableInsert(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
-    var values = params.values
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const values = params.values
     if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array')
 
-    var rows = optionalNumber(params, 'rows', values.length)
-    var cols = optionalNumber(params, 'cols', values[0].length)
-    var autoPosition = optionalBool(params, 'autoPosition', true)
+    const rows = optionalNumber(params, 'rows', values.length)
+    const cols = optionalNumber(params, 'cols', values[0].length)
+    const autoPosition = optionalBool(params, 'autoPosition', true)
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72 * rows)
 
-    var left = params.left !== undefined ? Number(params.left) : 72
-    var top = params.top !== undefined ? Number(params.top) : 100
-    var width = params.width !== undefined ? Number(params.width) : 576
-    var height = params.height !== undefined ? Number(params.height) : 72 * Math.max(rows, 1)
-
-    var r = resolveSlide(id, slideIndex)
-    if (r.err) return err(r.err, r.msg)
+    const left = params.left !== undefined ? Number(params.left) : 72
+    const top = params.top !== undefined ? Number(params.top) : 100
+    const width = params.width !== undefined ? Number(params.width) : 576
+    const height = params.height !== undefined ? Number(params.height) : 72 * Math.max(rows, 1)
 
     try {
-      var table = r.slide.insertTable(Math.max(rows, 1), Math.max(cols, 1), left, top, width, height)
-      for (var i = 0; i < Math.min(rows, values.length); i++) {
-        for (var j = 0; j < Math.min(cols, values[i].length); j++) {
-          try { table.getCell(i, j).getText().setText(String(values[i][j] || '')) } catch(cellErr) {}
+      const table = r.slide.insertTable(Math.max(rows, 1), Math.max(cols, 1), left, top, width, height)
+      for (let i = 0; i < Math.min(rows, values.length); i++) {
+        for (let j = 0; j < Math.min(cols, values[i].length); j++) {
+          try { table.getCell(i, j).getText().setText(String(values[i][j] || '')) } catch (cellErr) {}
         }
       }
-      return ok({ objectId: table.getObjectId(), rows: rows, cols: cols, left: table.getLeft(), top: table.getTop() })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert table: ' + e.message) }
+      invalidateLowestY(r.slide)
+      return ok({
+        objectId: table.getObjectId(),
+        rows,
+        cols,
+        left: table.getLeft(),
+        top: table.getTop(),
+      })
+    } catch (e) { return err('INSERT_FAILED', `Could not insert table: ${e.message}`) }
   }
 
   // ── Reading ──
 
   function slideElementsList(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
-    var pageEls = r.slide.getPageElements()
-    var elements = []
-    for (var i = 0; i < pageEls.length; i++) {
-      var el = pageEls[i]
-      var info = elementToJSON(el)
-      var elType = el.getPageElementType()
+    const pageEls = r.slide.getPageElements()
+    const elements = []
+    for (const el of pageEls) {
+      const info = elementToJSON(el)
+      const elType = el.getPageElementType()
       if (elType === SlidesApp.PageElementType.SHAPE) {
         try {
-          var shape = el.asShape()
-          var txt = shape.getText()
-          if (txt) info.text = txt.asString().substring(0, 200)
-        } catch(s) {}
+          const shape = el.asShape()
+          const txt = shape.getText()
+          if (txt) info.text = txt.asString()
+        } catch (s) {}
       } else if (elType === SlidesApp.PageElementType.TABLE) {
         try {
-          var tbl = el.asTable()
+          const tbl = el.asTable()
           info.numRows = tbl.getNumRows()
           info.numCols = tbl.getNumColumns()
-        } catch(s) {}
+        } catch (s) {}
       }
       elements.push(info)
     }
-    return ok({ slideIndex: slideIndex, slideObjectId: r.slide.getObjectId(), elements: elements })
+    return ok({ slideIndex, slideObjectId: r.slide.getObjectId(), elements })
   }
 
   function slideNotes(params) {
-    var id = requireParam(params, 'presentationId')
-    var slideIndex = requireParam(params, 'slideIndex')
-    var notesText = params.notes
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const notesText = params.notes
 
-    var r = resolveSlide(id, slideIndex)
+    const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
     try {
-      var notesPage = r.slide.getNotesPage()
-      var notesShape = notesPage.getSpeakerNotesShape()
+      const notesPage = r.slide.getNotesPage()
+      const notesShape = notesPage.getSpeakerNotesShape()
       if (notesText !== undefined) {
         notesShape.getText().setText(String(notesText))
-        return ok({ slideIndex: slideIndex, notesSet: true })
+        return ok({ slideIndex, notesSet: true })
       }
-      return ok({ slideIndex: slideIndex, notes: notesShape.getText().asString() })
-    } catch(e) { return err('READ_FAILED', 'Could not access speaker notes: ' + e.message) }
+      return ok({ slideIndex, notes: notesShape.getText().asString() })
+    } catch (e) { return err('READ_FAILED', `Could not access speaker notes: ${e.message}`) }
   }
 
   // ── Text operations ──
 
   function textReplaceAll(params) {
-    var id = requireParam(params, 'presentationId')
-    var findText = requireParam(params, 'findText')
-    var replaceText = requireParam(params, 'replaceText')
+    const id = requireParam(params, 'presentationId')
+    const findText = requireParam(params, 'findText')
+    const replaceText = requireParam(params, 'replaceText')
 
-    var pres = getPresentation(id)
-    if (!pres) return err('NOT_FOUND', 'Presentation not found: ' + id)
+    const pres = getPresentation(id)
+    if (!pres) return err('NOT_FOUND', `Presentation not found: ${id}`)
 
     try {
-      var count = pres.replaceAllText(findText, replaceText, false)
+      const count = pres.replaceAllText(findText, replaceText, false)
       return ok({ replacements: count })
-    } catch(e) { return err('REPLACE_FAILED', 'Could not replace text: ' + e.message) }
+    } catch (e) { return err('REPLACE_FAILED', `Could not replace text: ${e.message}`) }
+  }
+
+  // ── Element operations ──
+
+  function elementDelete(params) {
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const objectId = requireParam(params, 'objectId')
+
+    const r = resolveSlide(id, slideIndex)
+    if (r.err) return err(r.err, r.msg)
+
+    const el = findElement(r.slide, objectId)
+    if (!el) return err('NOT_FOUND', `Element not found: ${objectId}`)
+
+    try {
+      el.remove()
+      invalidateLowestY(r.slide)
+      return ok({ deleted: true, objectId, slideIndex })
+    } catch (e) { return err('DELETE_FAILED', `Could not delete element: ${e.message}`) }
+  }
+
+  function elementGetText(params) {
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const objectId = requireParam(params, 'objectId')
+
+    const r = resolveSlide(id, slideIndex)
+    if (r.err) return err(r.err, r.msg)
+
+    const el = findElement(r.slide, objectId)
+    if (!el) return err('NOT_FOUND', `Element not found: ${objectId}`)
+
+    const elType = el.getPageElementType()
+    if (elType !== SlidesApp.PageElementType.SHAPE) {
+      return err('BAD_REQUEST', `Element is not a shape/text element: ${objectId}`)
+    }
+
+    try {
+      const shape = el.asShape()
+      const text = shape.getText()
+      const fullText = text ? text.asString() : ''
+      return ok({ objectId, text: fullText, slideIndex })
+    } catch (e) { return err('READ_FAILED', `Could not read element text: ${e.message}`) }
+  }
+
+  function elementFormatText(params) {
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const objectId = requireParam(params, 'objectId')
+    const findText = requireParam(params, 'findText')
+
+    const r = resolveSlide(id, slideIndex)
+    if (r.err) return err(r.err, r.msg)
+
+    const el = findElement(r.slide, objectId)
+    if (!el) return err('NOT_FOUND', `Element not found: ${objectId}`)
+
+    const elType = el.getPageElementType()
+    if (elType !== SlidesApp.PageElementType.SHAPE) {
+      return err('BAD_REQUEST', `Element is not a shape/text element: ${objectId}`)
+    }
+
+    try {
+      const shape = el.asShape()
+      const text = shape.getText()
+      if (!text) return err('NOT_FOUND', `Element has no text: ${objectId}`)
+
+      const ranges = []
+      let cursor = 0
+      while (true) {
+        const found = text.find(findText, cursor)
+        if (!found) break
+        ranges.push(found)
+        cursor = found.getEndIndex()
+      }
+
+      if (ranges.length === 0) return err('NOT_FOUND', `Text "${findText}" not found in element: ${objectId}`)
+
+      for (const range of ranges) {
+        const style = range.getTextStyle()
+        if (params.bold !== undefined) style.setBold(optionalBool(params, 'bold', false))
+        if (params.italic !== undefined) style.setItalic(optionalBool(params, 'italic', false))
+        if (params.underline !== undefined) style.setUnderline(optionalBool(params, 'underline', false))
+        if (params.fontFamily !== undefined) style.setFontFamily(optionalString(params, 'fontFamily', null))
+        if (params.fontSize !== undefined) style.setFontSize(optionalNumber(params, 'fontSize', 12))
+        if (params.foregroundColor !== undefined) style.setForegroundColor(optionalString(params, 'foregroundColor', null))
+        if (params.backgroundColor !== undefined) style.setBackgroundColor(optionalString(params, 'backgroundColor', null))
+        if (params.linkUrl !== undefined) style.setLinkUrl(optionalString(params, 'linkUrl', null))
+      }
+
+      return ok({ formatted: true, objectId, slideIndex, formattedCount: ranges.length })
+    } catch (e) { return err('FORMAT_FAILED', `Could not format element text: ${e.message}`) }
   }
 
   // ── Batch ──
 
   function batch(params) {
-    var presentationId = requireParam(params, 'presentationId')
-    var operations = params.operations
+    const presentationId = requireParam(params, 'presentationId')
+    const operations = params.operations
     if (!Array.isArray(operations) || operations.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array')
     if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch')
 
-    var results = []
-    for (var i = 0; i < operations.length; i++) {
-      var op = operations[i]
+    const results = []
+    for (let i = 0; i < operations.length; i++) {
+      const op = operations[i]
       if (!op.action) {
-        results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: 'Missing action at index ' + i }})
+        results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` } })
         continue
       }
-      // Inherit presentationId
-      var opParams = op.params || {}
+      const opParams = op.params || {}
       if (!opParams.presentationId) opParams.presentationId = presentationId
       try {
-        var result = handle(op.action, opParams)
-        results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error })
-      } catch(ex) {
-        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }})
+        const result = handle(op.action, opParams)
+        results.push({
+          index: i,
+          action: op.action,
+          success: result.success,
+          data: result.success ? result.data : undefined,
+          error: result.success ? undefined : result.error,
+        })
+      } catch (ex) {
+        results.push({
+          index: i,
+          action: op.action,
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) },
+        })
       }
     }
-    return ok({ results: results })
+    return ok({ results })
   }
 
-  return { handle: handle }
+  return { handle }
 })()

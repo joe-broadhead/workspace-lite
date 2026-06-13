@@ -1,12 +1,13 @@
 import {
   slidesSlideIndexSchema, slidesSlideNotesSchema,
+  slidesDeleteElementSchema, slidesFormatTextSchema,
 } from '@google-apps-script-mcp/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerSlidesReadTools(server: { tool: Function }) {
   server.tool(
     'slides_get_slide_elements',
-    'List all page elements on a slide with their types, IDs, positions, and dimensions.',
+    'List all page elements on a slide with their types, IDs, positions, dimensions, and full text content (no truncation).',
     slidesSlideIndexSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideElementsList', args)
@@ -35,6 +36,32 @@ export function registerSlidesReadTools(server: { tool: Function }) {
         return { content: [{ type: 'text' as const, text: `Speaker notes updated on slide ${data.slideIndex}.` }] }
       }
       return { content: [{ type: 'text' as const, text: `Speaker notes for slide ${data.slideIndex}:\n\n${data.notes || '(none)'}` }] }
+    },
+  )
+
+  server.tool(
+    'slides_delete_element',
+    'Delete a page element from a slide by its objectId. Get objectIds from slides_get_slide_elements.',
+    slidesDeleteElementSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('elementDelete', args)
+      const data = result.data as Record<string, unknown>
+      return {
+        content: [{ type: 'text' as const, text: `Deleted element ${data.objectId} from slide ${data.slideIndex}.` }],
+      }
+    },
+  )
+
+  server.tool(
+    'slides_format_text',
+    'Format text within a slide element (shape/text box). Finds all occurrences of findText in the element and applies the specified formatting.',
+    slidesFormatTextSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('elementFormatText', args)
+      const data = result.data as Record<string, unknown>
+      return {
+        content: [{ type: 'text' as const, text: `Formatted ${data.formattedCount} occurrence(s) of "${args.findText}" in element ${data.objectId} on slide ${data.slideIndex}.` }],
+      }
     },
   )
 }

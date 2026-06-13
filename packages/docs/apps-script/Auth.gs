@@ -5,11 +5,15 @@ function generateToken() {
   try {
     var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     var token = ''
-    for (var i = 0; i < 48; i++) token += chars.charAt(Math.floor(Math.random() * chars.length))
+    for (var i = 0; i < 48; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
     return token
   } catch(e) {
     var fallback = ''
-    for (var j = 0; j < 48; j++) fallback += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 62))
+    for (var j = 0; j < 48; j++) {
+      fallback += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 62))
+    }
     return fallback
   }
 }
@@ -21,19 +25,31 @@ function getOrCreateToken() {
   return token
 }
 
-function getToken() { return PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_KEY) || 'NOT_SET' }
-function isBootstrapped() { return PropertiesService.getScriptProperties().getProperty(BOOTSTRAPPED_KEY) === 'true' }
-function markBootstrapped() { PropertiesService.getScriptProperties().setProperty(BOOTSTRAPPED_KEY, 'true') }
+function getToken() {
+  return PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_KEY) || 'NOT_SET'
+}
+
+function isBootstrapped() {
+  return PropertiesService.getScriptProperties().getProperty(BOOTSTRAPPED_KEY) === 'true'
+}
+
+function markBootstrapped() {
+  PropertiesService.getScriptProperties().setProperty(BOOTSTRAPPED_KEY, 'true')
+}
 
 function validateRequest(e) {
   var token = null
-  if (e.parameter && e.parameter.token) token = e.parameter.token
-  else { try { var body = JSON.parse(e.postData.contents); if (body.token) token = body.token } catch(_) {} }
+  if (e.parameter && e.parameter.token) {
+    token = e.parameter.token
+  } else {
+    try { var body = JSON.parse(e.postData.contents); if (body.token) token = body.token } catch(_) {}
+  }
   if (!token) {
     var authHeader = (e.postData && e.postData.headers) ? (e.postData.headers['Authorization'] || e.postData.headers['authorization'] || '') : ''
     if (authHeader.indexOf('Bearer ') === 0) token = authHeader.substring(7)
   }
-  return token === getOrCreateToken()
+  var expected = getOrCreateToken()
+  return token === expected
 }
 
 function isRateLimited(token, maxRequests) {

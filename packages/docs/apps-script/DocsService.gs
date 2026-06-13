@@ -1,333 +1,450 @@
-var DocsService = (function() {
+const DocsService = (() => {
   function handle(action, params) {
     switch (action) {
-      case 'documentCreate':     return documentCreate(params)
-      case 'documentGet':        return documentGet(params)
-      case 'paragraphInsert':    return paragraphInsert(params)
-      case 'setText':            return setText(params)
-      case 'replaceText':        return replaceText(params)
-      case 'listInsert':         return listInsert(params)
-      case 'tableInsert':        return tableInsert(params)
-      case 'imageInsert':        return imageInsert(params)
-      case 'pageBreakInsert':    return pageBreakInsert(params)
-      case 'horizontalRuleInsert': return horizontalRuleInsert(params)
-      case 'formatText':         return formatText(params)
-      case 'batch':              return batch(params)
-      default: return err('UNKNOWN_ACTION', 'Unknown action: ' + action)
+      case 'documentCreate':       return documentCreate(params);
+      case 'documentGet':          return documentGet(params);
+      case 'paragraphInsert':      return paragraphInsert(params);
+      case 'paragraphUpdate':      return paragraphUpdate(params);
+      case 'paragraphDelete':      return paragraphDelete(params);
+      case 'setText':              return setText(params);
+      case 'replaceText':          return replaceText(params);
+      case 'listInsert':           return listInsert(params);
+      case 'tableInsert':          return tableInsert(params);
+      case 'imageInsert':          return imageInsert(params);
+      case 'pageBreakInsert':      return pageBreakInsert(params);
+      case 'horizontalRuleInsert': return horizontalRuleInsert(params);
+      case 'formatText':           return formatText(params);
+      case 'headerSet':            return headerSet(params);
+      case 'footerSet':            return footerSet(params);
+      case 'batch':                return batch(params);
+      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
     }
   }
 
+  function ok(data) { return { success: true, data }; }
+
+  function err(code, message) { return { success: false, error: { code, message } }; }
+
   function requireParam(params, name) {
-    var val = params[name]
-    if (val === undefined || val === null) throw new Error('Missing required parameter: ' + name)
-    if (typeof val === 'string' && !val.trim()) throw new Error('Missing required parameter: ' + name)
-    return typeof val === 'string' ? val.trim() : val
+    const val = params[name];
+    if (val == null) throw new Error(`Missing required parameter: ${name}`);
+    if (typeof val === 'string' && !val.trim()) throw new Error(`Missing required parameter: ${name}`);
+    return typeof val === 'string' ? val.trim() : val;
   }
 
   function optionalString(params, name, def) {
-    return typeof params[name] === 'string' ? (params[name]).trim() || def : def
+    if (typeof params[name] !== 'string') return def;
+    const trimmed = params[name].trim();
+    return trimmed || def;
   }
 
   function optionalNumber(params, name, def) {
-    var val = params[name]
-    if (typeof val === 'number' && !isNaN(val)) return val
-    if (typeof val === 'string' && !isNaN(Number(val))) return Number(val)
-    return def
+    const val = params[name];
+    if (val == null) return def;
+    const num = Number(val);
+    return isNaN(num) ? def : num;
   }
 
   function optionalBool(params, name, def) {
-    if (typeof params[name] === 'boolean') return params[name]
-    if (params[name] === 'true') return true
-    if (params[name] === 'false') return false
-    return def
+    const val = params[name];
+    if (typeof val === 'boolean') return val;
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return def;
   }
 
   function validateDocumentId(id) {
-    if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error('Invalid document ID: ' + id)
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error(`Invalid document ID: ${id}`);
   }
 
   function getDocument(id) {
-    validateDocumentId(id)
-    try { return DocumentApp.openById(id) }
-    catch(e) { return null }
+    validateDocumentId(id);
+    try { return DocumentApp.openById(id); }
+    catch (e) { return null; }
   }
 
-  var HEADING_MAP = {
+  const HEADING_MAP = {
     NORMAL: DocumentApp.ParagraphHeading.NORMAL,
     HEADING1: DocumentApp.ParagraphHeading.HEADING1,
     HEADING2: DocumentApp.ParagraphHeading.HEADING2,
     HEADING3: DocumentApp.ParagraphHeading.HEADING3,
     HEADING4: DocumentApp.ParagraphHeading.HEADING4,
     HEADING5: DocumentApp.ParagraphHeading.HEADING5,
-    HEADING6: DocumentApp.ParagraphHeading.HEADING6
+    HEADING6: DocumentApp.ParagraphHeading.HEADING6,
+  };
+
+  const HEADING_MAP_REVERSE = new Map();
+  for (const [k, v] of Object.entries(HEADING_MAP)) {
+    HEADING_MAP_REVERSE.set(v, k);
   }
 
   function documentToJSON(doc) {
-    var paras = doc.getBody().getParagraphs()
-    var paragraphList = []
-    for (var i = 0; i < paras.length; i++) {
-      var p = paras[i]
-      var text = p.getText().replace(/\n+$/, '')
-      var h = p.getHeading()
-      var heading = 'NORMAL'
-      for (var key in HEADING_MAP) { if (HEADING_MAP[key] === h) { heading = key; break } }
-      paragraphList.push({ index: i, text: text, heading: heading })
+    const paras = doc.getBody().getParagraphs();
+    const paragraphList = [];
+    for (const p of paras) {
+      const text = p.getText().replace(/\n+$/, '');
+      const heading = HEADING_MAP_REVERSE.get(p.getHeading()) ?? 'NORMAL';
+      paragraphList.push({ index: paragraphList.length, text, heading });
     }
-    return { id: doc.getId(), name: doc.getName(), url: doc.getUrl(), numParagraphs: paragraphList.length, paragraphs: paragraphList }
+    return {
+      id: doc.getId(),
+      name: doc.getName(),
+      url: doc.getUrl(),
+      numParagraphs: paragraphList.length,
+      paragraphs: paragraphList,
+    };
   }
 
   // ── Document management ──
 
   function documentCreate(params) {
-    var name = requireParam(params, 'name')
+    const name = requireParam(params, 'name');
     try {
-      var doc = DocumentApp.create(name)
-      return ok({ document: documentToJSON(doc) })
-    } catch(e) { return err('CREATE_FAILED', 'Could not create document: ' + name) }
+      const doc = DocumentApp.create(name);
+      return ok({ document: documentToJSON(doc) });
+    } catch (e) { return err('CREATE_FAILED', `Could not create document: ${name}`); }
   }
 
   function documentGet(params) {
-    var id = requireParam(params, 'documentId')
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
-    return ok({ document: documentToJSON(doc) })
+    const id = requireParam(params, 'documentId');
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    return ok({ document: documentToJSON(doc) });
+  }
+
+  // ── Paragraph insert / update / delete ──
+
+  function paragraphInsert(params) {
+    const id = requireParam(params, 'documentId');
+    const text = optionalString(params, 'text', null);
+    const heading = optionalString(params, 'heading', 'NORMAL');
+    const append = optionalBool(params, 'append', true);
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    try {
+      const body = doc.getBody();
+      const par = append
+        ? body.appendParagraph(text || '')
+        : body.insertParagraph(0, text || '');
+      if (heading !== 'NORMAL') par.setHeading(HEADING_MAP[heading] ?? DocumentApp.ParagraphHeading.NORMAL);
+      return ok({ text: text || '', heading, appended: append });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert paragraph: ${e.message}`); }
+  }
+
+  function paragraphUpdate(params) {
+    const id = requireParam(params, 'documentId');
+    const index = optionalNumber(params, 'paragraphIndex', -1);
+    if (index < 0) return err('BAD_REQUEST', 'paragraphIndex must be a non-negative number');
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    try {
+      const body = doc.getBody();
+      const paras = body.getParagraphs();
+      if (index >= paras.length) return err('BAD_REQUEST', `Paragraph index ${index} out of range (0-${paras.length - 1})`);
+
+      const par = paras[index];
+      const changes = [];
+
+      if (params.text !== undefined) {
+        par.setText(String(params.text));
+        changes.push('text');
+      }
+
+      if (params.heading !== undefined) {
+        const h = HEADING_MAP[params.heading];
+        if (h === undefined) return err('BAD_REQUEST', `Unknown heading: ${params.heading}`);
+        par.setHeading(h);
+        changes.push('heading');
+      }
+
+      if (changes.length === 0) return err('BAD_REQUEST', 'No changes specified — provide text and/or heading');
+
+      return ok({ index, changes });
+    } catch (e) { return err('UPDATE_FAILED', `Could not update paragraph: ${e.message}`); }
+  }
+
+  function paragraphDelete(params) {
+    const id = requireParam(params, 'documentId');
+    const index = optionalNumber(params, 'paragraphIndex', -1);
+    if (index < 0) return err('BAD_REQUEST', 'paragraphIndex must be a non-negative number');
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    try {
+      const body = doc.getBody();
+      const paras = body.getParagraphs();
+      if (index >= paras.length) return err('BAD_REQUEST', `Paragraph index ${index} out of range (0-${paras.length - 1})`);
+
+      body.removeChild(paras[index]);
+      return ok({ deleted: true, index });
+    } catch (e) { return err('DELETE_FAILED', `Could not delete paragraph: ${e.message}`); }
   }
 
   // ── Writing ──
 
-  function paragraphInsert(params) {
-    var id = requireParam(params, 'documentId')
-    var text = optionalString(params, 'text', null)
-    var heading = optionalString(params, 'heading', 'NORMAL')
-    var append = optionalBool(params, 'append', true)
-
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
-
-    try {
-      var body = doc.getBody()
-      var par
-      if (append) {
-        par = body.appendParagraph(text || '')
-      } else {
-        par = body.insertParagraph(0, text || '')
-      }
-      if (heading !== 'NORMAL') par.setHeading(HEADING_MAP[heading] || DocumentApp.ParagraphHeading.NORMAL)
-      return ok({ text: text || '', heading: heading, appended: append })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert paragraph: ' + e.message) }
-  }
-
   function setText(params) {
-    var id = requireParam(params, 'documentId')
-    var text = requireParam(params, 'text')
+    const id = requireParam(params, 'documentId');
+    const text = requireParam(params, 'text');
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      doc.getBody().setText(text)
-      return ok({ set: true })
-    } catch(e) { return err('WRITE_FAILED', 'Could not set text: ' + e.message) }
+      doc.getBody().setText(text);
+      return ok({ set: true });
+    } catch (e) { return err('WRITE_FAILED', `Could not set text: ${e.message}`); }
   }
 
   function replaceText(params) {
-    var id = requireParam(params, 'documentId')
-    var findText = requireParam(params, 'findText')
-    var replaceText = requireParam(params, 'replaceText')
+    const id = requireParam(params, 'documentId');
+    const findText = requireParam(params, 'findText');
+    const replaceText = requireParam(params, 'replaceText');
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    if (findText === replaceText) return ok({ replacements: 0 });
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      var count = 0
-      var body = doc.getBody()
-      var found = body.findText(findText)
+      let count = 0;
+      const body = doc.getBody();
+      let found = body.findText(findText);
       while (found) {
-        found.getElement().asText().replaceText(findText, replaceText)
-        count++
-        found = body.findText(findText, found)
+        count++;
+        found = body.findText(findText, found);
       }
-      return ok({ replacements: count })
-    } catch(e) { return err('REPLACE_FAILED', 'Could not replace text: ' + e.message) }
+      if (count > 0) body.replaceText(findText, replaceText);
+      return ok({ replacements: count });
+    } catch (e) { return err('REPLACE_FAILED', `Could not replace text: ${e.message}`); }
   }
 
   // ── Content ──
 
   function listInsert(params) {
-    var id = requireParam(params, 'documentId')
-    var items = params.items
-    if (!Array.isArray(items) || items.length === 0) return err('BAD_REQUEST', 'items must be a non-empty array')
-    var listType = optionalString(params, 'listType', 'BULLET')
-    var append = optionalBool(params, 'append', true)
+    const id = requireParam(params, 'documentId');
+    const items = params.items;
+    if (!Array.isArray(items) || items.length === 0) return err('BAD_REQUEST', 'items must be a non-empty array');
+    const listType = optionalString(params, 'listType', 'BULLET');
+    const append = optionalBool(params, 'append', true);
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      var body = doc.getBody()
-      for (var i = 0; i < items.length; i++) {
-        var li = append ? body.appendListItem(String(items[i])) : body.insertListItem(append ? body.getNumChildren() : i, String(items[i]))
-        if (listType === 'NUMBER') li.setGlyphType(DocumentApp.GlyphType.NUMBER)
+      const body = doc.getBody();
+      for (let i = 0; i < items.length; i++) {
+        const li = append
+          ? body.appendListItem(String(items[i]))
+          : body.insertListItem(i, String(items[i]));
+        if (listType === 'NUMBER') li.setGlyphType(DocumentApp.GlyphType.NUMBER);
       }
-      return ok({ items: items.length, listType: listType })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert list: ' + e.message) }
+      return ok({ items: items.length, listType });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert list: ${e.message}`); }
   }
 
   function tableInsert(params) {
-    var id = requireParam(params, 'documentId')
-    var values = params.values
-    if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array')
-    var rows = optionalNumber(params, 'rows', values.length)
-    var cols = optionalNumber(params, 'cols', values[0].length)
-    var append = optionalBool(params, 'append', true)
+    const id = requireParam(params, 'documentId');
+    const values = params.values;
+    if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array');
+    const rows = optionalNumber(params, 'rows', values.length);
+    const cols = optionalNumber(params, 'cols', values[0].length);
+    const append = optionalBool(params, 'append', true);
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      var body = doc.getBody()
-      var table = append ? body.appendTable() : body.insertTable(0)
-      var numRows = Math.max(rows, 1)
-      var numCols = Math.max(cols, 1)
+      const body = doc.getBody();
+      const table = append ? body.appendTable() : body.insertTable(0);
+      const numRows = Math.max(rows, 1);
+      const numCols = Math.max(cols, 1);
 
-      while (table.getNumRows() < numRows) table.appendTableRow()
+      while (table.getNumRows() < numRows) table.appendTableRow();
       try {
         while (table.getRow(0).getNumCells() < numCols) {
-          for (var r = 0; r < table.getNumRows(); r++) table.getRow(r).appendTableCell('')
+          for (let r = 0; r < table.getNumRows(); r++) table.getRow(r).appendTableCell('');
         }
-      } catch(e) {
-        for (var r2 = 0; r2 < numRows; r2++) {
-          var row = table.getRow(r2)
-          while (row.getNumCells() < numCols) row.appendTableCell('')
+      } catch (e) {
+        for (let r = 0; r < numRows; r++) {
+          const row = table.getRow(r);
+          while (row.getNumCells() < numCols) row.appendTableCell('');
         }
       }
 
-      for (var i = 0; i < Math.min(numRows, values.length); i++) {
-        for (var j = 0; j < Math.min(numCols, values[i].length); j++) {
-          try { table.getCell(i, j).setText(String(values[i][j] || '')) } catch(cellErr) {}
+      for (let i = 0; i < Math.min(numRows, values.length); i++) {
+        for (let j = 0; j < Math.min(numCols, values[i].length); j++) {
+          try { table.getCell(i, j).setText(String(values[i][j] || '')); } catch (cellErr) {}
         }
       }
 
       if (values.length > 0) {
-        var headerRow = table.getRow(0)
-        for (var k = 0; k < headerRow.getNumCells(); k++) {
-          try { headerRow.getCell(k).editAsText().setBold(true) } catch(hdr) {}
+        const headerRow = table.getRow(0);
+        for (let k = 0; k < headerRow.getNumCells(); k++) {
+          try { headerRow.getCell(k).editAsText().setBold(true); } catch (hdr) {}
         }
       }
 
-      return ok({ rows: numRows, cols: numCols })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert table: ' + e.message) }
+      return ok({ rows: numRows, cols: numCols });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert table: ${e.message}`); }
   }
 
   function imageInsert(params) {
-    var id = requireParam(params, 'documentId')
-    var imageUrl = requireParam(params, 'imageUrl')
-    var append = optionalBool(params, 'append', true)
+    const id = requireParam(params, 'documentId');
+    const imageUrl = requireParam(params, 'imageUrl');
+    const append = optionalBool(params, 'append', true);
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      var blob = UrlFetchApp.fetch(imageUrl).getBlob()
-      var body = doc.getBody()
-      var img = append ? body.appendImage(blob) : body.insertImage(0, blob)
-      return ok({ inserted: true })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert image: ' + e.message) }
+      const blob = UrlFetchApp.fetch(imageUrl).getBlob();
+      const body = doc.getBody();
+      const img = append ? body.appendImage(blob) : body.insertImage(0, blob);
+      return ok({ inserted: true });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert image: ${e.message}`); }
   }
 
   function pageBreakInsert(params) {
-    var id = requireParam(params, 'documentId')
-    var append = optionalBool(params, 'append', true)
+    const id = requireParam(params, 'documentId');
+    const append = optionalBool(params, 'append', true);
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      var body = doc.getBody()
-      if (append) body.appendPageBreak()
-      else body.insertPageBreak(0)
-      return ok({ inserted: true })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert page break: ' + e.message) }
+      const body = doc.getBody();
+      if (append) body.appendPageBreak();
+      else body.insertPageBreak(0);
+      return ok({ inserted: true });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert page break: ${e.message}`); }
   }
 
   function horizontalRuleInsert(params) {
-    var id = requireParam(params, 'documentId')
-    var append = optionalBool(params, 'append', true)
+    const id = requireParam(params, 'documentId');
+    const append = optionalBool(params, 'append', true);
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      var body = doc.getBody()
-      if (append) body.appendHorizontalRule()
-      else body.insertHorizontalRule(0)
-      return ok({ inserted: true })
-    } catch(e) { return err('INSERT_FAILED', 'Could not insert horizontal rule: ' + e.message) }
+      const body = doc.getBody();
+      if (append) body.appendHorizontalRule();
+      else body.insertHorizontalRule(0);
+      return ok({ inserted: true });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert horizontal rule: ${e.message}`); }
   }
 
   // ── Formatting ──
 
   function formatText(params) {
-    var id = requireParam(params, 'documentId')
-    var findText = requireParam(params, 'findText')
+    const id = requireParam(params, 'documentId');
+    const findText = requireParam(params, 'findText');
 
-    var doc = getDocument(id)
-    if (!doc) return err('NOT_FOUND', 'Document not found: ' + id)
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      var body = doc.getBody()
-      var count = 0
-      var found = body.findText(findText)
+      const body = doc.getBody();
+      let count = 0;
+      let found = body.findText(findText);
       while (found) {
-        var el = found.getElement()
+        const el = found.getElement();
         if (el.editAsText) {
-          var txt = el.asText()
-          var start = found.getStartOffset()
-          var end = found.getEndOffsetInclusive()
+          const txt = el.asText();
+          const start = found.getStartOffset();
+          const end = found.getEndOffsetInclusive();
 
-          if (params.bold !== undefined) txt.setBold(start, end, optionalBool(params, 'bold', false))
-          if (params.italic !== undefined) txt.setItalic(start, end, optionalBool(params, 'italic', false))
-          if (params.underline !== undefined) txt.setUnderline(start, end, optionalBool(params, 'underline', false))
-          if (params.strikethrough !== undefined) txt.setStrikethrough(start, end, optionalBool(params, 'strikethrough', false))
-          if (params.fontFamily !== undefined) txt.setFontFamily(start, end, String(params.fontFamily))
-          if (params.fontSize !== undefined) txt.setFontSize(start, end, Number(params.fontSize))
-          if (params.foregroundColor !== undefined) txt.setForegroundColor(start, end, String(params.foregroundColor))
-          if (params.backgroundColor !== undefined) txt.setBackgroundColor(start, end, String(params.backgroundColor))
-          if (params.linkUrl !== undefined) txt.setLinkUrl(start, end, String(params.linkUrl))
-          count++
+          if (params.bold !== undefined) txt.setBold(start, end, optionalBool(params, 'bold', false));
+          if (params.italic !== undefined) txt.setItalic(start, end, optionalBool(params, 'italic', false));
+          if (params.underline !== undefined) txt.setUnderline(start, end, optionalBool(params, 'underline', false));
+          if (params.strikethrough !== undefined) txt.setStrikethrough(start, end, optionalBool(params, 'strikethrough', false));
+          if (params.fontFamily !== undefined) txt.setFontFamily(start, end, String(params.fontFamily));
+          if (params.fontSize !== undefined) txt.setFontSize(start, end, Number(params.fontSize));
+          if (params.foregroundColor !== undefined) txt.setForegroundColor(start, end, String(params.foregroundColor));
+          if (params.backgroundColor !== undefined) txt.setBackgroundColor(start, end, String(params.backgroundColor));
+          if (params.linkUrl !== undefined) txt.setLinkUrl(start, end, String(params.linkUrl));
+          count++;
         }
-        found = body.findText(findText, found)
+        found = body.findText(findText, found);
       }
-      return ok({ occurrences: count })
-    } catch(e) { return err('FORMAT_FAILED', 'Could not format text: ' + e.message) }
+      return ok({ occurrences: count });
+    } catch (e) { return err('FORMAT_FAILED', `Could not format text: ${e.message}`); }
+  }
+
+  // ── Header / Footer ──
+
+  function headerSet(params) {
+    const id = requireParam(params, 'documentId');
+    const text = typeof params.text === 'string' ? params.text : '';
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    try {
+      const header = doc.getHeader() ?? doc.addHeader();
+      header.clear();
+      if (text) header.appendParagraph(text);
+      return ok({ set: true, text });
+    } catch (e) { return err('HEADER_FAILED', `Could not set header: ${e.message}`); }
+  }
+
+  function footerSet(params) {
+    const id = requireParam(params, 'documentId');
+    const text = typeof params.text === 'string' ? params.text : '';
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    try {
+      const footer = doc.getFooter() ?? doc.addFooter();
+      footer.clear();
+      if (text) footer.appendParagraph(text);
+      return ok({ set: true, text });
+    } catch (e) { return err('FOOTER_FAILED', `Could not set footer: ${e.message}`); }
   }
 
   // ── Batch ──
 
   function batch(params) {
-    var documentId = requireParam(params, 'documentId')
-    var operations = params.operations
-    if (!Array.isArray(operations) || operations.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array')
-    if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch')
+    const documentId = requireParam(params, 'documentId');
+    const operations = params.operations;
+    if (!Array.isArray(operations) || operations.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
+    if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
 
-    var results = []
-    for (var i = 0; i < operations.length; i++) {
-      var op = operations[i]
+    const results = [];
+    for (let i = 0; i < operations.length; i++) {
+      const op = operations[i];
       if (!op.action) {
-        results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: 'Missing action at index ' + i }})
-        continue
+        results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` } });
+        continue;
       }
-      var opParams = op.params || {}
-      if (!opParams.documentId) opParams.documentId = documentId
+      const opParams = op.params || {};
+      if (!opParams.documentId) opParams.documentId = documentId;
       try {
-        var result = handle(op.action, opParams)
-        results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error })
-      } catch(ex) {
-        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }})
+        const result = handle(op.action, opParams);
+        results.push({
+          index: i,
+          action: op.action,
+          success: result.success,
+          data: result.success ? result.data : undefined,
+          error: result.success ? undefined : result.error,
+        });
+      } catch (ex) {
+        results.push({
+          index: i,
+          action: op.action,
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) },
+        });
       }
     }
-    return ok({ results: results })
+    return ok({ results });
   }
 
-  return { handle: handle }
-})()
+  return { handle };
+})();
