@@ -25,6 +25,16 @@ var DriveService = (() => {
     return { success: false, error: { code: code, message: message } };
   }
 
+  const ACTIONS = {
+    about, fileGet, fileList, fileSearch, fileExport, folderGet,
+    folderList, folderListRoot, folderCreate, fileCreate, fileCopy,
+    fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions,
+    fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor,
+    fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath,
+    fileTrash, fileUntrash, fileDelete, fileExportAs, commentsList,
+    commentCreate, batch,
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
     return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
@@ -558,16 +568,6 @@ var DriveService = (() => {
 
   function batch(params) {
     return runBatch(params, handle);
-  }
-
-  const ACTIONS = {
-    about, fileGet, fileList, fileSearch, fileExport, folderGet,
-    folderList, folderListRoot, folderCreate, fileCreate, fileCopy,
-    fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions,
-    fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor,
-    fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath,
-    fileTrash, fileUntrash, fileDelete, fileExportAs, commentsList,
-    commentCreate, batch,
   }
 
   return { handle: handle };

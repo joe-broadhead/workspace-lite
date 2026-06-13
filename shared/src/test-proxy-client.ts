@@ -2,6 +2,7 @@ import type { ProxyResponse } from './response.js'
 
 export class TestProxyClient {
   private actions: Map<string, ProxyResponse[]> = new Map()
+  private cursors: Map<string, number> = new Map()
   private callLog: { action: string; params: Record<string, unknown> | undefined }[] = []
 
   addResponse(action: string, response: ProxyResponse) {
@@ -15,10 +16,12 @@ export class TestProxyClient {
   async callProxy(action: string, params?: Record<string, unknown>): Promise<ProxyResponse> {
     this.callLog.push({ action, params })
     const queue = this.actions.get(action)
-    if (!queue || queue.length === 0) {
+    const index = this.cursors.get(action) ?? 0
+    this.cursors.set(action, index + 1)
+    if (!queue || index >= queue.length) {
       return { success: false, error: { code: 'NOT_FOUND', message: `No response queued for action: ${action}` } }
     }
-    const response = queue.shift()!
+    const response = queue[index]
     return { ...response }
   }
 }

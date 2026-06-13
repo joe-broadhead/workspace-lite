@@ -1,5 +1,5 @@
-import { formatResponse } from '@workspace-lite/shared'
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
+import type { ProxyClient } from '@workspace-lite/shared/proxy-client'
 import { registerTool } from '@workspace-lite/shared/tool-helpers'
 import {
   folderCreateSchema, fileCreateSchema, fileCopySchema, fileMoveSchema,
@@ -42,53 +42,37 @@ export function registerDriveWriteTools(server: { tool: Function }) {
     summary: 'File moved successfully.',
   })
 
-  server.tool(
-    'drive_update_metadata',
-    'Update a file\'s name and/or description.',
-    fileUpdateMetaSchema,
-    async (args: Record<string, unknown>) => {
-      const result = await client.callProxy('fileUpdateMeta', args)
-      return formatResponse(result, {
-        summary: 'Metadata updated successfully.',
-      })
-    },
-  )
+  registerTool(server, client, {
+    name: 'drive_update_metadata',
+    description: 'Update a file\'s name and/or description.',
+    schema: fileUpdateMetaSchema,
+    action: 'fileUpdateMeta',
+    summary: 'Metadata updated successfully.',
+  })
 
-  server.tool(
-    'drive_update_content',
-    'Overwrite a file\'s content with new text. This replaces the entire file content.',
-    fileUpdateContentSchema,
-    async (args: Record<string, unknown>) => {
-      const result = await client.callProxy('fileUpdateContent', args)
-      return formatResponse(result, {
-        summary: 'Content updated successfully.',
-      })
-    },
-  )
+  registerTool(server, client, {
+    name: 'drive_update_content',
+    description: 'Overwrite a file\'s content with new text. This replaces the entire file content.',
+    schema: fileUpdateContentSchema,
+    action: 'fileUpdateContent',
+    summary: 'Content updated successfully.',
+  })
 
-  server.tool(
-    'drive_add_parent',
-    'Add a file to an additional parent folder without removing existing parents.',
-    driveAddParentSchema,
-    async (args: Record<string, unknown>) => {
-      const result = await client.callProxy('fileAddParent', args)
-      return formatResponse(result, {
-        summary: 'File added to folder.',
-      })
-    },
-  )
+  registerTool(server, client, {
+    name: 'drive_add_parent',
+    description: 'Add a file to an additional parent folder without removing existing parents.',
+    schema: driveAddParentSchema,
+    action: 'fileAddParent',
+    summary: 'File added to folder.',
+  })
 
-  server.tool(
-    'drive_remove_parent',
-    'Remove a file from a specific parent folder.',
-    driveRemoveParentSchema,
-    async (args: Record<string, unknown>) => {
-      const result = await client.callProxy('fileRemoveParent', args)
-      return formatResponse(result, {
-        summary: 'File removed from folder.',
-      })
-    },
-  )
+  registerTool(server, client, {
+    name: 'drive_remove_parent',
+    description: 'Remove a file from a specific parent folder.',
+    schema: driveRemoveParentSchema,
+    action: 'fileRemoveParent',
+    summary: 'File removed from folder.',
+  })
 
   server.tool(
     'drive_export_as',

@@ -9,11 +9,10 @@ export function createProxyClient(service: string): ProxyClient {
   const proxyUrl = process.env[`${envPrefix}_PROXY_URL`] ?? ''
   const proxyToken = process.env[`${envPrefix}_PROXY_TOKEN`] ?? ''
 
-  if (!proxyUrl) throw new Error(`${envPrefix}_PROXY_URL not set`)
-  if (!proxyToken) throw new Error(`${envPrefix}_PROXY_TOKEN not set`)
-
   return {
     async callProxy(action, params) {
+      if (!proxyUrl) throw new Error(`${envPrefix}_PROXY_URL not set`)
+      if (!proxyToken) throw new Error(`${envPrefix}_PROXY_TOKEN not set`)
       const res = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

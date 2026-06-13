@@ -24,6 +24,15 @@ const SlidesService = (() => {
     CURVED: SlidesApp.LineCategory.CURVED,
   };
 
+  const ACTIONS = {
+    presentationCreate, presentationGet, slideAdd, slideDelete,
+    slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert,
+    tableInsert, slideElementsList, slideNotes, textReplaceAll,
+    elementDelete, elementGetText, elementFormatText, slideBackground,
+    lineInsert,
+    batch: function(params) { return runBatch(handle)(params); },
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
     return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
@@ -743,15 +752,6 @@ const SlidesService = (() => {
       'INSERT_FAILED',
       (e) => `Could not insert line: ${e.message}`
     );
-  }
-
-  const ACTIONS = {
-    presentationCreate, presentationGet, slideAdd, slideDelete,
-    slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert,
-    tableInsert, slideElementsList, slideNotes, textReplaceAll,
-    elementDelete, elementGetText, elementFormatText, slideBackground,
-    lineInsert,
-    batch: function(params) { return runBatch(handle)(params); },
   }
 
   return { handle };
