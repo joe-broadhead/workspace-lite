@@ -496,6 +496,7 @@ export const slidesFormatTextSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
   objectId: z.string().describe('Object ID of the shape element to format.'),
+  findText: z.string().describe('Text to find and format within the element.'),
   bold: z.boolean().optional().describe('Set bold.'),
   italic: z.boolean().optional().describe('Set italic.'),
   underline: z.boolean().optional().describe('Set underline.'),
