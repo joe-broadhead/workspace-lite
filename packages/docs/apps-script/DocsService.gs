@@ -19,7 +19,7 @@ const DocsService = (() => {
       case 'footerSet':            return footerSet(params);
       case 'tocInsert':            return tocInsert(params);
       case 'footnoteInsert':       return footnoteInsert(params);
-      case 'batch':                return batch(params);
+      case 'batch':                return runBatch(handle)(params);
       default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
     }
   }
@@ -27,6 +27,49 @@ const DocsService = (() => {
   function ok(data) { return { success: true, data }; }
 
   function err(code, message) { return { success: false, error: { code, message } }; }
+
+  function trap(fn, errorCode, errorMsg) {
+    try { return ok(fn()); }
+    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+  }
+
+  function runBatch(handle) {
+    return function batch(params) {
+      const documentId = requireParam(params, 'documentId');
+      const operations = params.operations;
+      if (!Array.isArray(operations) || operations.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
+      if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
+
+      const results = [];
+      for (let i = 0; i < operations.length; i++) {
+        const op = operations[i];
+        if (!op.action) {
+          results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` } });
+          continue;
+        }
+        const opParams = op.params || {};
+        if (!opParams.documentId) opParams.documentId = documentId;
+        try {
+          const result = handle(op.action, opParams);
+          results.push({
+            index: i,
+            action: op.action,
+            success: result.success,
+            data: result.success ? result.data : undefined,
+            error: result.success ? undefined : result.error,
+          });
+        } catch (ex) {
+          results.push({
+            index: i,
+            action: op.action,
+            success: false,
+            error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) },
+          });
+        }
+      }
+      return ok({ results });
+    };
+  }
 
   function requireParam(params, name) {
     const val = params[name];
@@ -79,20 +122,24 @@ const DocsService = (() => {
     HEADING_MAP_REVERSE.set(v, k);
   }
 
-  function documentToJSON(doc) {
-    const paras = doc.getBody().getParagraphs();
+  function paragraphsToJSON(paras) {
     const paragraphList = [];
     for (const p of paras) {
       const text = p.getText().replace(/\n+$/, '');
       const heading = HEADING_MAP_REVERSE.get(p.getHeading()) ?? 'NORMAL';
       paragraphList.push({ index: paragraphList.length, text, heading });
     }
+    return paragraphList;
+  }
+
+  function fetchDocumentJSON(doc) {
+    const paragraphs = paragraphsToJSON(doc.getBody().getParagraphs());
     return {
       id: doc.getId(),
       name: doc.getName(),
       url: doc.getUrl(),
-      numParagraphs: paragraphList.length,
-      paragraphs: paragraphList,
+      numParagraphs: paragraphs.length,
+      paragraphs: paragraphs,
     };
   }
 
@@ -100,26 +147,34 @@ const DocsService = (() => {
 
   function documentCreate(params) {
     const name = requireParam(params, 'name');
-    try {
-      const doc = DocumentApp.create(name);
-      return ok({ document: documentToJSON(doc) });
-    } catch (e) { return err('CREATE_FAILED', `Could not create document: ${name}`); }
+    return trap(
+      () => {
+        const doc = DocumentApp.create(name);
+        return { document: fetchDocumentJSON(doc) };
+      },
+      'CREATE_FAILED',
+      `Could not create document: ${name}`
+    );
   }
 
   function documentGet(params) {
     const id = requireParam(params, 'documentId');
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
-    return ok({ document: documentToJSON(doc) });
+    return ok({ document: fetchDocumentJSON(doc) });
   }
 
   function documentGetJson(params) {
     const id = requireParam(params, 'documentId');
     validateDocumentId(id);
-    try {
-      const doc = Docs.Documents.get(id);
-      return ok({ document: doc });
-    } catch (e) { return err('NOT_FOUND', `Document not found: ${id}`); }
+    return trap(
+      () => {
+        const doc = Docs.Documents.get(id);
+        return { document: doc };
+      },
+      'NOT_FOUND',
+      `Document not found: ${id}`
+    );
   }
 
   // ── Paragraph insert / update / delete ──
@@ -133,14 +188,18 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      const par = append
-        ? body.appendParagraph(text || '')
-        : body.insertParagraph(0, text || '');
-      if (heading !== 'NORMAL') par.setHeading(HEADING_MAP[heading] ?? DocumentApp.ParagraphHeading.NORMAL);
-      return ok({ text: text || '', heading, appended: append });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert paragraph: ${e.message}`); }
+    return trap(
+      () => {
+        const body = doc.getBody();
+        const par = append
+          ? body.appendParagraph(text || '')
+          : body.insertParagraph(0, text || '');
+        if (heading !== 'NORMAL') par.setHeading(HEADING_MAP[heading] ?? DocumentApp.ParagraphHeading.NORMAL);
+        return { text: text || '', heading, appended: append };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert paragraph: ${e.message}`
+    );
   }
 
   function paragraphUpdate(params) {
@@ -151,30 +210,34 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      const paras = body.getParagraphs();
-      if (index >= paras.length) return err('BAD_REQUEST', `Paragraph index ${index} out of range (0-${paras.length - 1})`);
+    return trap(
+      () => {
+        const body = doc.getBody();
+        const paras = body.getParagraphs();
+        if (index >= paras.length) throw new Error(`Paragraph index ${index} out of range (0-${paras.length - 1})`);
 
-      const par = paras[index];
-      const changes = [];
+        const par = paras[index];
+        const changes = [];
 
-      if (params.text !== undefined) {
-        par.setText(String(params.text));
-        changes.push('text');
-      }
+        if (params.text !== undefined) {
+          par.setText(String(params.text));
+          changes.push('text');
+        }
 
-      if (params.heading !== undefined) {
-        const h = HEADING_MAP[params.heading];
-        if (h === undefined) return err('BAD_REQUEST', `Unknown heading: ${params.heading}`);
-        par.setHeading(h);
-        changes.push('heading');
-      }
+        if (params.heading !== undefined) {
+          const h = HEADING_MAP[params.heading];
+          if (h === undefined) throw new Error(`Unknown heading: ${params.heading}`);
+          par.setHeading(h);
+          changes.push('heading');
+        }
 
-      if (changes.length === 0) return err('BAD_REQUEST', 'No changes specified — provide text and/or heading');
+        if (changes.length === 0) throw new Error('No changes specified — provide text and/or heading');
 
-      return ok({ index, changes });
-    } catch (e) { return err('UPDATE_FAILED', `Could not update paragraph: ${e.message}`); }
+        return { index, changes };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not update paragraph: ${e.message}`
+    );
   }
 
   function paragraphDelete(params) {
@@ -185,14 +248,18 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      const paras = body.getParagraphs();
-      if (index >= paras.length) return err('BAD_REQUEST', `Paragraph index ${index} out of range (0-${paras.length - 1})`);
+    return trap(
+      () => {
+        const body = doc.getBody();
+        const paras = body.getParagraphs();
+        if (index >= paras.length) throw new Error(`Paragraph index ${index} out of range (0-${paras.length - 1})`);
 
-      body.removeChild(paras[index]);
-      return ok({ deleted: true, index });
-    } catch (e) { return err('DELETE_FAILED', `Could not delete paragraph: ${e.message}`); }
+        body.removeChild(paras[index]);
+        return { deleted: true, index };
+      },
+      'DELETE_FAILED',
+      (e) => `Could not delete paragraph: ${e.message}`
+    );
   }
 
   // ── Writing ──
@@ -204,10 +271,11 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      doc.getBody().setText(text);
-      return ok({ set: true });
-    } catch (e) { return err('WRITE_FAILED', `Could not set text: ${e.message}`); }
+    return trap(
+      () => { doc.getBody().setText(text); return { set: true }; },
+      'WRITE_FAILED',
+      (e) => `Could not set text: ${e.message}`
+    );
   }
 
   function replaceText(params) {
@@ -220,17 +288,21 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      let count = 0;
-      const body = doc.getBody();
-      let found = body.findText(findText);
-      while (found) {
-        count++;
-        found = body.findText(findText, found);
-      }
-      if (count > 0) body.replaceText(findText, replaceText);
-      return ok({ replacements: count });
-    } catch (e) { return err('REPLACE_FAILED', `Could not replace text: ${e.message}`); }
+    return trap(
+      () => {
+        let count = 0;
+        const body = doc.getBody();
+        let found = body.findText(findText);
+        while (found) {
+          count++;
+          found = body.findText(findText, found);
+        }
+        if (count > 0) body.replaceText(findText, replaceText);
+        return { replacements: count };
+      },
+      'REPLACE_FAILED',
+      (e) => `Could not replace text: ${e.message}`
+    );
   }
 
   // ── Content ──
@@ -245,16 +317,20 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      for (let i = 0; i < items.length; i++) {
-        const li = append
-          ? body.appendListItem(String(items[i]))
-          : body.insertListItem(i, String(items[i]));
-        if (listType === 'NUMBER') li.setGlyphType(DocumentApp.GlyphType.NUMBER);
-      }
-      return ok({ items: items.length, listType });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert list: ${e.message}`); }
+    return trap(
+      () => {
+        const body = doc.getBody();
+        for (let i = 0; i < items.length; i++) {
+          const li = append
+            ? body.appendListItem(String(items[i]))
+            : body.insertListItem(i, String(items[i]));
+          if (listType === 'NUMBER') li.setGlyphType(DocumentApp.GlyphType.NUMBER);
+        }
+        return { items: items.length, listType };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert list: ${e.message}`
+    );
   }
 
   function tableInsert(params) {
@@ -268,39 +344,43 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      const table = append ? body.appendTable() : body.insertTable(0);
-      const numRows = Math.max(rows, 1);
-      const numCols = Math.max(cols, 1);
+    return trap(
+      () => {
+        const body = doc.getBody();
+        const table = append ? body.appendTable() : body.insertTable(0);
+        const numRows = Math.max(rows, 1);
+        const numCols = Math.max(cols, 1);
 
-      while (table.getNumRows() < numRows) table.appendTableRow();
-      try {
-        while (table.getRow(0).getNumCells() < numCols) {
-          for (let r = 0; r < table.getNumRows(); r++) table.getRow(r).appendTableCell('');
+        while (table.getNumRows() < numRows) table.appendTableRow();
+        try {
+          while (table.getRow(0).getNumCells() < numCols) {
+            for (let r = 0; r < table.getNumRows(); r++) table.getRow(r).appendTableCell('');
+          }
+        } catch (e) {
+          for (let r = 0; r < numRows; r++) {
+            const row = table.getRow(r);
+            while (row.getNumCells() < numCols) row.appendTableCell('');
+          }
         }
-      } catch (e) {
-        for (let r = 0; r < numRows; r++) {
-          const row = table.getRow(r);
-          while (row.getNumCells() < numCols) row.appendTableCell('');
-        }
-      }
 
-      for (let i = 0; i < Math.min(numRows, values.length); i++) {
-        for (let j = 0; j < Math.min(numCols, values[i].length); j++) {
-          try { table.getCell(i, j).setText(String(values[i][j] || '')); } catch (cellErr) {}
+        for (let i = 0; i < Math.min(numRows, values.length); i++) {
+          for (let j = 0; j < Math.min(numCols, values[i].length); j++) {
+            try { table.getCell(i, j).setText(String(values[i][j] || '')); } catch (cellErr) {}
+          }
         }
-      }
 
-      if (values.length > 0) {
-        const headerRow = table.getRow(0);
-        for (let k = 0; k < headerRow.getNumCells(); k++) {
-          try { headerRow.getCell(k).editAsText().setBold(true); } catch (hdr) {}
+        if (values.length > 0) {
+          const headerRow = table.getRow(0);
+          for (let k = 0; k < headerRow.getNumCells(); k++) {
+            try { headerRow.getCell(k).editAsText().setBold(true); } catch (hdr) {}
+          }
         }
-      }
 
-      return ok({ rows: numRows, cols: numCols });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert table: ${e.message}`); }
+        return { rows: numRows, cols: numCols };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert table: ${e.message}`
+    );
   }
 
   function imageInsert(params) {
@@ -311,12 +391,16 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const blob = UrlFetchApp.fetch(imageUrl).getBlob();
-      const body = doc.getBody();
-      const img = append ? body.appendImage(blob) : body.insertImage(0, blob);
-      return ok({ inserted: true });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert image: ${e.message}`); }
+    return trap(
+      () => {
+        const blob = UrlFetchApp.fetch(imageUrl).getBlob();
+        const body = doc.getBody();
+        append ? body.appendImage(blob) : body.insertImage(0, blob);
+        return { inserted: true };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert image: ${e.message}`
+    );
   }
 
   function pageBreakInsert(params) {
@@ -326,12 +410,16 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      if (append) body.appendPageBreak();
-      else body.insertPageBreak(0);
-      return ok({ inserted: true });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert page break: ${e.message}`); }
+    return trap(
+      () => {
+        const body = doc.getBody();
+        if (append) body.appendPageBreak();
+        else body.insertPageBreak(0);
+        return { inserted: true };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert page break: ${e.message}`
+    );
   }
 
   function horizontalRuleInsert(params) {
@@ -341,12 +429,16 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      if (append) body.appendHorizontalRule();
-      else body.insertHorizontalRule(0);
-      return ok({ inserted: true });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert horizontal rule: ${e.message}`); }
+    return trap(
+      () => {
+        const body = doc.getBody();
+        if (append) body.appendHorizontalRule();
+        else body.insertHorizontalRule(0);
+        return { inserted: true };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert horizontal rule: ${e.message}`
+    );
   }
 
   // ── Formatting ──
@@ -358,32 +450,36 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      let count = 0;
-      let found = body.findText(findText);
-      while (found) {
-        const el = found.getElement();
-        if (el.editAsText) {
-          const txt = el.asText();
-          const start = found.getStartOffset();
-          const end = found.getEndOffsetInclusive();
+    return trap(
+      () => {
+        const body = doc.getBody();
+        let count = 0;
+        let found = body.findText(findText);
+        while (found) {
+          const el = found.getElement();
+          if (el.editAsText) {
+            const txt = el.asText();
+            const start = found.getStartOffset();
+            const end = found.getEndOffsetInclusive();
 
-          if (params.bold !== undefined) txt.setBold(start, end, optionalBool(params, 'bold', false));
-          if (params.italic !== undefined) txt.setItalic(start, end, optionalBool(params, 'italic', false));
-          if (params.underline !== undefined) txt.setUnderline(start, end, optionalBool(params, 'underline', false));
-          if (params.strikethrough !== undefined) txt.setStrikethrough(start, end, optionalBool(params, 'strikethrough', false));
-          if (params.fontFamily !== undefined) txt.setFontFamily(start, end, String(params.fontFamily));
-          if (params.fontSize !== undefined) txt.setFontSize(start, end, Number(params.fontSize));
-          if (params.foregroundColor !== undefined) txt.setForegroundColor(start, end, String(params.foregroundColor));
-          if (params.backgroundColor !== undefined) txt.setBackgroundColor(start, end, String(params.backgroundColor));
-          if (params.linkUrl !== undefined) txt.setLinkUrl(start, end, String(params.linkUrl));
-          count++;
+            if (params.bold !== undefined) txt.setBold(start, end, optionalBool(params, 'bold', false));
+            if (params.italic !== undefined) txt.setItalic(start, end, optionalBool(params, 'italic', false));
+            if (params.underline !== undefined) txt.setUnderline(start, end, optionalBool(params, 'underline', false));
+            if (params.strikethrough !== undefined) txt.setStrikethrough(start, end, optionalBool(params, 'strikethrough', false));
+            if (params.fontFamily !== undefined) txt.setFontFamily(start, end, String(params.fontFamily));
+            if (params.fontSize !== undefined) txt.setFontSize(start, end, Number(params.fontSize));
+            if (params.foregroundColor !== undefined) txt.setForegroundColor(start, end, String(params.foregroundColor));
+            if (params.backgroundColor !== undefined) txt.setBackgroundColor(start, end, String(params.backgroundColor));
+            if (params.linkUrl !== undefined) txt.setLinkUrl(start, end, String(params.linkUrl));
+            count++;
+          }
+          found = body.findText(findText, found);
         }
-        found = body.findText(findText, found);
-      }
-      return ok({ occurrences: count });
-    } catch (e) { return err('FORMAT_FAILED', `Could not format text: ${e.message}`); }
+        return { occurrences: count };
+      },
+      'FORMAT_FAILED',
+      (e) => `Could not format text: ${e.message}`
+    );
   }
 
   // ── Header / Footer ──
@@ -395,12 +491,16 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const header = doc.getHeader() ?? doc.addHeader();
-      header.clear();
-      if (text) header.appendParagraph(text);
-      return ok({ set: true, text });
-    } catch (e) { return err('HEADER_FAILED', `Could not set header: ${e.message}`); }
+    return trap(
+      () => {
+        const header = doc.getHeader() ?? doc.addHeader();
+        header.clear();
+        if (text) header.appendParagraph(text);
+        return { set: true, text };
+      },
+      'HEADER_FAILED',
+      (e) => `Could not set header: ${e.message}`
+    );
   }
 
   function footerSet(params) {
@@ -410,12 +510,16 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const footer = doc.getFooter() ?? doc.addFooter();
-      footer.clear();
-      if (text) footer.appendParagraph(text);
-      return ok({ set: true, text });
-    } catch (e) { return err('FOOTER_FAILED', `Could not set footer: ${e.message}`); }
+    return trap(
+      () => {
+        const footer = doc.getFooter() ?? doc.addFooter();
+        footer.clear();
+        if (text) footer.appendParagraph(text);
+        return { set: true, text };
+      },
+      'FOOTER_FAILED',
+      (e) => `Could not set footer: ${e.message}`
+    );
   }
 
   // ── Table of contents ──
@@ -426,11 +530,15 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const request = { insert_table_of_contents: {} };
-      Docs.Documents.batchUpdate({ requests: [request] }, id);
-      return ok({ inserted: true });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert table of contents: ${e.message}`); }
+    return trap(
+      () => {
+        const request = { insert_table_of_contents: {} };
+        Docs.Documents.batchUpdate({ requests: [request] }, id);
+        return { inserted: true };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert table of contents: ${e.message}`
+    );
   }
 
   // ── Footnote ──
@@ -442,59 +550,23 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
-    try {
-      const body = doc.getBody();
-      const endIndex = body.getText().length - 1;
-      Docs.Documents.batchUpdate({
-        requests: [
-          {
-            create_footnote: {
-              end_of_segment_location: { segment_id: '' },
-              insertion_text: { text: String(text) }
+    return trap(
+      () => {
+        Docs.Documents.batchUpdate({
+          requests: [
+            {
+              create_footnote: {
+                end_of_segment_location: { segment_id: '' },
+                insertion_text: { text: String(text) }
+              }
             }
-          }
-        ]
-      }, id);
-      return ok({ inserted: true });
-    } catch (e) { return err('INSERT_FAILED', `Could not insert footnote: ${e.message}`); }
-  }
-
-  // ── Batch ──
-
-  function batch(params) {
-    const documentId = requireParam(params, 'documentId');
-    const operations = params.operations;
-    if (!Array.isArray(operations) || operations.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
-    if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
-
-    const results = [];
-    for (let i = 0; i < operations.length; i++) {
-      const op = operations[i];
-      if (!op.action) {
-        results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` } });
-        continue;
-      }
-      const opParams = op.params || {};
-      if (!opParams.documentId) opParams.documentId = documentId;
-      try {
-        const result = handle(op.action, opParams);
-        results.push({
-          index: i,
-          action: op.action,
-          success: result.success,
-          data: result.success ? result.data : undefined,
-          error: result.success ? undefined : result.error,
-        });
-      } catch (ex) {
-        results.push({
-          index: i,
-          action: op.action,
-          success: false,
-          error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) },
-        });
-      }
-    }
-    return ok({ results });
+          ]
+        }, id);
+        return { inserted: true };
+      },
+      'INSERT_FAILED',
+      (e) => `Could not insert footnote: ${e.message}`
+    );
   }
 
   return { handle };

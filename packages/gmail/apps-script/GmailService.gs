@@ -92,6 +92,11 @@ const GmailService = (() => {
     return def;
   }
 
+  function trap(fn, errorCode, errorMsg) {
+    try { return ok(fn()); }
+    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+  }
+
   function toString(val) {
     if (!val) return null;
     if (typeof val === 'string') return val;
@@ -154,7 +159,7 @@ const GmailService = (() => {
 
   function getThreadLabels(thread) {
     try {
-      return thread.getLabels().map(l => l.getName());
+      return thread.getLabels().map(function(l) { return l.getName(); });
     } catch (e) {
       return [];
     }
@@ -162,11 +167,11 @@ const GmailService = (() => {
 
   function getAttachments(msg) {
     try {
-      return msg.getAttachments().map(att => ({
+      return msg.getAttachments().map(function(att) { return {
         name: att.getName(),
         size: att.getSize(),
         mimeType: att.getContentType ? att.getContentType() : 'unknown',
-      }));
+      }; });
     } catch (e) {
       return [];
     }
@@ -200,7 +205,7 @@ const GmailService = (() => {
   }
 
   function q(val) {
-    return val ? (val.includes(' ') ? `"${val.replace(/"/g, '\\"')}"` : val) : '';
+    return val ? (val.includes(' ') ? '"' + val.replace(/"/g, '\\"') + '"' : val) : '';
   }
 
   function buildSearchQuery(params) {
@@ -216,14 +221,22 @@ const GmailService = (() => {
 
     if (isUnread === 'true') query += ' is:unread';
     if (isStarred === 'true') query += ' is:starred';
-    if (from) query += ` from:${q(from)}`;
-    if (to) query += ` to:${q(to)}`;
-    if (subject) query += ` subject:${q(subject)}`;
-    if (before) query += ` before:${q(before)}`;
-    if (after) query += ` after:${q(after)}`;
-    if (label) query += ` label:${q(label)}`;
+    if (from) query += ' from:' + q(from);
+    if (to) query += ' to:' + q(to);
+    if (subject) query += ' subject:' + q(subject);
+    if (before) query += ' before:' + q(before);
+    if (after) query += ' after:' + q(after);
+    if (label) query += ' label:' + q(label);
 
     return query.trim() || 'in:inbox';
+  }
+
+  function buildReplyOptions(params) {
+    const options = {};
+    if (params.htmlBody) options.htmlBody = String(params.htmlBody);
+    if (params.cc) options.cc = String(params.cc);
+    if (params.bcc) options.bcc = String(params.bcc);
+    return options;
   }
 
   // ─── READ ───
@@ -270,12 +283,7 @@ const GmailService = (() => {
   function getMessage(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      const msg = GmailApp.getMessageById(id);
-      return ok({ message: messageToFullJSON(msg) });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { return { message: messageToFullJSON(GmailApp.getMessageById(id)) }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function listThreads(params) {
@@ -306,29 +314,27 @@ const GmailService = (() => {
   function getThread(params) {
     const id = requireParam(params, 'threadId');
     validateThreadId(id);
-    try {
+    return trap(function() {
       const thread = GmailApp.getThreadById(id);
       const msgs = thread.getMessages();
       const messages = [];
-      for (const m of msgs) {
-        messages.push(messageToFullJSON(m));
+      for (let i = 0; i < msgs.length; i++) {
+        messages.push(messageToFullJSON(msgs[i]));
       }
       const result = threadToJSON(thread);
       result.messages = messages;
-      return ok({ thread: result });
-    } catch (e) {
-      return err('NOT_FOUND', `Thread not found: ${id}`);
-    }
+      return { thread: result };
+    }, 'NOT_FOUND', `Thread not found: ${id}`);
   }
 
   function listLabels() {
     const labels = GmailApp.getUserLabels();
     const results = [];
-    for (const l of labels) {
+    for (let i = 0; i < labels.length; i++) {
       results.push({
-        name: l.getName(),
-        unreadCount: l.getUnreadCount(),
-        messageCount: l.getMessageCount(),
+        name: labels[i].getName(),
+        unreadCount: labels[i].getUnreadCount(),
+        messageCount: labels[i].getMessageCount(),
       });
     }
     return ok(results);
@@ -337,104 +343,79 @@ const GmailService = (() => {
   // ─── WRITE ───
 
   function send(params) {
-    const to = requireParam(params, 'to');
-    const subject = requireParam(params, 'subject');
-    const body = requireParam(params, 'body');
-    const cc = optionalString(params, 'cc');
-    const bcc = optionalString(params, 'bcc');
-    const htmlBody = optionalString(params, 'htmlBody');
+    try {
+      const to = requireParam(params, 'to');
+      const subject = requireParam(params, 'subject');
+      const body = requireParam(params, 'body');
+      const cc = optionalString(params, 'cc');
+      const bcc = optionalString(params, 'bcc');
+      const htmlBody = optionalString(params, 'htmlBody');
 
-    const options = {};
-    if (cc) options.cc = cc;
-    if (bcc) options.bcc = bcc;
-    if (htmlBody) options.htmlBody = htmlBody;
+      const options = {};
+      if (cc) options.cc = cc;
+      if (bcc) options.bcc = bcc;
+      if (htmlBody) options.htmlBody = htmlBody;
 
-    GmailApp.sendEmail(to, subject, body, options);
-    return ok({ sent: true, to, subject });
+      GmailApp.sendEmail(to, subject, body, options);
+      return ok({ sent: true, to: to, subject: subject });
+    } catch (e) {
+      return err('SEND_FAILED', e.message || 'Could not send email');
+    }
   }
 
   function markRead(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).markRead();
-      return ok({ markedRead: true, messageId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).markRead(); return { markedRead: true, messageId: id }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function markUnread(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).markUnread();
-      return ok({ markedUnread: true, messageId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).markUnread(); return { markedUnread: true, messageId: id }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function archive(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).getThread().moveToArchive();
-      return ok({ archived: true, messageId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).getThread().moveToArchive(); return { archived: true, messageId: id }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function star(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).star();
-      return ok({ starred: true, messageId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).star(); return { starred: true, messageId: id }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function unstar(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).unstar();
-      return ok({ unstarred: true, messageId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).unstar(); return { unstarred: true, messageId: id }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function addLabel(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
     const labelName = requireParam(params, 'labelName');
-    try {
+    return trap(function() {
       const thread = GmailApp.getMessageById(id).getThread();
       let label = GmailApp.getUserLabelByName(labelName);
       if (!label) label = GmailApp.createLabel(labelName);
       thread.addLabel(label);
-      return ok({ labelAdded: true, messageId: id, label: labelName });
-    } catch (e) {
-      return err('LABEL_FAILED', `Could not add label: ${labelName} to ${id}`);
-    }
+      return { labelAdded: true, messageId: id, label: labelName };
+    }, 'LABEL_FAILED', `Could not add label: ${labelName} to ${id}`);
   }
 
   function removeLabel(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
     const labelName = requireParam(params, 'labelName');
-    try {
+    return trap(function() {
       const thread = GmailApp.getMessageById(id).getThread();
       const label = GmailApp.getUserLabelByName(labelName);
       if (label) thread.removeLabel(label);
-      return ok({ labelRemoved: true, messageId: id, label: labelName });
-    } catch (e) {
-      return err('LABEL_FAILED', `Could not remove label from: ${id}`);
-    }
+      return { labelRemoved: true, messageId: id, label: labelName };
+    }, 'LABEL_FAILED', `Could not remove label from: ${id}`);
   }
 
   // ─── DRAFTS ───
@@ -492,23 +473,20 @@ const GmailService = (() => {
 
   function getDraft(params) {
     const id = requireParam(params, 'draftId');
-    try {
+    return trap(function() {
       const draft = findDraftById(id);
-      if (!draft) return err('NOT_FOUND', `Draft not found: ${id}`);
-      return ok({ draft: draftToJSON(draft) });
-    } catch (e) {
-      return err('NOT_FOUND', `Draft not found: ${id}`);
-    }
+      if (!draft) throw new Error('Not found');
+      return { draft: draftToJSON(draft) };
+    }, 'NOT_FOUND', `Draft not found: ${id}`);
   }
 
   function createDraft(params) {
     const to = requireParam(params, 'to');
     const subject = requireParam(params, 'subject');
     const body = requireParam(params, 'body');
+    const options = {};
     const cc = optionalString(params, 'cc');
     const bcc = optionalString(params, 'bcc');
-
-    const options = {};
     if (cc) options.cc = cc;
     if (bcc) options.bcc = bcc;
 
@@ -518,9 +496,9 @@ const GmailService = (() => {
 
   function updateDraft(params) {
     const id = requireParam(params, 'draftId');
-    try {
+    return trap(function() {
       const draft = findDraftById(id);
-      if (!draft) return err('NOT_FOUND', `Draft not found: ${id}`);
+      if (!draft) throw new Error('Not found');
 
       const msg = draft.getMessage();
       const to = optionalString(params, 'to', msg.getTo());
@@ -535,34 +513,28 @@ const GmailService = (() => {
 
       draft.deleteDraft();
       const newDraft = GmailApp.createDraft(to, subject, body, options);
-      return ok({ draft: draftToJSON(newDraft) });
-    } catch (e) {
-      return err('UPDATE_FAILED', `Could not update draft: ${id}`);
-    }
+      return { draft: draftToJSON(newDraft) };
+    }, 'UPDATE_FAILED', `Could not update draft: ${id}`);
   }
 
   function deleteDraft(params) {
     const id = requireParam(params, 'draftId');
-    try {
+    return trap(function() {
       const draft = findDraftById(id);
-      if (!draft) return err('NOT_FOUND', `Draft not found: ${id}`);
+      if (!draft) throw new Error('Not found');
       draft.deleteDraft();
-      return ok({ deleted: true, draftId: id });
-    } catch (e) {
-      return err('DELETE_FAILED', `Could not delete draft: ${id}`);
-    }
+      return { deleted: true, draftId: id };
+    }, 'DELETE_FAILED', `Could not delete draft: ${id}`);
   }
 
   function sendDraft(params) {
     const id = requireParam(params, 'draftId');
-    try {
+    return trap(function() {
       const draft = findDraftById(id);
-      if (!draft) return err('NOT_FOUND', `Draft not found: ${id}`);
+      if (!draft) throw new Error('Not found');
       draft.send();
-      return ok({ sent: true, draftId: id });
-    } catch (e) {
-      return err('SEND_FAILED', `Could not send draft: ${id}`);
-    }
+      return { sent: true, draftId: id };
+    }, 'SEND_FAILED', `Could not send draft: ${id}`);
   }
 
   // ─── REPLY & FORWARD ───
@@ -571,79 +543,57 @@ const GmailService = (() => {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
     const body = requireParam(params, 'body');
-    const options = {};
-    if (params.htmlBody) options.htmlBody = String(params.htmlBody);
-    try {
-      const msg = GmailApp.getMessageById(id);
-      msg.reply(body, options);
-      return ok({ replied: true, messageId: id });
-    } catch (e) {
-      return err('REPLY_FAILED', e.message || `Could not reply to message: ${id}`);
-    }
+    const options = buildReplyOptions(params);
+    return trap(function() {
+      GmailApp.getMessageById(id).reply(body, options);
+      return { replied: true, messageId: id };
+    }, 'REPLY_FAILED', function(e) { return e.message || `Could not reply to message: ${id}`; });
   }
 
   function replyAll(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
     const body = requireParam(params, 'body');
-    const options = {};
-    if (params.htmlBody) options.htmlBody = String(params.htmlBody);
-    try {
-      const msg = GmailApp.getMessageById(id);
-      msg.replyAll(body, options);
-      return ok({ repliedAll: true, messageId: id });
-    } catch (e) {
-      return err('REPLY_FAILED', e.message || `Could not reply all to message: ${id}`);
-    }
+    const options = buildReplyOptions(params);
+    return trap(function() {
+      GmailApp.getMessageById(id).replyAll(body, options);
+      return { repliedAll: true, messageId: id };
+    }, 'REPLY_FAILED', function(e) { return e.message || `Could not reply all to message: ${id}`; });
   }
 
   function forwardMsg(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
     const to = requireParam(params, 'to');
-    const options = {};
-    if (params.htmlBody) options.htmlBody = String(params.htmlBody);
-    try {
-      const msg = GmailApp.getMessageById(id);
-      msg.forward(to, options);
-      return ok({ forwarded: true, messageId: id, to });
-    } catch (e) {
-      return err('FORWARD_FAILED', e.message || `Could not forward message: ${id}`);
-    }
+    const options = buildReplyOptions(params);
+    return trap(function() {
+      GmailApp.getMessageById(id).forward(to, options);
+      return { forwarded: true, messageId: id, to: to };
+    }, 'FORWARD_FAILED', function(e) { return e.message || `Could not forward message: ${id}`; });
   }
 
   function createDraftReply(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
     const body = requireParam(params, 'body');
-    const options = {};
-    if (params.htmlBody) options.htmlBody = String(params.htmlBody);
-    if (params.cc) options.cc = String(params.cc);
-    if (params.bcc) options.bcc = String(params.bcc);
-    try {
+    const options = buildReplyOptions(params);
+    return trap(function() {
       const msg = GmailApp.getMessageById(id);
       const draft = msg.createDraftReply(body, options);
-      return ok({ draft: draftToJSON(draft) });
-    } catch (e) {
-      return err('DRAFT_FAILED', e.message || `Could not create draft reply: ${id}`);
-    }
+      return { draft: draftToJSON(draft) };
+    }, 'DRAFT_FAILED', function(e) { return e.message || `Could not create draft reply: ${id}`; });
   }
 
   function createDraftReplyAll(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
     const body = requireParam(params, 'body');
-    const options = {};
-    if (params.htmlBody) options.htmlBody = String(params.htmlBody);
-    if (params.cc) options.cc = String(params.cc);
-    if (params.bcc) options.bcc = String(params.bcc);
-    try {
+    const options = buildReplyOptions(params);
+    return trap(function() {
       const msg = GmailApp.getMessageById(id);
       const draft = msg.createDraftReplyAll(body, options);
-      return ok({ draft: draftToJSON(draft) });
-    } catch (e) {
-      return err('DRAFT_FAILED', e.message || `Could not create draft reply all: ${id}`);
-    }
+      return { draft: draftToJSON(draft) };
+    }, 'DRAFT_FAILED', function(e) { return e.message || `Could not create draft reply all: ${id}`; });
   }
 
   // ─── DESTRUCTIVE ───
@@ -651,56 +601,31 @@ const GmailService = (() => {
   function trashMessage(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).moveToTrash();
-      return ok({ trashed: true, messageId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).moveToTrash(); return { trashed: true, messageId: id }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function untrashMessage(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).getThread().moveToInbox();
-      return ok({ untrashed: true, messageId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Message not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).getThread().moveToInbox(); return { untrashed: true, messageId: id }; }, 'NOT_FOUND', `Message not found: ${id}`);
   }
 
   function trashThread(params) {
     const id = requireParam(params, 'threadId');
     validateThreadId(id);
-    try {
-      GmailApp.getThreadById(id).moveToTrash();
-      return ok({ trashed: true, threadId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Thread not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getThreadById(id).moveToTrash(); return { trashed: true, threadId: id }; }, 'NOT_FOUND', `Thread not found: ${id}`);
   }
 
   function untrashThread(params) {
     const id = requireParam(params, 'threadId');
     validateThreadId(id);
-    try {
-      GmailApp.getThreadById(id).moveToInbox();
-      return ok({ untrashed: true, threadId: id });
-    } catch (e) {
-      return err('NOT_FOUND', `Thread not found: ${id}`);
-    }
+    return trap(function() { GmailApp.getThreadById(id).moveToInbox(); return { untrashed: true, threadId: id }; }, 'NOT_FOUND', `Thread not found: ${id}`);
   }
 
   function deleteMessage(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    try {
-      GmailApp.getMessageById(id).getThread().moveToTrash();
-      return ok({ deleted: true, messageId: id, note: 'Message moved to trash. Emptied after 30 days.' });
-    } catch (e) {
-      return err('DELETE_FAILED', `Could not delete message: ${id}`);
-    }
+    return trap(function() { GmailApp.getMessageById(id).getThread().moveToTrash(); return { deleted: true, messageId: id, note: 'Message moved to trash. Emptied after 30 days.' }; }, 'DELETE_FAILED', `Could not delete message: ${id}`);
   }
 
   // ─── ATTACHMENT ───
@@ -709,7 +634,7 @@ const GmailService = (() => {
     const messageId = requireParam(params, 'messageId');
     const attachmentId = requireParam(params, 'attachmentId');
     validateMessageId(messageId);
-    try {
+    return trap(function() {
       const attachment = Gmail.Users.Messages.attachments.get('me', messageId, attachmentId);
       const size = attachment.size || 0;
       const base64 = attachment.data || '';
@@ -717,16 +642,14 @@ const GmailService = (() => {
       try {
         text = Utilities.newBlob(Utilities.base64Decode(base64)).getDataAsString();
       } catch (_) { /* binary — return base64 */ }
-      return ok({
+      return {
         messageId: messageId,
         attachmentId: attachmentId,
         size: size,
         base64: text ? undefined : base64,
         text: text || undefined,
-      });
-    } catch (e) {
-      return err('NOT_FOUND', `Attachment not found: ${attachmentId} for message ${messageId}`);
-    }
+      };
+    }, 'NOT_FOUND', `Attachment not found: ${attachmentId} for message ${messageId}`);
   }
 
   // ─── BATCH MODIFY ───
@@ -739,59 +662,40 @@ const GmailService = (() => {
     const removeLabelIds = Array.isArray(params.removeLabels) ? params.removeLabels : [];
     if (addLabelIds.length === 0 && removeLabelIds.length === 0)
       return err('BAD_REQUEST', 'At least one of addLabels or removeLabels must be provided');
-    try {
+    return trap(function() {
       Gmail.Users.Messages.batchModify({ ids: messageIds, addLabelIds: addLabelIds, removeLabelIds: removeLabelIds }, 'me');
-      return ok({
+      return {
         modified: messageIds.length,
         messageIds: messageIds,
         addedLabels: addLabelIds,
         removedLabels: removeLabelIds,
-      });
-    } catch (e) {
-      return err('BATCH_MODIFY_FAILED', e.message || 'Batch modify failed');
-    }
+      };
+    }, 'BATCH_MODIFY_FAILED', function(e) { return e.message || 'Batch modify failed'; });
   }
 
   // ─── BATCH ───
 
-  function batch(params) {
-    const operations = params.operations;
-    if (!Array.isArray(operations) || operations.length === 0)
-      return err('BAD_REQUEST', 'operations must be a non-empty array');
-    if (operations.length > 20)
-      return err('BAD_REQUEST', 'Max 20 operations per batch');
-
+  function runBatch(params, handleFn) {
+    const ops = params.operations;
+    if (!Array.isArray(ops) || ops.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
+    if (ops.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
     const results = [];
-    for (let i = 0; i < operations.length; i++) {
-      const op = operations[i];
-      if (!op.action) {
-        results.push({
-          index: i,
-          success: false,
-          error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` },
-        });
-        continue;
-      }
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (!op.action) { results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` }}); continue; }
       try {
-        const result = handle(op.action, op.params || {});
-        results.push({
-          index: i,
-          action: op.action,
-          success: result.success,
-          data: result.success ? result.data : undefined,
-          error: result.success ? undefined : result.error,
-        });
-      } catch (ex) {
-        results.push({
-          index: i,
-          action: op.action,
-          success: false,
-          error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) },
-        });
+        const result = handleFn(op.action, op.params || {});
+        results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
+      } catch(ex) {
+        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
       }
     }
     return ok({ results });
   }
 
-  return { handle };
+  function batch(params) {
+    return runBatch(params, handle);
+  }
+
+  return { handle: handle };
 })();

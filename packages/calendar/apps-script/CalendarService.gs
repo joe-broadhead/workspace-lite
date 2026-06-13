@@ -70,10 +70,15 @@ const CalendarService = (() => {
     return def;
   }
 
+  function trap(fn, errorCode, errorMsg) {
+    try { return ok(fn()); }
+    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+  }
+
   // ─── Calendar helpers ───
 
   function validateCalendarId(id) {
-    if (!id || typeof id !== 'string') throw new Error(`Invalid calendar ID: ${id}`);
+    if (!/^[a-zA-Z0-9_\-@.]+$/.test(id)) throw new Error(`Invalid calendar ID: ${id}`);
   }
 
   function getCalendar(id) {
@@ -125,7 +130,7 @@ const CalendarService = (() => {
     try {
       const guests = e.getGuestList();
       if (!guests) return [];
-      return guests.map(g => ({ email: g.getEmail(), status: g.getStatus().toString() }));
+      return guests.map(function(g) { return { email: g.getEmail(), status: g.getStatus().toString() }; });
     } catch (_) { return []; }
   }
 
@@ -143,31 +148,27 @@ const CalendarService = (() => {
   // ─── READ ───
 
   function listCalendars() {
-    try {
+    return trap(function() {
       const cals = CalendarApp.getAllCalendars();
       const result = [];
-      for (const cal of cals) {
-        result.push(calendarToJSON(cal));
+      for (let i = 0; i < cals.length; i++) {
+        result.push(calendarToJSON(cals[i]));
       }
-      return ok(result);
-    } catch (e) {
-      return err('LIST_FAILED', e.message || 'Could not list calendars');
-    }
+      return result;
+    }, 'LIST_FAILED', function(e) { return e.message || 'Could not list calendars'; });
   }
 
   function calendarGet(params) {
     const id = optionalString(params, 'calendarId');
-    try {
+    return trap(function() {
       if (id) {
         const cal = getCalendar(id);
-        if (cal) return ok({ calendar: calendarToJSON(cal) });
-        return err('NOT_FOUND', `Calendar not found: ${id}`);
+        if (cal) return { calendar: calendarToJSON(cal) };
+        throw new Error(`Calendar not found: ${id}`);
       }
       const def = CalendarApp.getDefaultCalendar();
-      return ok({ calendar: calendarToJSON(def) });
-    } catch (e) {
-      return err('NOT_FOUND', e.message || 'Calendar not found');
-    }
+      return { calendar: calendarToJSON(def) };
+    }, 'NOT_FOUND', function(e) { return e.message || 'Calendar not found'; });
   }
 
   function listEvents(params) {
@@ -177,7 +178,7 @@ const CalendarService = (() => {
     const maxResults = optionalNumber(params, 'maxResults', 50);
     const page = optionalNumber(params, 'page', 0);
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
       // implicit time dependency: new Date() / Date.now()
       const start = new Date(timeMin || new Date().toISOString());
@@ -194,15 +195,13 @@ const CalendarService = (() => {
         results.push(e);
       }
 
-      return ok({
+      return {
         events: results,
         nextPageToken: limit < events.length ? String(page + 1) : undefined,
         hasMore: limit < events.length,
         total: events.length,
-      });
-    } catch (e) {
-      return err('LIST_FAILED', e.message || 'Could not list events');
-    }
+      };
+    }, 'LIST_FAILED', function(e) { return e.message || 'Could not list events'; });
   }
 
   function searchEvents(params) {
@@ -212,7 +211,7 @@ const CalendarService = (() => {
     const timeMax = optionalString(params, 'timeMax');
     const maxResults = optionalNumber(params, 'maxResults', 50);
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
       // implicit time dependency: new Date() / Date.now()
       const start = new Date(timeMin || new Date().toISOString());
@@ -225,30 +224,26 @@ const CalendarService = (() => {
         results.push(eventToJSON(events[i]));
       }
 
-      return ok({
+      return {
         events: results,
         hasMore: limit < events.length,
         total: events.length,
-      });
-    } catch (e) {
-      return err('SEARCH_FAILED', e.message || 'Search failed');
-    }
+      };
+    }, 'SEARCH_FAILED', function(e) { return e.message || 'Search failed'; });
   }
 
   function getEvent(params) {
     const id = requireParam(params, 'eventId');
     const calendarId = optionalString(params, 'calendarId');
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
       const event = cal.getEventById(id);
-      if (!event) return err('NOT_FOUND', `Event not found: ${id}`);
+      if (!event) throw new Error(`Event not found: ${id}`);
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
-      return ok({ event: e });
-    } catch (e) {
-      return err('NOT_FOUND', e.message || `Event not found: ${id}`);
-    }
+      return { event: e };
+    }, 'NOT_FOUND', function(e) { return e.message || `Event not found: ${id}`; });
   }
 
   // ─── EVENT INSTANCES (Advanced Service) ───
@@ -259,15 +254,13 @@ const CalendarService = (() => {
     const timeMin = optionalString(params, 'timeMin', null);
     const timeMax = optionalString(params, 'timeMax', null);
 
-    try {
+    return trap(function() {
       const options = {};
       if (timeMin) options.timeMin = timeMin;
       if (timeMax) options.timeMax = timeMax;
       const result = Calendar.Events.instances(calendarId, eventId, options);
-      return ok({ eventId, calendarId, instances: result.items || [] });
-    } catch (e) {
-      return err('LIST_FAILED', e.message || 'Could not get event instances');
-    }
+      return { eventId: eventId, calendarId: calendarId, instances: result.items || [] };
+    }, 'LIST_FAILED', function(e) { return e.message || 'Could not get event instances'; });
   }
 
   // ─── QUICK ADD (Advanced Service) ───
@@ -276,12 +269,10 @@ const CalendarService = (() => {
     const text = requireParam(params, 'text');
     const calendarId = optionalString(params, 'calendarId', 'primary');
 
-    try {
+    return trap(function() {
       const event = Calendar.Events.quickAdd(calendarId, text);
-      return ok({ event });
-    } catch (e) {
-      return err('CREATE_FAILED', e.message || 'Could not quick-add event');
-    }
+      return { event: event };
+    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not quick-add event'; });
   }
 
   // ─── WRITE ───
@@ -295,50 +286,48 @@ const CalendarService = (() => {
     const location = optionalString(params, 'location', '');
     const guests = optionalString(params, 'guests', '');
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
 
       const event = cal.createEvent(title, new Date(startTime), new Date(endTime), {
-        description,
-        location,
+        description: description,
+        location: location,
       });
 
       const addedGuests = [];
       const failedGuests = [];
 
       if (guests) {
-        const emails = guests.split(',').map(e => e.trim()).filter(Boolean);
-        for (const email of emails) {
+        const emails = guests.split(',').map(function(e) { return e.trim(); }).filter(Boolean);
+        for (let i = 0; i < emails.length; i++) {
           try {
-            event.addGuest(email);
-            addedGuests.push(email);
+            event.addGuest(emails[i]);
+            addedGuests.push(emails[i]);
           } catch (_) {
-            failedGuests.push(email);
+            failedGuests.push(emails[i]);
           }
         }
       }
 
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
-      return ok({
+      return {
         event: e,
-        addedGuests,
-        failedGuests,
-      });
-    } catch (e) {
-      return err('CREATE_FAILED', e.message || 'Could not create event');
-    }
+        addedGuests: addedGuests,
+        failedGuests: failedGuests,
+      };
+    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not create event'; });
   }
 
   function updateEvent(params) {
     const id = requireParam(params, 'eventId');
     const calendarId = optionalString(params, 'calendarId');
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
 
       const event = cal.getEventById(id);
-      if (!event) return err('NOT_FOUND', `Event not found: ${id}`);
+      if (!event) throw new Error(`Event not found: ${id}`);
 
       if (params.title !== undefined) event.setTitle(String(params.title));
       if (params.description !== undefined) event.setDescription(String(params.description));
@@ -348,10 +337,8 @@ const CalendarService = (() => {
 
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
-      return ok({ event: e });
-    } catch (e) {
-      return err('UPDATE_FAILED', e.message || 'Could not update event');
-    }
+      return { event: e };
+    }, 'UPDATE_FAILED', function(e) { return e.message || 'Could not update event'; });
   }
 
   // ─── DESTRUCTIVE ───
@@ -360,16 +347,14 @@ const CalendarService = (() => {
     const id = requireParam(params, 'eventId');
     const calendarId = optionalString(params, 'calendarId');
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
 
       const event = cal.getEventById(id);
-      if (!event) return err('NOT_FOUND', `Event not found: ${id}`);
+      if (!event) throw new Error(`Event not found: ${id}`);
       event.deleteEvent();
-      return ok({ deleted: true, eventId: id });
-    } catch (e) {
-      return err('DELETE_FAILED', e.message || 'Could not delete event');
-    }
+      return { deleted: true, eventId: id };
+    }, 'DELETE_FAILED', function(e) { return e.message || 'Could not delete event'; });
   }
 
   // ─── AVAILABILITY ───
@@ -380,12 +365,13 @@ const CalendarService = (() => {
     const timeMin = optionalString(params, 'timeMin', new Date().toISOString());
     const timeMax = optionalString(params, 'timeMax', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString());
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
       const events = cal.getEvents(new Date(timeMin), new Date(timeMax));
       const slots = [];
 
-      for (const ev of events) {
+      for (let i = 0; i < events.length; i++) {
+        const ev = events[i];
         if (ev.getMyStatus && ev.getMyStatus() === CalendarApp.GuestStatus.YES) {
           slots.push({
             start: toString(ev.getStartTime()),
@@ -395,14 +381,12 @@ const CalendarService = (() => {
         }
       }
 
-      return ok({
+      return {
         busySlots: slots,
         totalBusy: slots.length,
         range: { from: timeMin, to: timeMax },
-      });
-    } catch (e) {
-      return err('FREEBUSY_FAILED', e.message || 'Could not check availability');
-    }
+      };
+    }, 'FREEBUSY_FAILED', function(e) { return e.message || 'Could not check availability'; });
   }
 
   // ─── RSVP / EVENT SERIES / COLOR ───
@@ -421,18 +405,16 @@ const CalendarService = (() => {
     const guestStatus = STATUS_MAP[statusStr.toUpperCase()];
     if (!guestStatus) return err('BAD_REQUEST', `Invalid status: ${statusStr}. Must be YES, NO, or MAYBE.`);
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
       const event = cal.getEventById(id);
-      if (!event) return err('NOT_FOUND', `Event not found: ${id}`);
+      if (!event) throw new Error(`Event not found: ${id}`);
 
       event.setMyStatus(guestStatus);
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
-      return ok({ event: e, status: statusStr.toUpperCase() });
-    } catch (e) {
-      return err('UPDATE_FAILED', e.message || 'Could not update RSVP status');
-    }
+      return { event: e, status: statusStr.toUpperCase() };
+    }, 'UPDATE_FAILED', function(e) { return e.message || 'Could not update RSVP status'; });
   }
 
   function createEventSeries(params) {
@@ -444,7 +426,7 @@ const CalendarService = (() => {
     const description = optionalString(params, 'description', '');
     const location = optionalString(params, 'location', '');
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
 
       const recBuilder = CalendarApp.newRecurrence();
@@ -484,16 +466,14 @@ const CalendarService = (() => {
 
       const eventSeries = cal.createEventSeries(title, new Date(startTime), new Date(endTime), recBuilder);
 
-      return ok({
+      return {
         seriesId: eventSeries.getId(),
         title: title,
         start: startTime,
         end: endTime,
         recurrence: recurrence,
-      });
-    } catch (e) {
-      return err('CREATE_FAILED', e.message || 'Could not create event series');
-    }
+      };
+    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not create event series'; });
   }
 
   function setEventColor(params) {
@@ -518,60 +498,41 @@ const CalendarService = (() => {
     const eventColor = COLOR_MAP[color];
     if (!eventColor) return err('BAD_REQUEST', `Invalid color: ${color}. Must be one of: ${Object.keys(COLOR_MAP).join(', ')}.`);
 
-    try {
+    return trap(function() {
       const cal = resolveCalendar(calendarId);
       const event = cal.getEventById(id);
-      if (!event) return err('NOT_FOUND', `Event not found: ${id}`);
+      if (!event) throw new Error(`Event not found: ${id}`);
 
       event.setColor(eventColor);
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
-      return ok({ event: e, color: color });
-    } catch (e) {
-      return err('UPDATE_FAILED', e.message || 'Could not set event color');
-    }
+      return { event: e, color: color };
+    }, 'UPDATE_FAILED', function(e) { return e.message || 'Could not set event color'; });
   }
 
   // ─── BATCH ───
 
-  function batch(params) {
-    const operations = params.operations;
-    if (!Array.isArray(operations) || operations.length === 0) {
-      return err('BAD_REQUEST', 'operations must be a non-empty array');
-    }
-    if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
-
+  function runBatch(params, handleFn) {
+    const ops = params.operations;
+    if (!Array.isArray(ops) || ops.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
+    if (ops.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
     const results = [];
-    for (let i = 0; i < operations.length; i++) {
-      const op = operations[i];
-      if (!op.action) {
-        results.push({
-          index: i,
-          success: false,
-          error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` },
-        });
-        continue;
-      }
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (!op.action) { results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` }}); continue; }
       try {
-        const result = handle(op.action, op.params || {});
-        results.push({
-          index: i,
-          action: op.action,
-          success: result.success,
-          data: result.success ? result.data : undefined,
-          error: result.success ? undefined : result.error,
-        });
-      } catch (ex) {
-        results.push({
-          index: i,
-          action: op.action,
-          success: false,
-          error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) },
-        });
+        const result = handleFn(op.action, op.params || {});
+        results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
+      } catch(ex) {
+        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
       }
     }
     return ok({ results });
   }
 
-  return { handle };
+  function batch(params) {
+    return runBatch(params, handle);
+  }
+
+  return { handle: handle };
 })();

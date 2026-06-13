@@ -17,8 +17,8 @@ var DriveService = (() => {
     OWNER: DriveApp.Permission.OWNER
   };
 
-  function ok(data, meta) {
-    return meta ? { success: true, data: data, ...meta } : { success: true, data: data };
+  function ok(data) {
+    return { success: true, data: data };
   }
 
   function err(code, message) {
@@ -90,6 +90,11 @@ var DriveService = (() => {
     return def;
   }
 
+  function trap(fn, errorCode, errorMsg) {
+    try { return ok(fn()); }
+    catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
+  }
+
   function validateDriveId(id) {
     if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
       throw new Error(`Invalid Drive ID: ${id}`);
@@ -157,11 +162,7 @@ var DriveService = (() => {
   function fileGet(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
-      return ok({ file: fileToJSON(DriveApp.getFileById(id)) });
-    } catch(e) {
-      return err('NOT_FOUND', `File not found: ${id}`);
-    }
+    return trap(function() { return { file: fileToJSON(DriveApp.getFileById(id)) }; }, 'NOT_FOUND', `File not found: ${id}`);
   }
 
   function fileList(params) {
@@ -196,7 +197,7 @@ var DriveService = (() => {
     }
 
     const hasMore = files.hasNext();
-    return ok(allFiles, { nextPageToken: hasMore ? String(end) : undefined, hasMore: hasMore });
+    return { success: true, data: allFiles, nextPageToken: hasMore ? String(end) : undefined, hasMore: hasMore };
   }
 
   function fileSearch(params) {
@@ -216,20 +217,18 @@ var DriveService = (() => {
     const id = requireParam(params, 'fileId');
     const mimeType = optionalString(params, 'mimeType', 'text/plain');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       const text = file.getBlob().getDataAsString();
-      return ok({
+      return {
         id: file.getId(),
         name: file.getName(),
         mimeType: file.getMimeType(),
         size: file.getSize(),
         content: text.substring(0, 500000),
         truncated: text.length > 500000
-      });
-    } catch(e) {
-      return err('NOT_FOUND', `File not found: ${id}`);
-    }
+      };
+    }, 'NOT_FOUND', `File not found: ${id}`);
   }
 
   // ── Folder operations ──
@@ -237,16 +236,12 @@ var DriveService = (() => {
   function folderGet(params) {
     const id = requireParam(params, 'folderId');
     validateDriveId(id);
-    try {
-      return ok({ folder: folderToJSON(DriveApp.getFolderById(id)) });
-    } catch(e) {
-      return err('NOT_FOUND', `Folder not found: ${id}`);
-    }
+    return trap(function() { return { folder: folderToJSON(DriveApp.getFolderById(id)) }; }, 'NOT_FOUND', `Folder not found: ${id}`);
   }
 
   function folderList(params) {
     const folderId = optionalString(params, 'folderId');
-    try {
+    return trap(function() {
       const folder = folderId ? DriveApp.getFolderById(folderId) : DriveApp.getRootFolder();
 
       const subfolders = [];
@@ -263,15 +258,13 @@ var DriveService = (() => {
         fileListArr.push({ id: f.getId(), name: f.getName(), mimeType: f.getMimeType(), url: f.getUrl() });
       }
 
-      return ok({
+      return {
         folderId: folder.getId(),
         folderName: folder.getName(),
         folders: subfolders,
         files: fileListArr
-      });
-    } catch(e) {
-      return err('NOT_FOUND', `Folder not found: ${folderId || 'root'}`);
-    }
+      };
+    }, 'NOT_FOUND', `Folder not found: ${folderId || 'root'}`);
   }
 
   function folderListRoot() {
@@ -283,12 +276,10 @@ var DriveService = (() => {
   function folderCreate(params) {
     const name = requireParam(params, 'name');
     const parentId = optionalString(params, 'parentId');
-    try {
+    return trap(function() {
       const parent = parentId ? DriveApp.getFolderById(parentId) : DriveApp.getRootFolder();
-      return ok({ folder: folderToJSON(parent.createFolder(name)) });
-    } catch(e) {
-      return err('CREATE_FAILED', `Could not create folder: ${name}`);
-    }
+      return { folder: folderToJSON(parent.createFolder(name)) };
+    }, 'CREATE_FAILED', `Could not create folder: ${name}`);
   }
 
   function fileCreate(params) {
@@ -296,12 +287,10 @@ var DriveService = (() => {
     const content = requireParam(params, 'content');
     const mimeType = optionalString(params, 'mimeType', 'text/plain');
     const parentId = optionalString(params, 'parentId');
-    try {
+    return trap(function() {
       const parent = parentId ? DriveApp.getFolderById(parentId) : DriveApp.getRootFolder();
-      return ok({ file: fileToJSON(parent.createFile(name, content, mimeType)) });
-    } catch(e) {
-      return err('CREATE_FAILED', `Could not create file: ${name}`);
-    }
+      return { file: fileToJSON(parent.createFile(name, content, mimeType)) };
+    }, 'CREATE_FAILED', `Could not create file: ${name}`);
   }
 
   function fileCopy(params) {
@@ -309,7 +298,7 @@ var DriveService = (() => {
     const newName = optionalString(params, 'name');
     const destFolderId = optionalString(params, 'destFolderId');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       let copy;
       if (destFolderId) {
@@ -318,10 +307,8 @@ var DriveService = (() => {
       } else {
         copy = file.makeCopy(newName || file.getName());
       }
-      return ok({ file: fileToJSON(copy) });
-    } catch(e) {
-      return err('COPY_FAILED', `Could not copy file: ${id}`);
-    }
+      return { file: fileToJSON(copy) };
+    }, 'COPY_FAILED', `Could not copy file: ${id}`);
   }
 
   function fileMove(params) {
@@ -329,7 +316,7 @@ var DriveService = (() => {
     const destFolderId = requireParam(params, 'destFolderId');
     validateDriveId(id);
     validateDriveId(destFolderId);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       const dest = DriveApp.getFolderById(destFolderId);
       const currentParents = file.getParents();
@@ -337,36 +324,30 @@ var DriveService = (() => {
         currentParents.next().removeFile(file);
       }
       dest.addFile(file);
-      return ok({ file: fileToJSON(file) });
-    } catch(e) {
-      return err('MOVE_FAILED', `Could not move file: ${id}`);
-    }
+      return { file: fileToJSON(file) };
+    }, 'MOVE_FAILED', `Could not move file: ${id}`);
   }
 
   function fileUpdateMeta(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       if (params.name !== undefined) file.setName(String(params.name));
       if (params.description !== undefined) file.setDescription(String(params.description));
-      return ok({ file: fileToJSON(file) });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not update file: ${id}`);
-    }
+      return { file: fileToJSON(file) };
+    }, 'UPDATE_FAILED', `Could not update file: ${id}`);
   }
 
   function fileUpdateContent(params) {
     const id = requireParam(params, 'fileId');
     const content = requireParam(params, 'content');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       file.setContent(content);
-      return ok({ file: fileToJSON(file) });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not update content for file: ${id}`);
-    }
+      return { file: fileToJSON(file) };
+    }, 'UPDATE_FAILED', `Could not update content for file: ${id}`);
   }
 
   // ── Permissions ──
@@ -374,18 +355,16 @@ var DriveService = (() => {
   function fileGetPermissions(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
-      return ok({
+      return {
         sharingAccess: file.getSharingAccess().toString(),
         sharingPermission: file.getSharingPermission().toString(),
-        editors: file.getEditors().map(u => u.getEmail()),
-        viewers: file.getViewers().map(u => u.getEmail()),
+        editors: file.getEditors().map(function(u) { return u.getEmail(); }),
+        viewers: file.getViewers().map(function(u) { return u.getEmail(); }),
         owner: file.getOwner() ? file.getOwner().getEmail() : null
-      });
-    } catch(e) {
-      return err('NOT_FOUND', `File not found: ${id}`);
-    }
+      };
+    }, 'NOT_FOUND', `File not found: ${id}`);
   }
 
   function fileSetSharing(params) {
@@ -393,66 +372,44 @@ var DriveService = (() => {
     const accessKey = requireParam(params, 'access');
     const permissionKey = requireParam(params, 'permission');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       const access = ACCESS_MAP[accessKey] || DriveApp.Access[accessKey];
       const permission = PERMISSION_MAP[permissionKey] || DriveApp.Permission[permissionKey];
       if (!access || !permission) {
-        return err('BAD_REQUEST', `Invalid access or permission: ${accessKey}/${permissionKey}`);
+        throw new Error(`Invalid access or permission: ${accessKey}/${permissionKey}`);
       }
       file.setSharing(access, permission);
-      return ok({ file: fileToJSON(file) });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not set sharing for file: ${id}`);
-    }
+      return { file: fileToJSON(file) };
+    }, 'UPDATE_FAILED', function(e) { return e.message || `Could not set sharing for file: ${id}`; });
   }
 
   function fileAddEditor(params) {
     const id = requireParam(params, 'fileId');
     const email = requireParam(params, 'email');
     validateDriveId(id);
-    try {
-      DriveApp.getFileById(id).addEditor(email);
-      return ok({ added: true, email: email });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not add editor: ${email}`);
-    }
+    return trap(function() { DriveApp.getFileById(id).addEditor(email); return { added: true, email: email }; }, 'UPDATE_FAILED', `Could not add editor: ${email}`);
   }
 
   function fileAddViewer(params) {
     const id = requireParam(params, 'fileId');
     const email = requireParam(params, 'email');
     validateDriveId(id);
-    try {
-      DriveApp.getFileById(id).addViewer(email);
-      return ok({ added: true, email: email });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not add viewer: ${email}`);
-    }
+    return trap(function() { DriveApp.getFileById(id).addViewer(email); return { added: true, email: email }; }, 'UPDATE_FAILED', `Could not add viewer: ${email}`);
   }
 
   function fileRemoveEditor(params) {
     const id = requireParam(params, 'fileId');
     const email = requireParam(params, 'email');
     validateDriveId(id);
-    try {
-      DriveApp.getFileById(id).removeEditor(email);
-      return ok({ removed: true, email: email });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not remove editor: ${email}`);
-    }
+    return trap(function() { DriveApp.getFileById(id).removeEditor(email); return { removed: true, email: email }; }, 'UPDATE_FAILED', `Could not remove editor: ${email}`);
   }
 
   function fileRemoveViewer(params) {
     const id = requireParam(params, 'fileId');
     const email = requireParam(params, 'email');
     validateDriveId(id);
-    try {
-      DriveApp.getFileById(id).removeViewer(email);
-      return ok({ removed: true, email: email });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not remove viewer: ${email}`);
-    }
+    return trap(function() { DriveApp.getFileById(id).removeViewer(email); return { removed: true, email: email }; }, 'UPDATE_FAILED', `Could not remove viewer: ${email}`);
   }
 
   // ── Parent management ──
@@ -462,14 +419,12 @@ var DriveService = (() => {
     const folderId = requireParam(params, 'folderId');
     validateDriveId(id);
     validateDriveId(folderId);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       const folder = DriveApp.getFolderById(folderId);
       folder.addFile(file);
-      return ok({ file: fileToJSON(file) });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not add parent folder: ${folderId}`);
-    }
+      return { file: fileToJSON(file) };
+    }, 'UPDATE_FAILED', `Could not add parent folder: ${folderId}`);
   }
 
   function fileRemoveParent(params) {
@@ -477,7 +432,7 @@ var DriveService = (() => {
     const folderId = requireParam(params, 'folderId');
     validateDriveId(id);
     validateDriveId(folderId);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       const parents = file.getParents();
       let found = false;
@@ -489,17 +444,15 @@ var DriveService = (() => {
           break;
         }
       }
-      if (!found) return err('NOT_FOUND', `Folder ${folderId} is not a parent of file ${id}`);
-      return ok({ file: fileToJSON(file) });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not remove parent folder: ${folderId}`);
-    }
+      if (!found) throw new Error(`Folder ${folderId} is not a parent of file ${id}`);
+      return { file: fileToJSON(file) };
+    }, 'UPDATE_FAILED', function(e) { return e.message || `Could not remove parent folder: ${folderId}`; });
   }
 
   function folderPath(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const file = DriveApp.getFileById(id);
       const path = [];
       const parentIter = file.getParents();
@@ -519,15 +472,13 @@ var DriveService = (() => {
 
       path.reverse();
 
-      return ok({
+      return {
         fileId: id,
         fileName: file.getName(),
         path: path,
         pathString: path.map(function(p) { return p.name; }).join(' / '),
-      });
-    } catch(e) {
-      return err('NOT_FOUND', `Could not get folder path for file: ${id}`);
-    }
+      };
+    }, 'NOT_FOUND', `Could not get folder path for file: ${id}`);
   }
 
   function folderToJSONLight(f) {
@@ -542,34 +493,19 @@ var DriveService = (() => {
   function fileTrash(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
-      DriveApp.getFileById(id).setTrashed(true);
-      return ok({ trashed: true, fileId: id });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not trash file: ${id}`);
-    }
+    return trap(function() { DriveApp.getFileById(id).setTrashed(true); return { trashed: true, fileId: id }; }, 'UPDATE_FAILED', `Could not trash file: ${id}`);
   }
 
   function fileUntrash(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
-      DriveApp.getFileById(id).setTrashed(false);
-      return ok({ untrashed: true, fileId: id });
-    } catch(e) {
-      return err('UPDATE_FAILED', `Could not untrash file: ${id}`);
-    }
+    return trap(function() { DriveApp.getFileById(id).setTrashed(false); return { untrashed: true, fileId: id }; }, 'UPDATE_FAILED', `Could not untrash file: ${id}`);
   }
 
   function fileDelete(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
-      DriveApp.getFileById(id).setTrashed(true);
-      return ok({ deleted: true, fileId: id, note: 'File moved to trash. Permanent deletion requires Drive API advanced service.' });
-    } catch(e) {
-      return err('DELETE_FAILED', `Could not delete file: ${id}`);
-    }
+    return trap(function() { DriveApp.getFileById(id).setTrashed(true); return { deleted: true, fileId: id, note: 'File moved to trash. Permanent deletion requires Drive API advanced service.' }; }, 'DELETE_FAILED', `Could not delete file: ${id}`);
   }
 
   // ── Advanced Services ──
@@ -578,25 +514,23 @@ var DriveService = (() => {
     const id = requireParam(params, 'fileId');
     const mimeType = requireParam(params, 'mimeType');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const blob = Drive.Files.export(id, mimeType);
       const bytes = blob.getBytes();
       const base64 = Utilities.base64Encode(bytes);
-      return ok({
+      return {
         fileId: id,
         mimeType: mimeType,
         size: bytes.length,
         base64: base64,
-      });
-    } catch(e) {
-      return err('EXPORT_FAILED', e.message || `Could not export file: ${id}`);
-    }
+      };
+    }, 'EXPORT_FAILED', function(e) { return e.message || `Could not export file: ${id}`; });
   }
 
   function commentsList(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const result = Drive.Comments.list(id, { fields: 'comments', pageSize: 100 });
       const comments = (result.comments || []).map(function(c) {
         return {
@@ -610,19 +544,17 @@ var DriveService = (() => {
           repliesCount: c.replies ? (Array.isArray(c.replies) ? c.replies.length : 0) : 0,
         };
       });
-      return ok({ fileId: id, comments: comments });
-    } catch(e) {
-      return err('COMMENTS_FAILED', e.message || `Could not list comments for file: ${id}`);
-    }
+      return { fileId: id, comments: comments };
+    }, 'COMMENTS_FAILED', function(e) { return e.message || `Could not list comments for file: ${id}`; });
   }
 
   function commentCreate(params) {
     const id = requireParam(params, 'fileId');
     const content = requireParam(params, 'content');
     validateDriveId(id);
-    try {
+    return trap(function() {
       const comment = Drive.Comments.create({ content: content, anchor: JSON.stringify({ r: 'head' }) }, id, { fields: '*' });
-      return ok({
+      return {
         fileId: id,
         comment: {
           id: comment.commentId,
@@ -631,36 +563,32 @@ var DriveService = (() => {
           createdTime: comment.createdTime || null,
           anchor: comment.anchor ? String(comment.anchor) : null,
         },
-      });
-    } catch(e) {
-      return err('COMMENT_FAILED', e.message || `Could not add comment to file: ${id}`);
-    }
+      };
+    }, 'COMMENT_FAILED', function(e) { return e.message || `Could not add comment to file: ${id}`; });
   }
 
   // ── Batch ──
 
-  function batch(params) {
-    const operations = params.operations;
-    if (!Array.isArray(operations) || operations.length === 0) {
-      return err('BAD_REQUEST', 'operations must be a non-empty array');
-    }
-    if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
-
+  function runBatch(params, handleFn) {
+    const ops = params.operations;
+    if (!Array.isArray(ops) || ops.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
+    if (ops.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
     const results = [];
-    for (let i = 0; i < operations.length; i++) {
-      const op = operations[i];
-      if (!op.action) {
-        results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` } });
-        continue;
-      }
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (!op.action) { results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` }}); continue; }
       try {
-        const result = handle(op.action, op.params || {});
+        const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
       } catch(ex) {
-        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) } });
+        results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
       }
     }
-    return ok({ results: results });
+    return ok({ results });
+  }
+
+  function batch(params) {
+    return runBatch(params, handle);
   }
 
   return { handle: handle };
