@@ -52,20 +52,6 @@ function validateRequest(e) {
   return token === expected
 }
 
-function validateSignedRequest(e) {
-  var sig = (e.parameter || {})['x-sig'] || ''
-  var ts = (e.parameter || {})['x-ts'] || ''
-  if (!sig || !ts) return false
-  var now = Math.floor(Date.now() / 1000)
-  var reqTime = parseInt(ts, 10)
-  if (isNaN(reqTime) || Math.abs(now - reqTime) > 300) return false
-  var token = getOrCreateToken()
-  var payload = reqTime + '\n' + e.postData.contents
-  var hash = Utilities.computeHmacSha256Signature(payload, token)
-  var expected = hash.map(function(b) { return ('0' + (b & 0xFF).toString(16)).slice(-2) }).join('')
-  return sig === expected
-}
-
 function isRateLimited(token, maxRequests) {
   var cache = CacheService.getScriptCache()
   var key = 'rate_' + (token || 'anon')

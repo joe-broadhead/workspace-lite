@@ -90,6 +90,13 @@ export const fileRemoveViewerSchema = {
   email: z.string().email().describe('Email to remove as viewer.'),
 }
 
+export const driveBatchSchema = {
+  operations: z.array(z.object({
+    action: z.string().describe('Action to perform (same names as individual tools: about, fileGet, fileList, fileSearch, fileExport, folderGet, folderList, folderListRoot, folderCreate, fileCreate, fileCopy, fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions, fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor, fileRemoveViewer, fileTrash, fileUntrash, fileDelete).'),
+    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+  })).min(1).max(20).describe('Ordered list of operations.'),
+}
+
 // ─── CALENDAR SCHEMAS ───
 
 export const calendarEventIdSchema = z.string().min(1).describe('Calendar event ID.')
@@ -142,6 +149,13 @@ export const calendarUpdateEventSchema = {
 export const calendarDeleteEventSchema = {
   eventId: calendarEventIdSchema,
   calendarId: z.string().optional().describe('Calendar ID.'),
+}
+
+export const calendarBatchSchema = {
+  operations: z.array(z.object({
+    action: z.string().describe('Action to perform (same names as individual tools: calendarList, calendarGet, eventsList, eventsSearch, freeBusy, eventGet, eventCreate, eventUpdate, eventDelete).'),
+    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+  })).min(1).max(20).describe('Ordered list of operations.'),
 }
 
 // ─── GMAIL SCHEMAS ───
@@ -231,6 +245,13 @@ export const gmailForwardSchema = {
   messageId: gmailMessageIdSchema,
   to: gmailEmailSchema.describe('Recipient email.'),
   htmlBody: z.string().max(200000).optional(),
+}
+
+export const gmailBatchSchema = {
+  operations: z.array(z.object({
+    action: z.string().describe('Action to perform (same names as individual tools: profile, searchMessages, listThreads, getMessage, getThread, listLabels, send, createDraft, createDraftReply, createDraftReplyAll, listDrafts, getDraft, updateDraft, deleteDraft, sendDraft, markRead, markUnread, archive, star, unstar, addLabel, removeLabel, trashMessage, untrashMessage, deleteMessage, trashThread, untrashThread, reply, replyAll, forward).'),
+    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+  })).min(1).max(20).describe('Ordered list of operations.'),
 }
 
 // ─── SHEETS SCHEMAS ───

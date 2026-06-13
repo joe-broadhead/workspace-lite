@@ -1,3 +1,12 @@
-function ok(d, p) { return { success: true, data: d, pagination: p } }
-function err(c, m) { return { success: false, error: { code: c, message: m } } }
-function respond(r) { return ContentService.createTextOutput(JSON.stringify(r)).setMimeType(ContentService.MimeType.JSON) }
+function ok(data, pagination) {
+  return { success: true, data: data, pagination: pagination }
+}
+
+function err(code, message) {
+  return { success: false, error: { code: code, message: message } }
+}
+
+function respond(response) {
+  return ContentService.createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON)
+}
