@@ -262,6 +262,44 @@ const GmailService = (() => {
     }
   }
 
+  function listGmailApiLabels() {
+    const response = Gmail.Users.Labels.list('me');
+    return response && Array.isArray(response.labels) ? response.labels : [];
+  }
+
+  function resolveGmailLabelIds(labels, createMissing) {
+    const values = Array.isArray(labels) ? labels : [];
+    const apiLabels = listGmailApiLabels();
+    const byId = {};
+    const byName = {};
+    const byLowerName = {};
+    for (let i = 0; i < apiLabels.length; i++) {
+      const label = apiLabels[i];
+      if (!label || !label.id) continue;
+      byId[label.id] = label.id;
+      if (label.name) {
+        byName[label.name] = label.id;
+        byLowerName[String(label.name).toLowerCase()] = label.id;
+      }
+    }
+
+    const ids = [];
+    const names = [];
+    for (let j = 0; j < values.length; j++) {
+      const value = String(values[j] || '').trim();
+      if (!value) continue;
+      let id = byId[value] || byName[value] || byLowerName[value.toLowerCase()];
+      if (!id && createMissing) {
+        const created = Gmail.Users.Labels.create({ name: value }, 'me');
+        id = created && created.id;
+      }
+      if (!id) return { error: err('BAD_REQUEST', 'Unknown Gmail label: ' + value) };
+      ids.push(id);
+      names.push(value);
+    }
+    return { ids: ids, names: names };
+  }
+
   function getAttachments(msg) {
     try {
       return msg.getAttachments().map(function(att) { return {
@@ -771,7 +809,10 @@ const GmailService = (() => {
   function deleteMessage(params) {
     const id = requireParam(params, 'messageId');
     validateMessageId(id);
-    return trap(function() { GmailApp.getMessageById(id).getThread().moveToTrash(); return { deleted: true, messageId: id, note: 'Message moved to trash. Emptied after 30 days.' }; }, 'DELETE_FAILED', `Could not delete message: ${id}`);
+    return trap(function() {
+      GmailApp.getMessageById(id).moveToTrash();
+      return { deleted: true, permanent: false, trashed: true, messageId: id, note: 'Message moved to trash. Gmail permanently removes trashed messages after its retention period.' };
+    }, 'DELETE_FAILED', `Could not move message to trash: ${id}`);
   }
 
   // ─── ATTACHMENT ───
@@ -809,17 +850,24 @@ const GmailService = (() => {
     if (!Array.isArray(messageIds) || messageIds.length === 0)
       return err('BAD_REQUEST', 'messageIds must be a non-empty array');
     if (messageIds.length > LIMITS.batchModifyMessages) return limitExceeded('batchModify messageIds', messageIds.length, LIMITS.batchModifyMessages);
-    const addLabelIds = Array.isArray(params.addLabels) ? params.addLabels : [];
-    const removeLabelIds = Array.isArray(params.removeLabels) ? params.removeLabels : [];
-    if (addLabelIds.length === 0 && removeLabelIds.length === 0)
+    for (let i = 0; i < messageIds.length; i++) validateMessageId(messageIds[i]);
+    const addLabels = Array.isArray(params.addLabels) ? params.addLabels : [];
+    const removeLabels = Array.isArray(params.removeLabels) ? params.removeLabels : [];
+    if (addLabels.length === 0 && removeLabels.length === 0)
       return err('BAD_REQUEST', 'At least one of addLabels or removeLabels must be provided');
     return trap(function() {
-      Gmail.Users.Messages.batchModify({ ids: messageIds, addLabelIds: addLabelIds, removeLabelIds: removeLabelIds }, 'me');
+      const add = resolveGmailLabelIds(addLabels, true);
+      if (add.error) return add.error;
+      const remove = resolveGmailLabelIds(removeLabels, false);
+      if (remove.error) return remove.error;
+      Gmail.Users.Messages.batchModify({ ids: messageIds, addLabelIds: add.ids, removeLabelIds: remove.ids }, 'me');
       return {
         modified: messageIds.length,
         messageIds: messageIds,
-        addedLabels: addLabelIds,
-        removedLabels: removeLabelIds,
+        addedLabels: add.names,
+        removedLabels: remove.names,
+        addedLabelIds: add.ids,
+        removedLabelIds: remove.ids,
       };
     }, 'BATCH_MODIFY_FAILED', function(e) { return e.message || 'Batch modify failed'; });
   }

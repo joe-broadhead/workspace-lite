@@ -45,6 +45,11 @@ Tokens must be stored in environment variables. The recommended approach:
 GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN=<drive-proxy-token>
 GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN=<gmail-proxy-token>
 # ... one token per service
+
+# Optional least-privilege tokens for higher-risk action classes
+GOOGLE_WORKSPACE_GMAIL_PROXY_SEND_TOKEN=<gmail-send-token>
+GOOGLE_WORKSPACE_DRIVE_PROXY_SHARE_TOKEN=<drive-share-token>
+GOOGLE_WORKSPACE_DRIVE_PROXY_DESTRUCTIVE_TOKEN=<drive-destructive-token>
 ```
 
 !!! danger "Never commit tokens"
@@ -73,7 +78,12 @@ Tokens are passed to MCP servers via the `environment` block in `opencode.jsonc`
       "command": ["npx", "tsx", "/path/to/packages/drive/src/index.ts"],
       "environment": {
         "GOOGLE_WORKSPACE_DRIVE_PROXY_URL": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_URL}",
-        "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_READ_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_READ_TOKEN}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_WRITE_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_WRITE_TOKEN}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_SHARE_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_SHARE_TOKEN}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_DESTRUCTIVE_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_DESTRUCTIVE_TOKEN}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_ADMIN_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_ADMIN_TOKEN}"
       }
     }
   }
@@ -139,7 +149,13 @@ Your environment contains two values per service:
 | Variable | Risk |
 |---|---|
 | `GOOGLE_WORKSPACE_*_PROXY_URL` | Low. The URL is public but useless without the token. |
-| `GOOGLE_WORKSPACE_*_PROXY_TOKEN` | **Critical.** This is the bearer token for all proxy operations. |
+| `GOOGLE_WORKSPACE_*_PROXY_TOKEN` | **Critical.** Primary bearer token and fallback when a class-scoped token is not configured. |
+| `GOOGLE_WORKSPACE_*_PROXY_READ_TOKEN` | Optional read-only token. |
+| `GOOGLE_WORKSPACE_*_PROXY_WRITE_TOKEN` | Optional token for non-destructive mutations. |
+| `GOOGLE_WORKSPACE_*_PROXY_SEND_TOKEN` | Optional token for Gmail send, reply, and forward actions. |
+| `GOOGLE_WORKSPACE_*_PROXY_SHARE_TOKEN` | Optional token for Drive sharing actions. |
+| `GOOGLE_WORKSPACE_*_PROXY_DESTRUCTIVE_TOKEN` | Optional token for trash/delete/clear actions. |
+| `GOOGLE_WORKSPACE_*_PROXY_ADMIN_TOKEN` | Optional broad fallback for mixed high-risk batches or full operational access. |
 
 ### Best Practices
 
@@ -196,7 +212,7 @@ There is no additional infrastructure to secure.
 
 ### What an attacker can do with a compromised token
 
-Token impact depends on the token's authorization classes. The setup-generated primary token defaults to `read,draft`; broader classes require `PROXY_AUTH_TOKEN_CLASSES` or class-scoped token properties in Apps Script Script Properties.
+Token impact depends on the token's authorization classes. The setup-generated primary token defaults to `read,draft`; broader classes require `PROXY_AUTH_TOKEN_CLASSES` or class-scoped token properties in Apps Script Script Properties. The MCP client chooses class-scoped environment tokens by action class when they are configured, and only falls back to the primary token when no matching class token is available.
 
 | Token class | Access |
 |---|---|

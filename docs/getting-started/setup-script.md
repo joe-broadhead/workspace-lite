@@ -33,7 +33,7 @@ Each service gets its own project with service-specific OAuth scopes:
 | Slides | Google Workspace Proxy - Slides | `presentations`, `script.external_request` |
 | Docs | Google Workspace Proxy - Docs | `documents`, `script.external_request` |
 
-All projects use `runtimeVersion: V8`, `executeAs: USER_DEPLOYING`, and `access: ANYONE`.
+All projects use `runtimeVersion: V8`, `executeAs: USER_DEPLOYING`, and `access: ANYONE_ANONYMOUS`.
 
 ---
 
@@ -139,7 +139,7 @@ Update the token in `.env` and re-source.
 |---------|-----|
 | &ldquo;Sorry, unable to open file at this time&rdquo; | Wait a few seconds after pushing; Apps Script needs time to process |
 | Web app not responding | Verify deployment type is **Web app**, not API executable |
-| 403 / 401 from proxy | Check that **Execute as: Me** is set and **Access: Anyone** is set |
+| 403 / 401 from proxy | Check that **Execute as: Me** is set and **Access: Anyone (anonymous)** is set |
 | &ldquo;Script function not found: doGet&rdquo; | Push failed. Run `cd packages/<service>/apps-script && clasp push --force` |
 
 ### Token bootstrap fails

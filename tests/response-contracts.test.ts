@@ -69,6 +69,30 @@ describe('createProxyClient', () => {
     assert.deepEqual(result.data, { id: 'file-1' })
     assert.equal(request?.method, 'POST')
     assert.ok(request?.signal instanceof AbortSignal)
+    assert.equal(JSON.parse(String(request?.body)).token, 'secret-token')
+  })
+
+  it('uses class-scoped proxy tokens when configured', async () => {
+    setProxyEnv()
+    process.env.GOOGLE_WORKSPACE_DRIVE_PROXY_READ_TOKEN = 'read-token'
+    process.env.GOOGLE_WORKSPACE_DRIVE_PROXY_WRITE_TOKEN = 'write-token'
+    process.env.GOOGLE_WORKSPACE_DRIVE_PROXY_SHARE_TOKEN = 'share-token'
+    process.env.GOOGLE_WORKSPACE_DRIVE_PROXY_DESTRUCTIVE_TOKEN = 'destructive-token'
+    process.env.GOOGLE_WORKSPACE_DRIVE_PROXY_ADMIN_TOKEN = 'admin-token'
+    const tokens: string[] = []
+    globalThis.fetch = async (_input, init) => {
+      tokens.push(JSON.parse(String(init?.body)).token)
+      return jsonResponse({ success: true, data: { ok: true } })
+    }
+
+    const client = createProxyClient('drive')
+    await client.callProxy('about')
+    await client.callProxy('fileCreate', { name: 'note.txt', content: 'hello' })
+    await client.callProxy('fileSetSharing', { fileId: 'file-1', access: 'PRIVATE', permission: 'VIEW', confirm: true })
+    await client.callProxy('fileTrash', { fileId: 'file-1', confirm: true })
+    await client.callProxy('batch', { operations: [{ action: 'fileSetSharing' }, { action: 'fileTrash' }] })
+
+    assert.deepEqual(tokens, ['read-token', 'write-token', 'share-token', 'destructive-token', 'admin-token'])
   })
 
   it('rejects HTTP errors, non-JSON bodies, malformed envelopes, and proxy errors', async () => {

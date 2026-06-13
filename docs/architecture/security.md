@@ -40,7 +40,7 @@ The bootstrap flow:
 4. The proxy validates the setup key in constant time, generates the token, stores it, marks bootstrap complete, and returns the token.
 5. The user stores the token as an environment variable such as `GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN`.
 
-The primary token defaults to the `read,draft` authorization classes. Operators can set `PROXY_AUTH_TOKEN_CLASSES` or service-specific tokens such as `PROXY_WRITE_TOKEN`, `PROXY_SEND_TOKEN`, `PROXY_SHARE_TOKEN`, `PROXY_DESTRUCTIVE_TOKEN`, and `PROXY_ADMIN_TOKEN` in Script Properties when they need broader action classes.
+The primary token defaults to the `read,draft` authorization classes. Operators can set `PROXY_AUTH_TOKEN_CLASSES` or service-specific tokens such as `PROXY_WRITE_TOKEN`, `PROXY_SEND_TOKEN`, `PROXY_SHARE_TOKEN`, `PROXY_DESTRUCTIVE_TOKEN`, and `PROXY_ADMIN_TOKEN` in Script Properties when they need broader action classes. MCP servers prefer matching environment variables such as `GOOGLE_WORKSPACE_DRIVE_PROXY_WRITE_TOKEN` or `GOOGLE_WORKSPACE_GMAIL_PROXY_SEND_TOKEN` for higher-risk actions, then fall back to `GOOGLE_WORKSPACE_<SERVICE>_PROXY_ADMIN_TOKEN`, then the primary `GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN`.
 
 ## Token Transmission
 
@@ -50,7 +50,7 @@ Normal proxy calls accept the token only in the JSON request body:
 { "action": "fileGet", "params": { "fileId": "<file-id>" }, "token": "<proxy-token>" }
 ```
 
-The MCP servers read the token from environment variables and send it in that body field. Query parameters are reserved for the one-time bootstrap flow, and Authorization headers are not part of the proxy request contract.
+The MCP servers read tokens from environment variables and send the selected token in that body field. Read actions can use `GOOGLE_WORKSPACE_<SERVICE>_PROXY_READ_TOKEN`; write, send, share, destructive, and admin actions use their matching class token when configured. Query parameters are reserved for the one-time bootstrap flow, and Authorization headers are not part of the proxy request contract.
 
 ## Rate Limiting
 
@@ -94,7 +94,7 @@ Validation happens at **both layers**: the MCP server validates with Zod schemas
 This is the key architectural decision. The Apps Script web app is deployed as:
 
 - **Execute as: Me (`USER_DEPLOYING`)**
-- **Access: Anyone**
+- **Access: Anyone (anonymous)**
 
 This means:
 

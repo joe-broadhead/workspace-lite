@@ -18,7 +18,8 @@ if (!calendar.includes('function parseDateTimeRange')) failures.push('Calendar m
 for (const [service, file] of [['Docs', 'packages/docs/apps-script/DocsService.gs'], ['Slides', 'packages/slides/apps-script/SlidesService.gs']]) {
   const source = readFileSync(file, 'utf8')
   if (!source.includes('function fetchImageBlob')) failures.push(`${service}: missing fetchImageBlob validation`)
-  if (!source.includes("parsed.protocol !== 'https:'")) failures.push(`${service}: image fetches must reject non-HTTPS URLs`)
+  if (!source.includes('function parseHttpsUrl')) failures.push(`${service}: image fetches must parse URLs without relying on unavailable Apps Script globals`)
+  if (!source.includes('imageUrl must use https')) failures.push(`${service}: image fetches must reject non-HTTPS URLs`)
   if (!source.includes('ALLOWED_IMAGE_HOSTS')) failures.push(`${service}: image fetches must support host allowlists`)
   if (!source.includes("contentType.indexOf('image/') !== 0")) failures.push(`${service}: image fetches must validate image MIME type`)
   if (!source.includes('LIMITS.imageBytes')) failures.push(`${service}: image fetches must enforce byte limits`)

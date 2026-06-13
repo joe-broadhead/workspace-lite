@@ -30,7 +30,7 @@ Read, send, draft, label, search, and manage email threads and messages.
 | `gmail_remove_label` | Remove a label from a message. |
 | `gmail_trash_message` | Move a single message to trash. |
 | `gmail_untrash_message` | Restore a message from trash. |
-| `gmail_delete_message` | Permanently delete a message. |
+| `gmail_delete_message` | Delete a message by moving it to trash. |
 | `gmail_trash_thread` | Move an entire thread to trash. |
 | `gmail_untrash_thread` | Restore a thread from trash. |
 | `gmail_reply` | Reply to a message (sends immediately). |
@@ -93,7 +93,7 @@ gmail_archive({ messageId: "<msg-id>" })
 ## Limits & Considerations
 
 - `gmail_send`, `gmail_reply`, `gmail_reply_all`, and `gmail_forward` send immediately — prefer draft variants for safety.
-- `gmail_delete_message` is permanent and cannot be undone. Use `trash_message` for a recoverable delete.
+- `gmail_delete_message` moves a message to trash; Gmail permanently removes trashed messages after its retention period. Use `gmail_untrash_message` before then to restore.
 - The Gmail API enforces daily usage quotas; batch operations help reduce API calls.
 - Attachments are referenced in message responses but are not downloaded inline; use Drive tools to fetch attachment content.
 - Gmail search query syntax uses operators like `from:`, `subject:`, `label:`, `has:attachment`, `is:unread`, etc. Refer to Google's Gmail search documentation for the full syntax.

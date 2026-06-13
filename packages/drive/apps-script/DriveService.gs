@@ -192,7 +192,7 @@ var DriveService = (() => {
     catch (e) {
       const correlationId = Utilities.getUuid();
       console.error('[drive-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
-      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
+      const message = typeof errorMsg === 'function' ? errorMsg(e) : (typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`);
       return err(errorCode, message, correlationId);
     }
   }
@@ -311,14 +311,25 @@ var DriveService = (() => {
     const maxResultLimit = boundedPageSize(params, 'maxResults', 50);
     if (maxResultLimit.error) return maxResultLimit.error;
     const maxResults = maxResultLimit.value;
-    const files = DriveApp.searchFiles(query);
-    const results = [];
-    let count = 0;
-    while (files.hasNext() && count < maxResults) {
-      results.push(fileToJSON(files.next()));
-      count++;
-    }
-    return ok(results, { hasMore: files.hasNext() });
+    return trap(function() {
+      const driveAppQuery = normalizeDriveAppQuery(query);
+      const files = DriveApp.searchFiles(driveAppQuery);
+      const results = [];
+      let count = 0;
+      while (files.hasNext() && count < maxResults) {
+        results.push(fileToJSON(files.next()));
+        count++;
+      }
+      const warnings = driveAppQuery !== query ? ['Translated Drive API v3 query fields to DriveApp query fields.'] : undefined;
+      return ok(results, { hasMore: files.hasNext() }, warnings);
+    }, 'SEARCH_FAILED', function(e) { return e.message || 'Drive search failed'; });
+  }
+
+  function normalizeDriveAppQuery(query) {
+    return String(query)
+      .replace(/\bname\s+(contains|=|!=)/gi, 'title $1')
+      .replace(/\bmodifiedTime\b/gi, 'modifiedDate')
+      .replace(/\bcreatedTime\b/gi, 'createdDate');
   }
 
   function fileExport(params) {
@@ -647,7 +658,12 @@ var DriveService = (() => {
     const mimeType = requireParam(params, 'mimeType');
     validateDriveId(id);
     return trap(function() {
-      const blob = Drive.Files.export(id, mimeType);
+      const sourceFile = DriveApp.getFileById(id);
+      const sourceMimeType = sourceFile.getMimeType();
+      if (sourceMimeType.indexOf('application/vnd.google-apps.') !== 0) {
+        return err('BAD_REQUEST', 'drive_export_as only works on Google Workspace files. Use drive_read_file for plain text files and Drive binary downloads outside this proxy.');
+      }
+      const blob = sourceFile.getAs(mimeType);
       const bytes = blob.getBytes();
       if (bytes.length > LIMITS.exportBytes) return limitExceeded('fileExportAs bytes', bytes.length, LIMITS.exportBytes);
       const base64 = Utilities.base64Encode(bytes);

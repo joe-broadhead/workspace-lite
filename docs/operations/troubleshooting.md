@@ -11,7 +11,7 @@
 1. **Web app not deployed.** Each service requires a manual deployment via the Apps Script editor.
 2. **Deployment URL is incorrect.** Verify the URL in your `.env` file matches the deployment URL from the Apps Script editor.
 3. **Execute-as setting is wrong.** The deployment must be "Execute as: Me (USER_DEPLOYING)".
-4. **Access setting is wrong.** The deployment must have "Who has access: Anyone".
+4. **Access setting is wrong.** The deployment must allow anonymous access, not only signed-in Google users.
 
 **Resolution:**
 
@@ -30,7 +30,7 @@ cd packages/<service>/apps-script
 clasp open
 ```
 
-In the Apps Script editor: **Deploy → New deployment → Type: Web app → Execute as: Me → Access: Anyone**. Update the URL in your `.env` file.
+In the Apps Script editor: **Deploy → New deployment → Type: Web app → Execute as: Me → Access: Anyone (anonymous)**. Update the URL in your `.env` file.
 
 ### Scopes Not Authorized
 

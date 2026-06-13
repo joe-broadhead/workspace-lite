@@ -19,8 +19,8 @@ for (const service of services) {
     failures.push(`${service.key}: executionApi must not be configured`)
   }
 
-  if (manifest.webapp?.executeAs !== 'USER_DEPLOYING' || manifest.webapp?.access !== 'ANYONE') {
-    failures.push(`${service.key}: webapp deployment must run as USER_DEPLOYING with explicit ANYONE access`)
+  if (manifest.webapp?.executeAs !== 'USER_DEPLOYING' || manifest.webapp?.access !== 'ANYONE_ANONYMOUS') {
+    failures.push(`${service.key}: webapp deployment must run as USER_DEPLOYING with explicit anonymous access`)
   }
 
   if (JSON.stringify(serviceIds) !== JSON.stringify(expectedServices)) {

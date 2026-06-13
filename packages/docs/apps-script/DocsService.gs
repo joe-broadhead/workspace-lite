@@ -77,12 +77,11 @@ const DocsService = (() => {
   }
 
   function fetchImageBlob(imageUrl, hostProperties) {
-    let parsed;
-    try { parsed = new URL(imageUrl); } catch (_) { return { error: err('BAD_REQUEST', 'imageUrl must be a valid URL') }; }
-    if (parsed.protocol !== 'https:') return { error: err('BAD_REQUEST', 'imageUrl must use https') };
+    const parsed = parseHttpsUrl(imageUrl);
+    if (!parsed) return { error: err('BAD_REQUEST', 'imageUrl must use https and be a valid URL') };
     if (!isAllowedHost(parsed.hostname, hostProperties)) return { error: err('ACTION_NOT_ALLOWED', 'imageUrl host is outside the configured allowlist') };
 
-    const response = UrlFetchApp.fetch(parsed.toString(), { muteHttpExceptions: true, followRedirects: true });
+    const response = UrlFetchApp.fetch(parsed.url, { muteHttpExceptions: true, followRedirects: true });
     const status = response.getResponseCode();
     if (status < 200 || status >= 300) return { error: err('BAD_REQUEST', 'imageUrl fetch failed with HTTP ' + status) };
     const headers = response.getHeaders ? response.getHeaders() : {};
@@ -91,6 +90,13 @@ const DocsService = (() => {
     const bytes = response.getContent().length;
     if (bytes > LIMITS.imageBytes) return { error: limitExceeded('image bytes', bytes, LIMITS.imageBytes) };
     return { blob: response.getBlob() };
+  }
+
+  function parseHttpsUrl(value) {
+    const url = String(value || '').trim();
+    const match = url.match(/^https:\/\/([^\s\/?#@:]+)(?::\d+)?(?:[\/?#]|$)/i);
+    if (!match) return null;
+    return { url: url, hostname: match[1].toLowerCase() };
   }
 
   function trap(fn, errorCode, errorMsg) {

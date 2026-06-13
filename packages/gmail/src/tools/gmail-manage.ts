@@ -15,8 +15,8 @@ export function registerGmailManageTools(server: ToolServer) {
     async (args: Record<string, unknown>) => { return formatResponse(await callProxy('trashThread', args), { summary: 'Thread trashed.' }) })
   server.tool('gmail_untrash_thread', 'Restore a thread from trash.', gmailUntrashThreadSchema,
     async (args: Record<string, unknown>) => { return formatResponse(await callProxy('untrashThread', args), { summary: 'Thread restored.' }) })
-  server.tool('gmail_delete_message', 'Permanently delete a message.', gmailDeleteMessageSchema,
-    async (args: Record<string, unknown>) => { return formatResponse(await callProxy('deleteMessage', args), { summary: 'Deleted.' }) })
+  server.tool('gmail_delete_message', 'Delete a message by moving it to trash. Gmail permanently removes trashed messages after its retention period.', gmailDeleteMessageSchema,
+    async (args: Record<string, unknown>) => { return formatResponse(await callProxy('deleteMessage', args), { summary: 'Moved to trash.' }) })
   server.tool('gmail_batch_modify', 'Bulk label changes on multiple messages. Use messageIds, addLabels (optional), and removeLabels (optional). Labels can be names (INBOX, UNREAD, STARRED) or IDs.',
     gmailBatchModifySchema,
     async (args: Record<string, unknown>) => {

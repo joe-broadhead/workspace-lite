@@ -144,7 +144,7 @@ echo "For each service below:"
 echo "  1. Run: cd packages/<service>/apps-script && clasp open"
 echo "  2. Deploy → New deployment → Type: Web app"
 echo "  3. Execute as: Me (USER_DEPLOYING)"
-echo "  4. Access: Anyone"
+echo "  4. Access: Anyone (anonymous)"
 echo "  5. Copy the deployment URL"
 echo ""
 echo "Services to deploy:"
@@ -220,7 +220,13 @@ for svc in "${SERVICES[@]}"; do
       "command": ["npx", "tsx", "$ROOT/packages/$svc/src/index.ts"],
       "environment": {
         "GOOGLE_WORKSPACE_${env_name}_PROXY_URL": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_URL}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN}"
+        "GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN}",
+        "GOOGLE_WORKSPACE_${env_name}_PROXY_READ_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_READ_TOKEN}",
+        "GOOGLE_WORKSPACE_${env_name}_PROXY_WRITE_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_WRITE_TOKEN}",
+        "GOOGLE_WORKSPACE_${env_name}_PROXY_SEND_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_SEND_TOKEN}",
+        "GOOGLE_WORKSPACE_${env_name}_PROXY_SHARE_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_SHARE_TOKEN}",
+        "GOOGLE_WORKSPACE_${env_name}_PROXY_DESTRUCTIVE_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_DESTRUCTIVE_TOKEN}",
+        "GOOGLE_WORKSPACE_${env_name}_PROXY_ADMIN_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_ADMIN_TOKEN}"
       }
     },
 EOF

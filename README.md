@@ -77,7 +77,7 @@ cd packages/<service>/apps-script && clasp open
 In the Apps Script editor that opens:
 - **Deploy → New deployment → Type: Web app**
 - **Execute as: Me (USER_DEPLOYING)**
-- **Access: Anyone**
+- **Access: Anyone (anonymous)**
 
 Paste each deployment URL back into the script. It auto-bootstraps tokens and generates your config.
 
