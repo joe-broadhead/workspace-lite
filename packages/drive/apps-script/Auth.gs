@@ -158,17 +158,20 @@ function getStoredTokenFingerprint_() {
   return Utilities.base64EncodeWebSafe(bytes)
 }
 
-function isRateLimited(maxRequests) {
+function isRateLimited(maxRequests, weight) {
   const cache = CacheService.getScriptCache()
   const lock = LockService.getScriptLock()
   const key = 'rate_' + getStoredTokenFingerprint_()
+  let locked = false
   try {
-    if (!lock.tryLock(1000)) return true
+    locked = lock.tryLock(1000)
+    if (!locked) return true
     const count = parseInt(cache.get(key) || '0', 10)
-    if (count >= (maxRequests || 100)) return true
-    cache.put(key, String(count + 1), 60)
+    const requestWeight = Math.max(1, Math.min(Number(weight) || 1, maxRequests || 100))
+    if (count + requestWeight > (maxRequests || 100)) return true
+    cache.put(key, String(count + requestWeight), 60)
     return false
   } finally {
-    lock.releaseLock()
+    if (locked) lock.releaseLock()
   }
 }

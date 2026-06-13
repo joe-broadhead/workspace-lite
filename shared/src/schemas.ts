@@ -6,6 +6,21 @@ export const confirmationSchema = {
   confirm: z.boolean().optional().describe('Required for server-gated send, share, or destructive actions after explicit user approval.'),
 }
 
+type ToolSchema = Record<string, z.ZodTypeAny>
+
+function batchOperationSchema<Action extends string>(action: Action, schema: ToolSchema = {}) {
+  return z.object({
+    action: z.literal(action),
+    params: z.object(schema).strict().default({}).describe('Parameters for this action.'),
+  }).strict()
+}
+
+function omitSchemaKeys(schema: ToolSchema, keys: string[]): ToolSchema {
+  const copy = { ...schema }
+  for (const key of keys) delete copy[key]
+  return copy
+}
+
 export const fileListSchema = {
   folderId: z.string().optional().describe('Folder ID to list files from. Omit to list all files.'),
   pageSize: z.number().min(1).max(100).default(50).describe('Number of files per page.'),
@@ -130,10 +145,37 @@ export const driveCommentCreateSchema = {
 }
 
 export const driveBatchSchema = {
-  operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: about, fileGet, fileList, fileSearch, fileExport, folderGet, folderList, folderListRoot, folderCreate, fileCreate, fileCopy, fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions, fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor, fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath, fileTrash, fileUntrash, fileDelete, fileExportAs, commentsList, commentCreate).'),
-    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
-  })).min(1).max(20).describe('Ordered list of operations.'),
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('about'),
+    batchOperationSchema('fileGet', fileGetSchema),
+    batchOperationSchema('fileList', fileListSchema),
+    batchOperationSchema('fileSearch', fileSearchSchema),
+    batchOperationSchema('fileExport', fileExportSchema),
+    batchOperationSchema('folderGet', folderGetSchema),
+    batchOperationSchema('folderList', folderListSchema),
+    batchOperationSchema('folderListRoot'),
+    batchOperationSchema('folderCreate', folderCreateSchema),
+    batchOperationSchema('fileCreate', fileCreateSchema),
+    batchOperationSchema('fileCopy', fileCopySchema),
+    batchOperationSchema('fileMove', fileMoveSchema),
+    batchOperationSchema('fileUpdateMeta', fileUpdateMetaSchema),
+    batchOperationSchema('fileUpdateContent', fileUpdateContentSchema),
+    batchOperationSchema('fileGetPermissions', fileGetSchema),
+    batchOperationSchema('fileSetSharing', fileSetSharingSchema),
+    batchOperationSchema('fileAddEditor', fileAddEditorSchema),
+    batchOperationSchema('fileAddViewer', fileAddViewerSchema),
+    batchOperationSchema('fileRemoveEditor', fileRemoveEditorSchema),
+    batchOperationSchema('fileRemoveViewer', fileRemoveViewerSchema),
+    batchOperationSchema('fileAddParent', driveAddParentSchema),
+    batchOperationSchema('fileRemoveParent', driveRemoveParentSchema),
+    batchOperationSchema('folderPath', driveFolderPathSchema),
+    batchOperationSchema('fileTrash', fileGetSchema),
+    batchOperationSchema('fileUntrash', fileGetSchema),
+    batchOperationSchema('fileDelete', fileGetSchema),
+    batchOperationSchema('fileExportAs', driveExportAsSchema),
+    batchOperationSchema('commentsList', driveCommentsListSchema),
+    batchOperationSchema('commentCreate', driveCommentCreateSchema),
+  ])).min(1).max(20).describe('Ordered list of validated Drive operations.'),
 }
 
 // ─── CALENDAR SCHEMAS ───
@@ -226,10 +268,22 @@ export const calendarQuickAddSchema = {
 }
 
 export const calendarBatchSchema = {
-  operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: listCalendars, getCalendar, listEvents, searchEvents, findFreeBusy, getEvent, eventInstances, quickAdd, createEvent, updateEvent, deleteEvent, respondToEvent, createEventSeries, setEventColor).'),
-    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
-  })).min(1).max(20).describe('Ordered list of operations.'),
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('listCalendars'),
+    batchOperationSchema('getCalendar', { calendarId: z.string().optional().describe('Calendar ID. Omit for default.') }),
+    batchOperationSchema('listEvents', calendarListEventsSchema),
+    batchOperationSchema('searchEvents', calendarSearchEventsSchema),
+    batchOperationSchema('findFreeBusy', calendarFreeBusySchema),
+    batchOperationSchema('getEvent', calendarGetEventSchema),
+    batchOperationSchema('eventInstances', calendarEventInstancesSchema),
+    batchOperationSchema('quickAdd', calendarQuickAddSchema),
+    batchOperationSchema('createEvent', calendarCreateEventSchema),
+    batchOperationSchema('updateEvent', calendarUpdateEventSchema),
+    batchOperationSchema('deleteEvent', calendarDeleteEventSchema),
+    batchOperationSchema('respondToEvent', calendarRespondEventSchema),
+    batchOperationSchema('createEventSeries', calendarCreateEventSeriesSchema),
+    batchOperationSchema('setEventColor', calendarSetEventColorSchema),
+  ])).min(1).max(20).describe('Ordered list of validated Calendar operations.'),
 }
 
 // ─── GMAIL SCHEMAS ───
@@ -336,10 +390,40 @@ export const gmailBatchModifySchema = {
 }
 
 export const gmailBatchSchema = {
-  operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: profile, searchMessages, listThreads, getMessage, getThread, listLabels, send, createDraft, createDraftReply, createDraftReplyAll, listDrafts, getDraft, updateDraft, deleteDraft, sendDraft, markRead, markUnread, archive, star, unstar, addLabel, removeLabel, trashMessage, untrashMessage, deleteMessage, trashThread, untrashThread, reply, replyAll, forward, attachmentGet, batchModify).'),
-    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
-  })).min(1).max(20).describe('Ordered list of operations.'),
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('profile'),
+    batchOperationSchema('searchMessages', gmailSearchMessagesSchema),
+    batchOperationSchema('listThreads', gmailListThreadsSchema),
+    batchOperationSchema('getMessage', gmailGetMessageSchema),
+    batchOperationSchema('getThread', gmailGetThreadSchema),
+    batchOperationSchema('listLabels'),
+    batchOperationSchema('send', gmailSendSchema),
+    batchOperationSchema('createDraft', gmailCreateDraftSchema),
+    batchOperationSchema('createDraftReply', gmailReplySchema),
+    batchOperationSchema('createDraftReplyAll', gmailReplyAllSchema),
+    batchOperationSchema('listDrafts', gmailListDraftsSchema),
+    batchOperationSchema('getDraft', gmailGetDraftSchema),
+    batchOperationSchema('updateDraft', gmailUpdateDraftSchema),
+    batchOperationSchema('deleteDraft', gmailDeleteDraftSchema),
+    batchOperationSchema('sendDraft', gmailSendDraftSchema),
+    batchOperationSchema('markRead', gmailMarkReadSchema),
+    batchOperationSchema('markUnread', gmailMarkUnreadSchema),
+    batchOperationSchema('archive', gmailArchiveSchema),
+    batchOperationSchema('star', gmailStarSchema),
+    batchOperationSchema('unstar', gmailUnstarSchema),
+    batchOperationSchema('addLabel', gmailLabelSchema),
+    batchOperationSchema('removeLabel', gmailLabelSchema),
+    batchOperationSchema('trashMessage', gmailTrashMessageSchema),
+    batchOperationSchema('untrashMessage', gmailUntrashMessageSchema),
+    batchOperationSchema('deleteMessage', gmailDeleteMessageSchema),
+    batchOperationSchema('trashThread', gmailTrashThreadSchema),
+    batchOperationSchema('untrashThread', gmailUntrashThreadSchema),
+    batchOperationSchema('reply', gmailReplySchema),
+    batchOperationSchema('replyAll', gmailReplyAllSchema),
+    batchOperationSchema('forward', gmailForwardSchema),
+    batchOperationSchema('attachmentGet', gmailAttachmentGetSchema),
+    batchOperationSchema('batchModify', gmailBatchModifySchema),
+  ])).min(1).max(20).describe('Ordered list of validated Gmail operations.'),
 }
 
 // ─── SHEETS SCHEMAS ───
@@ -496,14 +580,6 @@ export const sheetsSetNoteSchema = {
   note: z.string().describe('Note text. Use empty string to clear notes.'),
 }
 
-export const sheetsBatchSchema = {
-  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
-  operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeGetFormulas, rangeGetNotes, valuesBatchGet, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet, conditionalFormatGet, dataValidationSet, rowsInsert, rowsDelete).'),
-    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas for parameter details.'),
-  })).min(1).max(20).describe('Ordered list of operations to execute.'),
-}
-
 export const sheetsConditionalFormatSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
@@ -551,6 +627,39 @@ export const sheetsDeleteRowsSchema = {
   startPosition: z.number().int().min(1).describe('Row index to start deleting from (1-based).'),
   howMany: z.number().int().min(1).default(1).describe('Number of rows to delete.'),
   ...confirmationSchema,
+}
+
+const withoutSpreadsheetId = (schema: ToolSchema) => omitSchemaKeys(schema, ['spreadsheetId'])
+
+export const sheetsBatchSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID shared by all operations.'),
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('spreadsheetGet', withoutSpreadsheetId(sheetsSpreadsheetGetSchema)),
+    batchOperationSchema('sheetAdd', withoutSpreadsheetId(sheetsAddSheetSchema)),
+    batchOperationSchema('sheetDelete', withoutSpreadsheetId(sheetsDeleteSheetSchema)),
+    batchOperationSchema('sheetRename', withoutSpreadsheetId(sheetsRenameSheetSchema)),
+    batchOperationSchema('sheetCopy', withoutSpreadsheetId(sheetsCopySheetSchema)),
+    batchOperationSchema('rangeRead', withoutSpreadsheetId(sheetsRangeReadSchema)),
+    batchOperationSchema('rangeWrite', withoutSpreadsheetId(sheetsRangeWriteSchema)),
+    batchOperationSchema('rowsAppend', withoutSpreadsheetId(sheetsAppendRowsSchema)),
+    batchOperationSchema('rangeClear', withoutSpreadsheetId(sheetsClearRangeSchema)),
+    batchOperationSchema('rangeGetFormulas', withoutSpreadsheetId(sheetsGetFormulasSchema)),
+    batchOperationSchema('rangeGetNotes', withoutSpreadsheetId(sheetsGetNotesSchema)),
+    batchOperationSchema('valuesBatchGet', withoutSpreadsheetId(sheetsBatchGetSchema)),
+    batchOperationSchema('rangeFormat', withoutSpreadsheetId(sheetsFormatRangeSchema)),
+    batchOperationSchema('rangeMerge', withoutSpreadsheetId(sheetsMergeCellsSchema)),
+    batchOperationSchema('rangeUnmerge', withoutSpreadsheetId(sheetsMergeCellsSchema)),
+    batchOperationSchema('columnWidth', withoutSpreadsheetId(sheetsSetColumnWidthSchema)),
+    batchOperationSchema('freezeRows', withoutSpreadsheetId(sheetsFreezeRowsSchema)),
+    batchOperationSchema('rangeSort', withoutSpreadsheetId(sheetsSortRangeSchema)),
+    batchOperationSchema('formulaSet', withoutSpreadsheetId(sheetsSetFormulaSchema)),
+    batchOperationSchema('chartCreate', withoutSpreadsheetId(sheetsCreateChartSchema)),
+    batchOperationSchema('noteSet', withoutSpreadsheetId(sheetsSetNoteSchema)),
+    batchOperationSchema('conditionalFormatGet', withoutSpreadsheetId(sheetsConditionalFormatSchema)),
+    batchOperationSchema('dataValidationSet', withoutSpreadsheetId(sheetsDataValidationSchema)),
+    batchOperationSchema('rowsInsert', withoutSpreadsheetId(sheetsInsertRowsSchema)),
+    batchOperationSchema('rowsDelete', withoutSpreadsheetId(sheetsDeleteRowsSchema)),
+  ])).min(1).max(20).describe('Ordered list of validated Sheets operations. spreadsheetCreate is excluded because batches target one existing spreadsheet.'),
 }
 
 // ─── SLIDES SCHEMAS ───
@@ -686,12 +795,29 @@ export const slidesInsertLineSchema = {
   lineType: z.enum(['SOLID', 'DOTTED', 'DASHED']).default('SOLID').optional().describe('Line style.'),
 }
 
+const withoutPresentationId = (schema: ToolSchema) => omitSchemaKeys(schema, ['presentationId'])
+
 export const slidesBatchSchema = {
-  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
-  operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: presentationGet, slideAdd, slideDelete, slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert, tableInsert, slideElementsList, elementDelete, elementGetText, elementFormatText, slideNotes, textReplaceAll, slideBackground, lineInsert).'),
-    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
-  })).min(1).max(20).describe('Ordered list of operations.'),
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID shared by all operations.'),
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('presentationGet', withoutPresentationId(slidesPresentationGetSchema)),
+    batchOperationSchema('slideAdd', withoutPresentationId(slidesAddSlideSchema)),
+    batchOperationSchema('slideDelete', withoutPresentationId(slidesSlideIndexSchema)),
+    batchOperationSchema('slideDuplicate', withoutPresentationId(slidesSlideIndexSchema)),
+    batchOperationSchema('slideMove', withoutPresentationId(slidesMoveSlideSchema)),
+    batchOperationSchema('textBoxInsert', withoutPresentationId(slidesInsertTextBoxSchema)),
+    batchOperationSchema('imageInsert', withoutPresentationId(slidesInsertImageSchema)),
+    batchOperationSchema('shapeInsert', withoutPresentationId(slidesInsertShapeSchema)),
+    batchOperationSchema('tableInsert', withoutPresentationId(slidesInsertTableSchema)),
+    batchOperationSchema('slideElementsList', withoutPresentationId(slidesSlideIndexSchema)),
+    batchOperationSchema('elementDelete', withoutPresentationId(slidesDeleteElementSchema)),
+    batchOperationSchema('elementGetText', withoutPresentationId(slidesGetElementTextSchema)),
+    batchOperationSchema('elementFormatText', withoutPresentationId(slidesFormatTextSchema)),
+    batchOperationSchema('slideNotes', withoutPresentationId(slidesSlideNotesSchema)),
+    batchOperationSchema('textReplaceAll', withoutPresentationId(slidesReplaceAllTextSchema)),
+    batchOperationSchema('slideBackground', withoutPresentationId(slidesBackgroundSchema)),
+    batchOperationSchema('lineInsert', withoutPresentationId(slidesInsertLineSchema)),
+  ])).min(1).max(20).describe('Ordered list of validated Slides operations. presentationCreate is excluded because batches target one existing presentation.'),
 }
 
 // ─── DOCS SCHEMAS ───
@@ -792,10 +918,25 @@ export const docsGetAsJsonSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
 }
 
+const withoutDocumentId = (schema: ToolSchema) => omitSchemaKeys(schema, ['documentId'])
+
 export const docsBatchSchema = {
-  documentId: docsDocumentIdSchema.describe('Document ID.'),
-  operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: documentGet, documentGetJson, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet).'),
-    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
-  })).min(1).max(20).describe('Ordered list of operations.'),
+  documentId: docsDocumentIdSchema.describe('Document ID shared by all operations.'),
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('documentGet', withoutDocumentId(docsDocumentGetSchema)),
+    batchOperationSchema('documentGetJson', withoutDocumentId(docsGetAsJsonSchema)),
+    batchOperationSchema('paragraphInsert', withoutDocumentId(docsInsertParagraphSchema)),
+    batchOperationSchema('paragraphUpdate', withoutDocumentId(docsUpdateParagraphSchema)),
+    batchOperationSchema('paragraphDelete', withoutDocumentId(docsDeleteParagraphSchema)),
+    batchOperationSchema('setText', withoutDocumentId(docsSetTextSchema)),
+    batchOperationSchema('replaceText', withoutDocumentId(docsReplaceTextSchema)),
+    batchOperationSchema('listInsert', withoutDocumentId(docsInsertListSchema)),
+    batchOperationSchema('tableInsert', withoutDocumentId(docsInsertTableSchema)),
+    batchOperationSchema('imageInsert', withoutDocumentId(docsInsertImageSchema)),
+    batchOperationSchema('pageBreakInsert', withoutDocumentId(docsInsertPageBreakSchema)),
+    batchOperationSchema('horizontalRuleInsert', withoutDocumentId(docsInsertHorizontalRuleSchema)),
+    batchOperationSchema('formatText', withoutDocumentId(docsFormatTextSchema)),
+    batchOperationSchema('headerSet', withoutDocumentId(docsHeaderFooterSchema)),
+    batchOperationSchema('footerSet', withoutDocumentId(docsHeaderFooterSchema)),
+  ])).min(1).max(20).describe('Ordered list of validated Docs operations. documentCreate is excluded because batches target one existing document.'),
 }

@@ -131,3 +131,55 @@ function enforceActionPolicy(action, params, policies) {
     enforceRecipientAllowlist_(action, params || {}, policy) ||
     enforceShareDefaults_(action, params || {}, policy)
 }
+
+function actionWeightForPolicy(action, policies) {
+  const policy = policies[action] || { class: 'read' }
+  switch (policy.class) {
+    case 'destructive': return 8
+    case 'send': return 6
+    case 'share': return 6
+    case 'write': return 3
+    default: return 1
+  }
+}
+
+function requestWeightForPolicy(action, params, policies) {
+  if (action !== 'batch') return actionWeightForPolicy(action, policies)
+  const operations = params && Array.isArray(params.operations) ? params.operations : []
+  let total = 1
+  for (let i = 0; i < operations.length; i++) {
+    total += actionWeightForPolicy(operations[i] && operations[i].action, policies)
+  }
+  return Math.max(1, Math.min(total, 100))
+}
+
+function validateBatchOperation_(op, index, batchActions) {
+  if (!op || typeof op !== 'object' || Array.isArray(op)) {
+    return { index: index, success: false, error: { code: 'BAD_REQUEST', message: 'Operation at index ' + index + ' must be an object' } }
+  }
+  if (typeof op.action !== 'string' || !op.action) {
+    return { index: index, success: false, error: { code: 'BAD_REQUEST', message: 'Missing action at index ' + index } }
+  }
+  if (!batchActions[op.action]) {
+    return { index: index, action: op.action, success: false, error: { code: 'BATCH_ACTION_NOT_ALLOWED', message: 'Action is not allowed in batch: ' + op.action } }
+  }
+  if (op.params !== undefined && (!op.params || typeof op.params !== 'object' || Array.isArray(op.params))) {
+    return { index: index, action: op.action, success: false, error: { code: 'BAD_REQUEST', message: 'params for ' + op.action + ' must be an object' } }
+  }
+  return null
+}
+
+function batchResultData_(results, operationWeight) {
+  let failed = 0
+  for (let i = 0; i < results.length; i++) {
+    if (!results[i].success) failed++
+  }
+  return {
+    results: results,
+    status: failed === 0 ? 'SUCCESS' : (failed === results.length ? 'FAILED' : 'PARTIAL_SUCCESS'),
+    totalOperations: results.length,
+    succeeded: results.length - failed,
+    failed: failed,
+    operationWeight: operationWeight,
+  }
+}

@@ -14,7 +14,7 @@ function doPost(e) {
     return respond(err('UNAUTHORIZED', 'Invalid or missing auth token'))
   }
 
-  if (isRateLimited(100)) {
+  if (isRateLimited(100, SlidesService.requestWeight(body.action, body.params || {}))) {
     return respond(err('RATE_LIMITED', 'Too many requests. Try again in 60 seconds.'))
   }
 

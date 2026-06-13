@@ -47,6 +47,18 @@ const SheetsService = (() => {
     batch: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
   }
 
+  const BATCH_ACTIONS = {
+    spreadsheetGet: true, sheetAdd: true, sheetDelete: true,
+    sheetRename: true, sheetCopy: true, rangeRead: true,
+    rangeWrite: true, rowsAppend: true, rangeClear: true,
+    rangeGetFormulas: true, rangeGetNotes: true, valuesBatchGet: true,
+    rangeFormat: true, rangeMerge: true, rangeUnmerge: true,
+    columnWidth: true, freezeRows: true, rangeSort: true,
+    formulaSet: true, chartCreate: true, noteSet: true,
+    conditionalFormatGet: true, dataValidationSet: true,
+    rowsInsert: true, rowsDelete: true,
+  }
+
   function parseCellReference(cellRef) {
     const match = cellRef.match(/^([A-Z]+)(\d+)$/);
     if (!match) return { col: 1, row: 1 };
@@ -80,12 +92,12 @@ const SheetsService = (() => {
       if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
 
       const results = [];
+      let operationWeight = 1;
       for (let i = 0; i < operations.length; i++) {
         const op = operations[i];
-        if (!op.action) {
-          results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` }});
-          continue;
-        }
+        const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
+        if (invalid) { results.push(invalid); continue; }
+        operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
         const opParams = op.params || {}
         if (!opParams.spreadsheetId) opParams.spreadsheetId = spreadsheetId
         try {
@@ -95,7 +107,7 @@ const SheetsService = (() => {
           results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
         }
       }
-      return ok({ results: results });
+      return ok(batchResultData_(results, operationWeight));
     };
   }
 
@@ -105,6 +117,10 @@ const SheetsService = (() => {
     const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
     if (policyError) return policyError
     return fn(params || {})
+  }
+
+  function requestWeight(action, params) {
+    return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
   }
 
   function requireParam(params, name) {
@@ -994,5 +1010,5 @@ const SheetsService = (() => {
     batch: function(params) { return runBatch(handle)(params); },
   }
 
-  return { handle: handle };
+  return { handle: handle, requestWeight: requestWeight };
 })();

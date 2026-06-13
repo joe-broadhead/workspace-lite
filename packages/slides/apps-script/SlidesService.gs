@@ -22,6 +22,15 @@ const SlidesService = (() => {
     batch: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
   }
 
+  const BATCH_ACTIONS = {
+    presentationGet: true, slideAdd: true, slideDelete: true,
+    slideDuplicate: true, slideMove: true, textBoxInsert: true,
+    imageInsert: true, shapeInsert: true, tableInsert: true,
+    slideElementsList: true, slideNotes: true, textReplaceAll: true,
+    elementDelete: true, elementGetText: true, elementFormatText: true,
+    slideBackground: true, lineInsert: true,
+  }
+
   const SHAPE_TYPE_MAP = {
     RECTANGLE: SlidesApp.ShapeType.RECTANGLE,
     ROUND_RECTANGLE: SlidesApp.ShapeType.ROUND_RECTANGLE,
@@ -63,6 +72,10 @@ const SlidesService = (() => {
     return fn(params || {})
   }
 
+  function requestWeight(action, params) {
+    return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
+  }
+
   function ok(data) { return { success: true, data }; }
   function err(code, message) { return { success: false, error: { code, message } }; }
 
@@ -79,12 +92,12 @@ const SlidesService = (() => {
       if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
 
       const results = [];
+      let operationWeight = 1;
       for (let i = 0; i < operations.length; i++) {
         const op = operations[i];
-        if (!op.action) {
-          results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` } });
-          continue;
-        }
+        const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
+        if (invalid) { results.push(invalid); continue; }
+        operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
         const opParams = op.params || {};
         if (!opParams.presentationId) opParams.presentationId = presentationId;
         try {
@@ -105,7 +118,7 @@ const SlidesService = (() => {
           });
         }
       }
-      return ok({ results });
+      return ok(batchResultData_(results, operationWeight));
     };
   }
 
@@ -779,5 +792,5 @@ const SlidesService = (() => {
     );
   }
 
-  return { handle };
+  return { handle, requestWeight };
 })();

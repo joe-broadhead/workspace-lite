@@ -50,6 +50,18 @@ var DriveService = (() => {
     batch: { class: 'read' },
   }
 
+  const BATCH_ACTIONS = {
+    about: true, fileGet: true, fileList: true, fileSearch: true,
+    fileExport: true, folderGet: true, folderList: true, folderListRoot: true,
+    folderCreate: true, fileCreate: true, fileCopy: true, fileMove: true,
+    fileUpdateMeta: true, fileUpdateContent: true, fileGetPermissions: true,
+    fileSetSharing: true, fileAddEditor: true, fileAddViewer: true,
+    fileRemoveEditor: true, fileRemoveViewer: true, fileAddParent: true,
+    fileRemoveParent: true, folderPath: true, fileTrash: true,
+    fileUntrash: true, fileDelete: true, fileExportAs: true,
+    commentsList: true, commentCreate: true,
+  }
+
   function ok(data) {
     return { success: true, data: data };
   }
@@ -74,6 +86,10 @@ var DriveService = (() => {
     const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
     if (policyError) return policyError
     return fn(params || {})
+  }
+
+  function requestWeight(action, params) {
+    return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
   }
 
   function requireParam(params, name) {
@@ -591,9 +607,12 @@ var DriveService = (() => {
     if (!Array.isArray(ops) || ops.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
     if (ops.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
     const results = [];
+    let operationWeight = 1;
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
-      if (!op.action) { results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` }}); continue; }
+      const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
+      if (invalid) { results.push(invalid); continue; }
+      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
       try {
         const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
@@ -601,12 +620,12 @@ var DriveService = (() => {
         results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
       }
     }
-    return ok({ results });
+    return ok(batchResultData_(results, operationWeight));
   }
 
   function batch(params) {
     return runBatch(params, handle);
   }
 
-  return { handle: handle };
+  return { handle: handle, requestWeight: requestWeight };
 })();

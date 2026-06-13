@@ -19,12 +19,24 @@ const DocsService = (() => {
     batch: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
   }
 
+  const BATCH_ACTIONS = {
+    documentGet: true, documentGetJson: true, paragraphInsert: true,
+    paragraphUpdate: true, paragraphDelete: true, setText: true,
+    replaceText: true, listInsert: true, tableInsert: true,
+    imageInsert: true, pageBreakInsert: true, horizontalRuleInsert: true,
+    formatText: true, headerSet: true, footerSet: true,
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
     if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
     const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
     if (policyError) return policyError
     return fn(params || {})
+  }
+
+  function requestWeight(action, params) {
+    return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
   }
 
   function ok(data) { return { success: true, data }; }
@@ -44,12 +56,12 @@ const DocsService = (() => {
       if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
 
       const results = [];
+      let operationWeight = 1;
       for (let i = 0; i < operations.length; i++) {
         const op = operations[i];
-        if (!op.action) {
-          results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` } });
-          continue;
-        }
+        const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
+        if (invalid) { results.push(invalid); continue; }
+        operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
         const opParams = op.params || {};
         if (!opParams.documentId) opParams.documentId = documentId;
         try {
@@ -70,7 +82,7 @@ const DocsService = (() => {
           });
         }
       }
-      return ok({ results });
+      return ok(batchResultData_(results, operationWeight));
     };
   }
 
@@ -533,5 +545,5 @@ const DocsService = (() => {
     batch: function(params) { return runBatch(handle)(params); },
   }
 
-  return { handle };
+  return { handle, requestWeight };
 })();
