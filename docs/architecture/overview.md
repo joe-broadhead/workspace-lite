@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 118 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 141 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
@@ -33,21 +33,21 @@ graph LR
 workspace-lite/
 ├── shared/                     # Shared TypeScript package
 │   └── src/
-│       ├── schemas.ts          # Zod schemas for all 6 services (637 lines)
+│       ├── schemas.ts          # Zod schemas for all 6 services (789 lines)
 │       ├── response.ts         # ProxyResponse interface, format helpers
 │       └── index.ts            # Barrel exports
 ├── packages/
-│   ├── drive/                  # 23 tools
+│   ├── drive/                  # 29 tools
 │   │   ├── src/
 │   │   │   ├── index.ts        # MCP server entry: McpServer + StdioServerTransport
 │   │   │   ├── proxy.ts        # fetch() to Apps Script with token auth, 30s timeout
 │   │   │   └── tools/          # drive-list.ts, drive-read.ts, drive-write.ts, drive-manage.ts, drive-batch.ts
 │   │   └── apps-script/        # Auth.gs, Code.gs, Response.gs, DriveService.gs, .clasp.json
-│   ├── gmail/                  # 31 tools
-│   ├── calendar/               # 10 tools
-│   ├── sheets/                 # 21 tools
-│   ├── slides/                 # 17 tools
-│   └── docs/                   # 16 tools
+│   ├── gmail/                  # 33 tools
+│   ├── calendar/               # 15 tools
+│   ├── sheets/                 # 27 tools
+│   ├── slides/                 # 18 tools
+│   └── docs/                   # 19 tools
 ├── scripts/
 │   └── setup.sh                # One-shot setup: clasp login → create → push → deploy guide → bootstrap
 ├── skills/

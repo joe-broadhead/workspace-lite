@@ -36,6 +36,9 @@ Read, send, draft, label, search, and manage email threads and messages.
 | `gmail_reply` | Reply to a message (sends immediately). |
 | `gmail_reply_all` | Reply to a message and all recipients (sends immediately). |
 | `gmail_forward` | Forward a message to new recipients (sends immediately). |
+| `gmail_get_attachment` | Download an attachment from a Gmail message by message ID and attachment ID. |
+| `gmail_batch_modify` | Bulk label changes on multiple messages at once. |
+| `gmail_batch` | Execute up to 20 Gmail operations in a single round-trip. |
 
 ## Key Features
 

@@ -15,6 +15,12 @@ Create, search, update, and delete calendar events. Check availability across mu
 | `calendar_update_event` | Update an existing event's fields (partial update). |
 | `calendar_delete_event` | Permanently delete an event. |
 | `calendar_find_freebusy` | Find busy slots across calendars to identify available times. |
+| `calendar_respond_to_event` | RSVP to an event (YES, NO, MAYBE). |
+| `calendar_create_event_series` | Create a recurring event series with RRULE recurrence rules. |
+| `calendar_set_event_color` | Set the color of an event (e.g. PALE_BLUE, PALE_GREEN, MAUVE). |
+| `calendar_get_event_instances` | Expand recurring events into concrete instances within a time window. |
+| `calendar_quick_add_event` | Create an event from a natural language description (e.g. "Lunch with Sarah tomorrow at noon"). |
+| `calendar_batch` | Execute up to 20 calendar operations in a single round-trip. |
 
 ## Key Features
 

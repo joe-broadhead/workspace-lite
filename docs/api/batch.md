@@ -112,6 +112,12 @@ The `action` field in each operation uses the **same names as the individual too
 | `drive_trash_file` | `fileTrash` |
 | `drive_untrash_file` | `fileUntrash` |
 | `drive_delete_file` | `fileDelete` |
+| `drive_add_parent` | `fileAddParent` |
+| `drive_remove_parent` | `fileRemoveParent` |
+| `drive_get_folder_path` | `folderPath` |
+| `drive_export_as` | `fileExportAs` |
+| `drive_get_comments` | `commentsList` |
+| `drive_add_comment` | `commentCreate` |
 
 ### Gmail
 
@@ -147,6 +153,8 @@ The `action` field in each operation uses the **same names as the individual too
 | `gmail_reply` | `reply` |
 | `gmail_reply_all` | `replyAll` |
 | `gmail_forward` | `forward` |
+| `gmail_get_attachment` | `attachmentGet` |
+| `gmail_batch_modify` | `batchModify` |
 
 ### Calendar
 
@@ -161,6 +169,11 @@ The `action` field in each operation uses the **same names as the individual too
 | `calendar_create_event` | `eventCreate` |
 | `calendar_update_event` | `eventUpdate` |
 | `calendar_delete_event` | `eventDelete` |
+| `calendar_respond_to_event` | `respondToEvent` |
+| `calendar_create_event_series` | `createEventSeries` |
+| `calendar_set_event_color` | `setEventColor` |
+| `calendar_get_event_instances` | `eventInstances` |
+| `calendar_quick_add_event` | `quickAdd` |
 
 ### Sheets
 
@@ -187,6 +200,11 @@ The `action` field in each operation uses the **same names as the individual too
 | `sheets_set_formula` | `formulaSet` |
 | `sheets_create_chart` | `chartCreate` |
 | `sheets_set_note` | `noteSet` |
+| `sheets_batch_get` | `valuesBatchGet` |
+| `sheets_set_data_validation` | `dataValidationSet` |
+| `sheets_get_conditional_formatting` | `conditionalFormatGet` |
+| `sheets_insert_rows` | `rowsInsert` |
+| `sheets_delete_rows` | `rowsDelete` |
 
 ### Slides
 
@@ -206,6 +224,8 @@ The `action` field in each operation uses the **same names as the individual too
 | `slides_format_text` | `elementFormatText` |
 | `slides_get_slide_notes` | `slideNotes` |
 | `slides_replace_all_text` | `textReplaceAll` |
+| `slides_insert_line` | `lineInsert` |
+| `slides_set_slide_background` | `slideBackground` |
 
 ### Docs
 
@@ -225,6 +245,9 @@ The `action` field in each operation uses the **same names as the individual too
 | `docs_format_text` | `formatText` |
 | `docs_set_header` | `headerSet` |
 | `docs_set_footer` | `footerSet` |
+| `docs_get_as_json` | `documentGetJson` |
+| `docs_insert_footnote` | `footnoteInsert` |
+| `docs_insert_table_of_contents` | `tocInsert` |
 
 ## Error Response Format
 
@@ -237,7 +260,7 @@ Each result entry in the `results` array has this shape:
   success: boolean     // Whether the operation succeeded
   data?: unknown       // Present only when success is true
   error?: {            // Present only when success is false
-    code: string       // Error code (UNAUTHORIZED, NOT_FOUND, VALIDATION_ERROR, INTERNAL_ERROR, etc.)
+    code: string       // Error code (UNAUTHORIZED, NOT_FOUND, BAD_REQUEST, INTERNAL_ERROR, etc.)
     message: string    // Human-readable error message
   }
 }

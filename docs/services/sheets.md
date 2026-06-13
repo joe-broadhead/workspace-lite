@@ -27,6 +27,12 @@ Create spreadsheets, manage sheets/tabs, read and write data, apply formatting, 
 | `sheets_freeze_rows` | Freeze a number of header rows (0 to unfreeze). |
 | `sheets_sort_range` | Sort a range by a single column, ascending or descending. |
 | `sheets_create_chart` | Create a chart (AREA, BAR, COLUMN, LINE, PIE, SCATTER, etc.) from a data range. |
+| `sheets_batch_get` | Read multiple ranges from a spreadsheet in a single API call. |
+| `sheets_insert_rows` | Insert blank rows at the specified position, shifting existing rows down. |
+| `sheets_delete_rows` | Delete rows at the specified position, shifting existing rows up. |
+| `sheets_set_data_validation` | Set data validation on a range (value lists, number ranges, checkboxes, custom formulas). |
+| `sheets_get_conditional_formatting` | Read conditional format rules on a sheet. |
+| `sheets_batch` | Execute up to 20 sheets operations in a single round-trip. |
 
 ## Key Features
 

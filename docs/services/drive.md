@@ -29,6 +29,13 @@ Manage files, folders, sharing permissions, and storage metadata in Google Drive
 | `drive_file_trash` | Move a file to trash (recoverable with `untrash`). |
 | `drive_file_untrash` | Restore a file from trash. |
 | `drive_file_delete` | Permanently delete a file (moves to trash first, then deletes). |
+| `drive_add_parent` | Add a file to an additional parent folder without removing existing parents. |
+| `drive_remove_parent` | Remove a file from a specific parent folder. |
+| `drive_get_folder_path` | Get the full path from root to a file by walking parent folders. |
+| `drive_export_as` | Export a Google Workspace file (Docs, Sheets, Slides) in a format like PDF, DOCX, XLSX, CSV. |
+| `drive_get_comments` | List comments on a Drive file. |
+| `drive_add_comment` | Add a head-anchored comment to a Drive file. |
+| `drive_batch` | Execute up to 20 Drive operations in a single round-trip. |
 
 ## Key Features
 

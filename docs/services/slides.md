@@ -19,8 +19,10 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 | `slides_get_slide_elements` | List all elements on a slide with types, IDs, positions, dimensions, and full text. |
 | `slides_delete_element` | Delete a page element from a slide by its object ID. |
 | `slides_format_text` | Format text within an element — bold, italic, underline, font, size, color, and links. |
-| `slides_set_notes` | Set or read speaker notes for a slide. |
+| `slides_get_slide_notes` | Get or set speaker notes for a slide. |
 | `slides_replace_all_text` | Find and replace text across all slides in a presentation. |
+| `slides_set_slide_background` | Set the background color of a slide using a solid fill color. |
+| `slides_insert_line` | Insert a line connector between two points on a slide (STRAIGHT, BENT, CURVED). |
 | `slides_batch` | Execute multiple operations (up to 20) in a single round-trip. |
 
 ## Key Features
