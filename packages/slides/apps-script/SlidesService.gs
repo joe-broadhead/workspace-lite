@@ -192,7 +192,7 @@ var SlidesService = (function() {
         }
       }
 
-      return ok({ slideIndex: slide.getIndex(), objectId: slide.getObjectId(), layout: layout ? layout.getLayoutName() : 'default' })
+      return ok({ slideIndex: pres.getSlides().length - 1, objectId: slide.getObjectId(), layout: layout ? layout.getLayoutName() : 'default' })
     } catch(e) { return err('CREATE_FAILED', 'Could not add slide: ' + e.message) }
   }
 
@@ -218,7 +218,7 @@ var SlidesService = (function() {
 
     try {
       var dup = r.slide.duplicate()
-      return ok({ duplicated: true, originalIndex: slideIndex, newIndex: dup.getIndex(), newObjectId: dup.getObjectId() })
+      return ok({ duplicated: true, originalIndex: slideIndex, newIndex: r.pres.getSlides().length - 1, newObjectId: dup.getObjectId() })
     } catch(e) { return err('DUPLICATE_FAILED', 'Could not duplicate slide: ' + e.message) }
   }
 
