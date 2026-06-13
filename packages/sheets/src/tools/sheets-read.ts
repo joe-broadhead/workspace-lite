@@ -1,4 +1,4 @@
-import { sheetsRangeReadSchema, sheetsGetFormulasSchema, sheetsGetNotesSchema } from '@google-apps-script-mcp/shared/schemas'
+import { sheetsRangeReadSchema, sheetsGetFormulasSchema, sheetsGetNotesSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerSheetsReadTools(server: { tool: Function }) {

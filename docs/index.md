@@ -90,8 +90,8 @@ Google Workspace via Apps Script &mdash; no OAuth per call. Apps Script runs as 
 ## Quick Install
 
 ```bash
-git clone https://github.com/joe-broadhead/google-apps-script-mcp.git
-cd google-apps-script-mcp
+git clone https://github.com/joe-broadhead/workspace-lite.git
+cd workspace-lite
 npm install && npm run build
 ./scripts/setup.sh
 ```

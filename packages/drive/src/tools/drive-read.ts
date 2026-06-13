@@ -1,5 +1,5 @@
-import { formatResponse, formatPermissions } from '@google-apps-script-mcp/shared'
-import { fileGetSchema, fileExportSchema, folderGetSchema } from '@google-apps-script-mcp/shared/schemas'
+import { formatResponse, formatPermissions } from '@workspace-lite/shared'
+import { fileGetSchema, fileExportSchema, folderGetSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveReadTools(server: { tool: Function }) {

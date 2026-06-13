@@ -1,6 +1,6 @@
-site_name: Google Apps Script MCP
+site_name: workspace-lite
 site_description: MCP servers for Google Workspace via Apps Script proxy — Drive, Gmail, Calendar, Sheets, Slides, Docs
-repo_url: https://github.com/joe-broadhead/google-apps-script-mcp
+repo_url: https://github.com/joe-broadhead/workspace-lite
 edit_uri: edit/main/docs/
 
 theme:

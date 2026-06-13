@@ -1,4 +1,4 @@
-import { formatList, formatResponse } from '@google-apps-script-mcp/shared'
+import { formatList, formatResponse } from '@workspace-lite/shared'
 import { callProxy } from '../proxy.js'
 
 export function registerGmailDraftTools(server: { tool: Function }) {

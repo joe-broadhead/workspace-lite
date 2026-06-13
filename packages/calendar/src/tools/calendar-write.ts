@@ -1,5 +1,5 @@
-import { formatResponse } from '@google-apps-script-mcp/shared'
-import { calendarCreateEventSchema, calendarUpdateEventSchema, calendarDeleteEventSchema } from '@google-apps-script-mcp/shared/schemas'
+import { formatResponse } from '@workspace-lite/shared'
+import { calendarCreateEventSchema, calendarUpdateEventSchema, calendarDeleteEventSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerCalendarWriteTools(server: { tool: Function }) {

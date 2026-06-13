@@ -1,5 +1,5 @@
 {
-  "name": "@google-apps-script-mcp/shared",
+  "name": "@workspace-lite/shared",
   "version": "1.0.0",
   "private": true,
   "type": "module",

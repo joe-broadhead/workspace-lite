@@ -1,5 +1,5 @@
-import { formatList } from '@google-apps-script-mcp/shared'
-import { calendarListEventsSchema, calendarSearchEventsSchema, calendarFreeBusySchema } from '@google-apps-script-mcp/shared/schemas'
+import { formatList } from '@workspace-lite/shared'
+import { calendarListEventsSchema, calendarSearchEventsSchema, calendarFreeBusySchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerCalendarListTools(server: { tool: Function }) {

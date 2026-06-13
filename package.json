@@ -1,8 +1,8 @@
 {
-  "name": "google-apps-script-mcp",
+  "name": "workspace-lite",
   "version": "1.0.0",
   "private": true,
-  "description": "MCP servers for Google Workspace via Apps Script proxy — Drive, Calendar, Sheets, Gmail",
+  "description": "MCP servers for Google Workspace via Apps Script proxy",
   "workspaces": [
     "shared",
     "packages/*"

@@ -1,7 +1,7 @@
 import {
   slidesSlideIndexSchema, slidesSlideNotesSchema,
   slidesDeleteElementSchema, slidesFormatTextSchema,
-} from '@google-apps-script-mcp/shared/schemas'
+} from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerSlidesReadTools(server: { tool: Function }) {

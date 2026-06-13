@@ -1,5 +1,5 @@
-import { formatList, formatBytes } from '@google-apps-script-mcp/shared'
-import { fileListSchema, fileSearchSchema, folderListSchema } from '@google-apps-script-mcp/shared/schemas'
+import { formatList, formatBytes } from '@workspace-lite/shared'
+import { fileListSchema, fileSearchSchema, folderListSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveListTools(server: { tool: Function }) {

@@ -1,10 +1,10 @@
-import { formatResponse } from '@google-apps-script-mcp/shared'
+import { formatResponse } from '@workspace-lite/shared'
 import {
   docsCreateDocumentSchema, docsDocumentGetSchema,
   docsInsertParagraphSchema, docsUpdateParagraphSchema,
   docsDeleteParagraphSchema, docsSetTextSchema,
   docsReplaceTextSchema, docsHeaderFooterSchema,
-} from '@google-apps-script-mcp/shared/schemas'
+} from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerDocsManageTools(server: { tool: Function }) {

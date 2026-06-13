@@ -56,7 +56,7 @@ Source the `.env` file in your shell profile:
 
 ```bash
 # In ~/.zshrc or equivalent
-export $(grep -v '^#' /path/to/google-apps-script-mcp/.env | xargs)
+export $(grep -v '^#' /path/to/workspace-lite/.env | xargs)
 ```
 
 Or use the generated exports from the setup script.

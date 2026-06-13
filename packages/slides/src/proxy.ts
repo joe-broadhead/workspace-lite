@@ -1,4 +1,4 @@
-import type { ProxyResponse } from '@google-apps-script-mcp/shared'
+import type { ProxyResponse } from '@workspace-lite/shared'
 
 const PROXY_URL = process.env.GOOGLE_WORKSPACE_SLIDES_PROXY_URL ?? ''
 const PROXY_TOKEN = process.env.GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN ?? ''

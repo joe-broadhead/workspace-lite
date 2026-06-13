@@ -1,4 +1,4 @@
-import { formatResponse } from '@google-apps-script-mcp/shared'
+import { formatResponse } from '@workspace-lite/shared'
 import { callProxy } from '../proxy.js'
 
 export function registerGmailWriteTools(server: { tool: Function }) {

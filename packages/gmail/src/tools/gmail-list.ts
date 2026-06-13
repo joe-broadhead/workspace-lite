@@ -1,5 +1,5 @@
-import { formatList } from '@google-apps-script-mcp/shared'
-import { gmailSearchMessagesSchema, gmailListThreadsSchema } from '@google-apps-script-mcp/shared/schemas'
+import { formatList } from '@workspace-lite/shared'
+import { gmailSearchMessagesSchema, gmailListThreadsSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerGmailListTools(server: { tool: Function }) {

@@ -1,8 +1,8 @@
-import { formatResponse } from '@google-apps-script-mcp/shared'
+import { formatResponse } from '@workspace-lite/shared'
 import {
   folderCreateSchema, fileCreateSchema, fileCopySchema, fileMoveSchema,
   fileUpdateMetaSchema, fileUpdateContentSchema,
-} from '@google-apps-script-mcp/shared/schemas'
+} from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveWriteTools(server: { tool: Function }) {

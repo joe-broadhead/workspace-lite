@@ -23,8 +23,8 @@ Complete setup of all 6 Google Workspace MCP servers &mdash; one-time, roughly 1
 ## Step 1: Clone &amp; Build
 
 ```bash
-git clone https://github.com/joe-broadhead/google-apps-script-mcp.git
-cd google-apps-script-mcp
+git clone https://github.com/joe-broadhead/workspace-lite.git
+cd workspace-lite
 npm install
 npm run build
 ```
@@ -96,7 +96,7 @@ The setup script prints a JSON block. Add it to your `opencode.jsonc` under `mcp
   "mcpServers": {
     "google-drive": {
       "type": "local",
-      "command": ["npx", "tsx", "/path/to/google-apps-script-mcp/packages/drive/src/index.ts"],
+      "command": ["npx", "tsx", "/path/to/workspace-lite/packages/drive/src/index.ts"],
       "environment": {
         "GOOGLE_WORKSPACE_DRIVE_PROXY_URL": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_URL}",
         "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"

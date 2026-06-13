@@ -1,9 +1,9 @@
-import { formatResponse } from '@google-apps-script-mcp/shared'
+import { formatResponse } from '@workspace-lite/shared'
 import {
   sheetsFormatRangeSchema, sheetsMergeCellsSchema,
   sheetsSetColumnWidthSchema, sheetsFreezeRowsSchema,
   sheetsSortRangeSchema, sheetsSetNoteSchema,
-} from '@google-apps-script-mcp/shared/schemas'
+} from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerSheetsFormatTools(server: { tool: Function }) {

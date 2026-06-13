@@ -1,9 +1,9 @@
-import { formatResponse } from '@google-apps-script-mcp/shared'
+import { formatResponse } from '@workspace-lite/shared'
 import {
   slidesCreatePresentationSchema, slidesPresentationGetSchema,
   slidesAddSlideSchema, slidesSlideIndexSchema,
   slidesMoveSlideSchema, slidesReplaceAllTextSchema,
-} from '@google-apps-script-mcp/shared/schemas'
+} from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerSlidesManageTools(server: { tool: Function }) {

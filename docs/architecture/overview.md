@@ -30,7 +30,7 @@ graph LR
 ## Package Structure
 
 ```
-google-apps-script-mcp/
+workspace-lite/
 ├── shared/                     # Shared TypeScript package
 │   └── src/
 │       ├── schemas.ts          # Zod schemas for all 6 services (637 lines)
