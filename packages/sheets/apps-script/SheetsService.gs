@@ -58,6 +58,10 @@ const SheetsService = (() => {
       case 'noteSet':           return noteSet(params);
       case 'rangeGetFormulas':  return rangeGetFormulas(params);
       case 'rangeGetNotes':     return rangeGetNotes(params);
+      case 'conditionalFormatGet': return conditionalFormatGet(params);
+      case 'dataValidationSet': return dataValidationSet(params);
+      case 'rowsInsert':        return rowsInsert(params);
+      case 'rowsDelete':        return rowsDelete(params);
       case 'batch':             return batch(params);
       default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
     }
@@ -608,6 +612,221 @@ const SheetsService = (() => {
       r.sheet.getRange(rangeStr).setNote(note);
       return ok({ sheetName: r.sheet.getName(), range: rangeStr, note: note });
     } catch(e) { return err('UPDATE_FAILED', `Could not set note: ${e.message}`); }
+  }
+
+  // ── Conditional formatting ──
+
+  function conditionalFormatGet(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const sheetName = optionalString(params, 'sheetName', null);
+
+    const r = resolveSheet(id, sheetName);
+    if (r.err) return err(r.err, r.msg);
+
+    try {
+      const rules = r.sheet.getConditionalFormatRules();
+      const serialized = [];
+      for (const rule of rules) {
+        const entry = {};
+
+        const ranges = rule.getRanges();
+        if (ranges) {
+          entry.ranges = [];
+          for (const range of ranges) {
+            entry.ranges.push(range.getA1Notation());
+          }
+        }
+
+        const booleanCond = rule.getBooleanCondition();
+        if (booleanCond) {
+          entry.booleanCondition = {
+            type: booleanCond.getCriteriaType().toString(),
+            values: [],
+          };
+          const args = booleanCond.getCriteriaValues();
+          if (args) {
+            for (const arg of args) {
+              entry.booleanCondition.values.push(String(arg));
+            }
+          }
+
+          const bg = booleanCond.getBackground();
+          if (bg) entry.booleanCondition.background = bg;
+          const fg = booleanCond.getFontColor();
+          if (fg) entry.booleanCondition.fontColor = fg;
+        }
+
+        const gradientCond = rule.getGradientCondition();
+        if (gradientCond) {
+          entry.gradientCondition = {
+            minType: gradientCond.getMinType().toString(),
+            maxType: gradientCond.getMaxType().toString(),
+          };
+          const minVal = gradientCond.getMinValue();
+          if (minVal) entry.gradientCondition.minValue = String(minVal);
+          const maxVal = gradientCond.getMaxValue();
+          if (maxVal) entry.gradientCondition.maxValue = String(maxVal);
+          const minColor = gradientCond.getMinColor();
+          if (minColor) entry.gradientCondition.minColor = minColor;
+          const maxColor = gradientCond.getMaxColor();
+          if (maxColor) entry.gradientCondition.maxColor = maxColor;
+        }
+
+        serialized.push(entry);
+      }
+      return ok({ sheetName: r.sheet.getName(), rules: serialized });
+    } catch(e) { return err('READ_FAILED', `Could not get conditional formatting: ${e.message}`); }
+  }
+
+  // ── Data validation ──
+
+  function dataValidationSet(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const rangeStr = requireParam(params, 'range');
+    const validationType = requireParam(params, 'validationType');
+    const sheetName = optionalString(params, 'sheetName', null);
+
+    const r = resolveSheet(id, sheetName);
+    if (r.err) return err(r.err, r.msg);
+
+    try {
+      const range = r.sheet.getRange(rangeStr);
+      let builder = SpreadsheetApp.newDataValidation();
+
+      switch (validationType) {
+        case 'VALUE_IN_LIST':
+          const values = params.values;
+          if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty array for VALUE_IN_LIST');
+          builder = builder.requireValueInList(values, true);
+          break;
+        case 'NUMBER_BETWEEN':
+          const minNb = optionalNumber(params, 'min', null);
+          const maxNb = optionalNumber(params, 'max', null);
+          if (minNb === null || maxNb === null) return err('BAD_REQUEST', 'min and max required for NUMBER_BETWEEN');
+          builder = builder.requireNumberBetween(minNb, maxNb);
+          break;
+        case 'NUMBER_GREATER_THAN':
+          const gtVal = optionalNumber(params, 'value', null);
+          if (gtVal === null) return err('BAD_REQUEST', 'value required for NUMBER_GREATER_THAN');
+          builder = builder.requireNumberGreaterThan(gtVal);
+          break;
+        case 'NUMBER_GREATER_THAN_OR_EQUAL_TO':
+          const gteVal = optionalNumber(params, 'value', null);
+          if (gteVal === null) return err('BAD_REQUEST', 'value required for NUMBER_GREATER_THAN_OR_EQUAL_TO');
+          builder = builder.requireNumberGreaterThanOrEqualTo(gteVal);
+          break;
+        case 'NUMBER_LESS_THAN':
+          const ltVal = optionalNumber(params, 'value', null);
+          if (ltVal === null) return err('BAD_REQUEST', 'value required for NUMBER_LESS_THAN');
+          builder = builder.requireNumberLessThan(ltVal);
+          break;
+        case 'NUMBER_LESS_THAN_OR_EQUAL_TO':
+          const lteVal = optionalNumber(params, 'value', null);
+          if (lteVal === null) return err('BAD_REQUEST', 'value required for NUMBER_LESS_THAN_OR_EQUAL_TO');
+          builder = builder.requireNumberLessThanOrEqualTo(lteVal);
+          break;
+        case 'NUMBER_EQUAL_TO':
+          const eqVal = optionalNumber(params, 'value', null);
+          if (eqVal === null) return err('BAD_REQUEST', 'value required for NUMBER_EQUAL_TO');
+          builder = builder.requireNumberEqualTo(eqVal);
+          break;
+        case 'NUMBER_NOT_BETWEEN':
+          const nMin = optionalNumber(params, 'min', null);
+          const nMax = optionalNumber(params, 'max', null);
+          if (nMin === null || nMax === null) return err('BAD_REQUEST', 'min and max required for NUMBER_NOT_BETWEEN');
+          builder = builder.requireNumberNotBetween(nMin, nMax);
+          break;
+        case 'TEXT_CONTAINS':
+          const tcVal = optionalString(params, 'text', null);
+          if (!tcVal) return err('BAD_REQUEST', 'text required for TEXT_CONTAINS');
+          builder = builder.requireTextContains(tcVal);
+          break;
+        case 'TEXT_DOES_NOT_CONTAIN':
+          const tdcVal = optionalString(params, 'text', null);
+          if (!tdcVal) return err('BAD_REQUEST', 'text required for TEXT_DOES_NOT_CONTAIN');
+          builder = builder.requireTextDoesNotContain(tdcVal);
+          break;
+        case 'TEXT_EQUAL_TO':
+          const tetVal = optionalString(params, 'text', null);
+          if (!tetVal) return err('BAD_REQUEST', 'text required for TEXT_EQUAL_TO');
+          builder = builder.requireTextEqualTo(tetVal);
+          break;
+        case 'TEXT_IS_VALID_EMAIL':
+          builder = builder.requireTextIsEmail();
+          break;
+        case 'TEXT_IS_VALID_URL':
+          builder = builder.requireTextIsUrl();
+          break;
+        case 'DATE_EQUAL_TO':
+          const detVal = params.date;
+          if (detVal === undefined) return err('BAD_REQUEST', 'date required for DATE_EQUAL_TO');
+          builder = builder.requireDateEqualTo(new Date(String(detVal)));
+          break;
+        case 'DATE_BEFORE':
+          const dbVal = params.date;
+          if (dbVal === undefined) return err('BAD_REQUEST', 'date required for DATE_BEFORE');
+          builder = builder.requireDateBefore(new Date(String(dbVal)));
+          break;
+        case 'DATE_AFTER':
+          const daVal = params.date;
+          if (daVal === undefined) return err('BAD_REQUEST', 'date required for DATE_AFTER');
+          builder = builder.requireDateAfter(new Date(String(daVal)));
+          break;
+        case 'CHECKBOX':
+          builder = builder.requireCheckbox();
+          break;
+        case 'CUSTOM_FORMULA':
+          const formula = optionalString(params, 'formula', null);
+          if (!formula) return err('BAD_REQUEST', 'formula required for CUSTOM_FORMULA');
+          builder = builder.requireFormulaSatisfied(formula);
+          break;
+        default:
+          return err('BAD_REQUEST', `Unknown validation type: ${validationType}`);
+      }
+
+      const showHelpText = optionalString(params, 'helpText', null);
+      if (showHelpText) builder = builder.setHelpText(showHelpText);
+
+      const strict = optionalBool(params, 'strict', false);
+      if (strict) builder = builder.setAllowInvalid(false);
+
+      const rule = builder.build();
+      range.setDataValidation(rule);
+
+      return ok({ sheetName: r.sheet.getName(), range: rangeStr, validationType: validationType });
+    } catch(e) { return err('UPDATE_FAILED', `Could not set data validation: ${e.message}`); }
+  }
+
+  // ── Row operations ──
+
+  function rowsInsert(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const startPosition = Number(requireParam(params, 'startPosition'));
+    const howMany = optionalNumber(params, 'howMany', 1);
+    const sheetName = optionalString(params, 'sheetName', null);
+
+    const r = resolveSheet(id, sheetName);
+    if (r.err) return err(r.err, r.msg);
+
+    try {
+      r.sheet.insertRows(startPosition, howMany);
+      return ok({ sheetName: r.sheet.getName(), startPosition: startPosition, howMany: howMany });
+    } catch(e) { return err('UPDATE_FAILED', `Could not insert rows: ${e.message}`); }
+  }
+
+  function rowsDelete(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const startPosition = Number(requireParam(params, 'startPosition'));
+    const howMany = optionalNumber(params, 'howMany', 1);
+    const sheetName = optionalString(params, 'sheetName', null);
+
+    const r = resolveSheet(id, sheetName);
+    if (r.err) return err(r.err, r.msg);
+
+    try {
+      r.sheet.deleteRows(startPosition, howMany);
+      return ok({ sheetName: r.sheet.getName(), startPosition: startPosition, howMany: howMany });
+    } catch(e) { return err('UPDATE_FAILED', `Could not delete rows: ${e.message}`); }
   }
 
   // ── Batch ──

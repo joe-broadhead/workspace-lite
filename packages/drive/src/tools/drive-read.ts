@@ -1,5 +1,5 @@
 import { formatResponse, formatPermissions } from '@workspace-lite/shared'
-import { fileGetSchema, fileExportSchema, folderGetSchema } from '@workspace-lite/shared/schemas'
+import { fileGetSchema, fileExportSchema, folderGetSchema, driveFolderPathSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveReadTools(server: { tool: Function }) {
@@ -60,6 +60,20 @@ export function registerDriveReadTools(server: { tool: Function }) {
           text: formatPermissions(data),
         }],
       }
+    },
+  )
+
+  server.tool(
+    'drive_get_folder_path',
+    'Get the full path from root to a file. Walks parent folders up to root Drive.',
+    driveFolderPathSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('folderPath', args)
+      const data = result.data as Record<string, unknown>
+      const pathStr = (data.pathString as string) || ''
+      const path = (data.path as Array<Record<string, unknown>>) || []
+      const text = `Path: ${pathStr || 'Root'}\n\n` + path.map((p: Record<string, unknown>) => `${p.name} (${p.id})`).join('\n')
+      return { content: [{ type: 'text' as const, text }] }
     },
   )
 }

@@ -90,9 +90,23 @@ export const fileRemoveViewerSchema = {
   email: z.string().email().describe('Email to remove as viewer.'),
 }
 
+export const driveAddParentSchema = {
+  fileId: driveIdSchema.describe('File ID.'),
+  folderId: z.string().describe('Folder ID to add as additional parent.'),
+}
+
+export const driveRemoveParentSchema = {
+  fileId: driveIdSchema.describe('File ID.'),
+  folderId: z.string().describe('Folder ID to remove from parents.'),
+}
+
+export const driveFolderPathSchema = {
+  fileId: driveIdSchema.describe('File ID to get the full folder path for.'),
+}
+
 export const driveBatchSchema = {
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: about, fileGet, fileList, fileSearch, fileExport, folderGet, folderList, folderListRoot, folderCreate, fileCreate, fileCopy, fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions, fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor, fileRemoveViewer, fileTrash, fileUntrash, fileDelete).'),
+    action: z.string().describe('Action to perform (same names as individual tools: about, fileGet, fileList, fileSearch, fileExport, folderGet, folderList, folderListRoot, folderCreate, fileCreate, fileCopy, fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions, fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor, fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath, fileTrash, fileUntrash, fileDelete).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
@@ -151,9 +165,31 @@ export const calendarDeleteEventSchema = {
   calendarId: z.string().optional().describe('Calendar ID.'),
 }
 
+export const calendarRespondEventSchema = {
+  eventId: calendarEventIdSchema,
+  status: z.enum(['YES', 'NO', 'MAYBE']).describe('RSVP status.'),
+  calendarId: z.string().optional().describe('Calendar ID.'),
+}
+
+export const calendarCreateEventSeriesSchema = {
+  title: z.string().min(1).max(1000).describe('Event title.'),
+  startTime: z.string().describe('Start time ISO string.'),
+  endTime: z.string().describe('End time ISO string.'),
+  recurrence: z.string().describe('Recurrence rule (e.g. "WEEKLY", "DAILY", "MONTHLY", "YEARLY", "EVERY MONDAY").'),
+  calendarId: z.string().optional().describe('Calendar ID.'),
+  description: z.string().max(10000).optional().describe('Description.'),
+  location: z.string().max(500).optional().describe('Location.'),
+}
+
+export const calendarSetEventColorSchema = {
+  eventId: calendarEventIdSchema,
+  color: z.string().describe('Color name from CalendarApp.EventColor enum (e.g. PALE_BLUE, PALE_GREEN, MAUVE, PALE_RED, YELLOW, ORANGE, CYAN, GRAY, BLUE, GREEN, RED).'),
+  calendarId: z.string().optional().describe('Calendar ID.'),
+}
+
 export const calendarBatchSchema = {
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: listCalendars, getCalendar, listEvents, searchEvents, findFreeBusy, getEvent, createEvent, updateEvent, deleteEvent).'),
+    action: z.string().describe('Action to perform (same names as individual tools: listCalendars, getCalendar, listEvents, searchEvents, findFreeBusy, getEvent, createEvent, updateEvent, deleteEvent, respondToEvent, createEventSeries, setEventColor).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
@@ -409,9 +445,52 @@ export const sheetsSetNoteSchema = {
 export const sheetsBatchSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeGetFormulas, rangeGetNotes, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet).'),
+    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeGetFormulas, rangeGetNotes, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet, conditionalFormatGet, dataValidationSet, rowsInsert, rowsDelete).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas for parameter details.'),
   })).min(1).max(20).describe('Ordered list of operations to execute.'),
+}
+
+export const sheetsConditionalFormatSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+}
+
+export const sheetsDataValidationSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  range: z.string().describe('Range in A1 notation to apply validation to.'),
+  validationType: z.enum([
+    'VALUE_IN_LIST', 'NUMBER_BETWEEN', 'NUMBER_GREATER_THAN',
+    'NUMBER_GREATER_THAN_OR_EQUAL_TO', 'NUMBER_LESS_THAN',
+    'NUMBER_LESS_THAN_OR_EQUAL_TO', 'NUMBER_EQUAL_TO',
+    'NUMBER_NOT_BETWEEN', 'TEXT_CONTAINS', 'TEXT_DOES_NOT_CONTAIN',
+    'TEXT_EQUAL_TO', 'TEXT_IS_VALID_EMAIL', 'TEXT_IS_VALID_URL',
+    'DATE_EQUAL_TO', 'DATE_BEFORE', 'DATE_AFTER',
+    'CHECKBOX', 'CUSTOM_FORMULA',
+  ]).describe('Type of validation rule.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  values: z.array(z.string()).optional().describe('List of allowed values for VALUE_IN_LIST.'),
+  min: z.number().optional().describe('Minimum value for NUMBER_BETWEEN / NUMBER_NOT_BETWEEN.'),
+  max: z.number().optional().describe('Maximum value for NUMBER_BETWEEN / NUMBER_NOT_BETWEEN.'),
+  value: z.number().optional().describe('Comparison value for NUMBER_GREATER_THAN, NUMBER_LESS_THAN, etc.'),
+  text: z.string().optional().describe('Text for TEXT_CONTAINS, TEXT_DOES_NOT_CONTAIN, TEXT_EQUAL_TO.'),
+  date: z.string().optional().describe('ISO date string for DATE_EQUAL_TO, DATE_BEFORE, DATE_AFTER.'),
+  formula: z.string().optional().describe('Custom formula string for CUSTOM_FORMULA.'),
+  helpText: z.string().optional().describe('Help text shown when the cell is selected.'),
+  strict: z.boolean().default(false).optional().describe('If true, reject invalid input instead of showing a warning.'),
+}
+
+export const sheetsInsertRowsSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  startPosition: z.number().int().min(1).describe('Row index to insert before (1-based).'),
+  howMany: z.number().int().min(1).default(1).describe('Number of rows to insert.'),
+}
+
+export const sheetsDeleteRowsSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  startPosition: z.number().int().min(1).describe('Row index to start deleting from (1-based).'),
+  howMany: z.number().int().min(1).default(1).describe('Number of rows to delete.'),
 }
 
 // ─── SLIDES SCHEMAS ───
@@ -528,10 +607,27 @@ export const slidesFormatTextSchema = {
   linkUrl: z.string().optional().describe('Set hyperlink URL.'),
 }
 
+export const slidesBackgroundSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  color: z.string().describe('Hex color string (e.g. "#FF0000").'),
+}
+
+export const slidesInsertLineSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  lineCategory: z.enum(['STRAIGHT', 'BENT', 'CURVED']).describe('Line connector category.'),
+  startLeft: z.number().describe('Start position left in points.'),
+  startTop: z.number().describe('Start position top in points.'),
+  endLeft: z.number().describe('End position left in points.'),
+  endTop: z.number().describe('End position top in points.'),
+  lineType: z.enum(['SOLID', 'DOTTED', 'DASHED']).default('SOLID').optional().describe('Line style.'),
+}
+
 export const slidesBatchSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: presentationGet, slideAdd, slideDelete, slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert, tableInsert, slideElementsList, elementDelete, elementGetText, elementFormatText, slideNotes, textReplaceAll).'),
+    action: z.string().describe('Action to perform (same names as individual tools: presentationGet, slideAdd, slideDelete, slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert, tableInsert, slideElementsList, elementDelete, elementGetText, elementFormatText, slideNotes, textReplaceAll, slideBackground, lineInsert).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
@@ -614,6 +710,16 @@ export const docsInsertHorizontalRuleSchema = {
   append: z.boolean().default(true).describe('If true, appends to end of document.'),
 }
 
+export const docsTOCSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+}
+
+export const docsFootnoteSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  paragraphIndex: z.number().int().min(0).optional().describe('Index of the paragraph to attach the footnote to (0-based). If omitted, attaches to the document body.'),
+  text: z.string().min(1).describe('Footnote text content.'),
+}
+
 export const docsFormatTextSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   findText: z.string().min(1).describe('Text to find and format.'),
@@ -631,7 +737,7 @@ export const docsFormatTextSchema = {
 export const docsBatchSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: documentGet, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet).'),
+    action: z.string().describe('Action to perform (same names as individual tools: documentGet, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet, tocInsert, footnoteInsert).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }

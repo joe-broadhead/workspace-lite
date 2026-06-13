@@ -2,6 +2,7 @@ import { formatResponse } from '@workspace-lite/shared'
 import {
   folderCreateSchema, fileCreateSchema, fileCopySchema, fileMoveSchema,
   fileUpdateMetaSchema, fileUpdateContentSchema,
+  driveAddParentSchema, driveRemoveParentSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -75,6 +76,30 @@ export function registerDriveWriteTools(server: { tool: Function }) {
       const result = await callProxy('fileUpdateContent', args)
       return formatResponse(result, {
         summary: 'Content updated successfully.',
+      })
+    },
+  )
+
+  server.tool(
+    'drive_add_parent',
+    'Add a file to an additional parent folder without removing existing parents.',
+    driveAddParentSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('fileAddParent', args)
+      return formatResponse(result, {
+        summary: 'File added to folder.',
+      })
+    },
+  )
+
+  server.tool(
+    'drive_remove_parent',
+    'Remove a file from a specific parent folder.',
+    driveRemoveParentSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('fileRemoveParent', args)
+      return formatResponse(result, {
+        summary: 'File removed from folder.',
       })
     },
   )

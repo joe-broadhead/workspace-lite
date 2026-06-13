@@ -3,6 +3,7 @@ import {
   slidesCreatePresentationSchema, slidesPresentationGetSchema,
   slidesAddSlideSchema, slidesSlideIndexSchema,
   slidesMoveSlideSchema, slidesReplaceAllTextSchema,
+  slidesBackgroundSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -83,6 +84,16 @@ export function registerSlidesManageTools(server: { tool: Function }) {
       return formatResponse(result, {
         summary: `Replaced ${data.replacements || 0} occurrence(s).`,
       })
+    },
+  )
+
+  server.tool(
+    'slides_set_slide_background',
+    'Set the background color of a slide using a solid fill color.',
+    slidesBackgroundSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('slideBackground', args)
+      return formatResponse(result, { summary: 'Slide background set.' })
     },
   )
 }

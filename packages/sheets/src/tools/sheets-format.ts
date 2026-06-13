@@ -3,6 +3,7 @@ import {
   sheetsFormatRangeSchema, sheetsMergeCellsSchema,
   sheetsSetColumnWidthSchema, sheetsFreezeRowsSchema,
   sheetsSortRangeSchema, sheetsSetNoteSchema,
+  sheetsConditionalFormatSchema, sheetsDataValidationSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -74,6 +75,26 @@ export function registerSheetsFormatTools(server: { tool: Function }) {
     async (args: Record<string, unknown>) => {
       const result = await callProxy('noteSet', args)
       return formatResponse(result, { summary: 'Note updated.' })
+    },
+  )
+
+  server.tool(
+    'sheets_get_conditional_formatting',
+    'Read conditional format rules on a sheet. Returns serialized rule descriptions with ranges, boolean conditions, and gradient conditions.',
+    sheetsConditionalFormatSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('conditionalFormatGet', args)
+      return formatResponse(result, { summary: 'Conditional formatting rules retrieved.' })
+    },
+  )
+
+  server.tool(
+    'sheets_set_data_validation',
+    'Set data validation on a range. Supports VALUE_IN_LIST, NUMBER_BETWEEN, NUMBER_GREATER_THAN, TEXT_CONTAINS, DATE_BEFORE, CHECKBOX, CUSTOM_FORMULA, and more.',
+    sheetsDataValidationSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('dataValidationSet', args)
+      return formatResponse(result, { summary: 'Data validation set.' })
     },
   )
 }

@@ -38,6 +38,8 @@ const SlidesService = (() => {
       case 'elementDelete':       return elementDelete(params)
       case 'elementGetText':      return elementGetText(params)
       case 'elementFormatText':   return elementFormatText(params)
+      case 'slideBackground':     return slideBackground(params)
+      case 'lineInsert':          return lineInsert(params)
       case 'batch':               return batch(params)
       default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
     }
@@ -601,6 +603,74 @@ const SlidesService = (() => {
 
       return ok({ formatted: true, objectId, slideIndex, formattedCount })
     } catch (e) { return err('FORMAT_FAILED', `Could not format element text: ${e.message}`) }
+  }
+
+  // ── Slide background ──
+
+  function slideBackground(params) {
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const color = requireParam(params, 'color')
+
+    const r = resolveSlide(id, slideIndex)
+    if (r.err) return err(r.err, r.msg)
+
+    try {
+      r.slide.getBackground().setSolidFill(String(color))
+      return ok({ slideIndex, color })
+    } catch (e) { return err('UPDATE_FAILED', `Could not set slide background: ${e.message}`) }
+  }
+
+  // ── Line insertion ──
+
+  const LINE_CATEGORY_MAP = {
+    STRAIGHT: SlidesApp.LineCategory.STRAIGHT,
+    BENT: SlidesApp.LineCategory.BENT,
+    CURVED: SlidesApp.LineCategory.CURVED,
+  }
+
+  function lineInsert(params) {
+    const id = requireParam(params, 'presentationId')
+    const slideIndex = requireParam(params, 'slideIndex')
+    const lineCategory = requireParam(params, 'lineCategory')
+    const startLeft = Number(requireParam(params, 'startLeft'))
+    const startTop = Number(requireParam(params, 'startTop'))
+    const endLeft = Number(requireParam(params, 'endLeft'))
+    const endTop = Number(requireParam(params, 'endTop'))
+
+    const r = resolveSlide(id, slideIndex)
+    if (r.err) return err(r.err, r.msg)
+
+    const category = LINE_CATEGORY_MAP[lineCategory]
+    if (!category) return err('BAD_REQUEST', `Unknown line category: ${lineCategory}`)
+
+    try {
+      let line = r.slide.insertLine(category, startLeft, startTop, endLeft, endTop)
+
+      const lineType = optionalString(params, 'lineType', null)
+      if (lineType) {
+        let lt
+        switch (lineType) {
+          case 'SOLID': lt = SlidesApp.LineType.SOLID; break
+          case 'DOTTED': lt = SlidesApp.LineType.DOTTED; break
+          case 'DASHED': lt = SlidesApp.LineType.DASHED; break
+          default: lt = null
+        }
+        if (lt) {
+          try { line.setLineType(lt) } catch (ltErr) {}
+        }
+      }
+
+      return ok({
+        objectId: line.getObjectId(),
+        lineCategory,
+        lineType: lineType || 'SOLID',
+        startLeft: line.getStartLeft(),
+        startTop: line.getStartTop(),
+        endLeft: line.getEndLeft(),
+        endTop: line.getEndTop(),
+      })
+    } catch (e) { return err('INSERT_FAILED', `Could not insert line: ${e.message}`) }
   }
 
   // ── Batch ──

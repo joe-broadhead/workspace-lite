@@ -11,6 +11,9 @@ const CalendarService = (() => {
       // WRITE
       case 'createEvent':      return createEvent(params);
       case 'updateEvent':      return updateEvent(params);
+      case 'respondToEvent':   return respondToEvent(params);
+      case 'createEventSeries':return createEventSeries(params);
+      case 'setEventColor':    return setEventColor(params);
 
       // DESTRUCTIVE
       case 'deleteEvent':      return deleteEvent(params);
@@ -360,6 +363,132 @@ const CalendarService = (() => {
       });
     } catch (e) {
       return err('FREEBUSY_FAILED', e.message || 'Could not check availability');
+    }
+  }
+
+  // ─── RSVP / EVENT SERIES / COLOR ───
+
+  function respondToEvent(params) {
+    const id = requireParam(params, 'eventId');
+    const statusStr = requireParam(params, 'status');
+    const calendarId = optionalString(params, 'calendarId');
+
+    const STATUS_MAP = {
+      YES: CalendarApp.GuestStatus.YES,
+      NO: CalendarApp.GuestStatus.NO,
+      MAYBE: CalendarApp.GuestStatus.MAYBE,
+    };
+
+    const guestStatus = STATUS_MAP[statusStr.toUpperCase()];
+    if (!guestStatus) return err('BAD_REQUEST', `Invalid status: ${statusStr}. Must be YES, NO, or MAYBE.`);
+
+    try {
+      const cal = resolveCalendar(calendarId);
+      const event = cal.getEventById(id);
+      if (!event) return err('NOT_FOUND', `Event not found: ${id}`);
+
+      event.setMyStatus(guestStatus);
+      const e = eventToJSON(event);
+      e.calendarName = cal.getName();
+      return ok({ event: e, status: statusStr.toUpperCase() });
+    } catch (e) {
+      return err('UPDATE_FAILED', e.message || 'Could not update RSVP status');
+    }
+  }
+
+  function createEventSeries(params) {
+    const title = requireParam(params, 'title');
+    const startTime = requireParam(params, 'startTime');
+    const endTime = requireParam(params, 'endTime');
+    const recurrence = requireParam(params, 'recurrence');
+    const calendarId = optionalString(params, 'calendarId');
+    const description = optionalString(params, 'description', '');
+    const location = optionalString(params, 'location', '');
+
+    try {
+      const cal = resolveCalendar(calendarId);
+
+      const recBuilder = CalendarApp.newRecurrence();
+      const recUpper = recurrence.toUpperCase();
+      const until = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+      if (recUpper === 'WEEKLY' || recUpper.startsWith('WEEKLY')) {
+        recBuilder.addWeeklyRule().onlyOnWeekdays([CalendarApp.Weekday.MONDAY, CalendarApp.Weekday.TUESDAY, CalendarApp.Weekday.WEDNESDAY, CalendarApp.Weekday.THURSDAY, CalendarApp.Weekday.FRIDAY]).until(until);
+      } else if (recUpper === 'DAILY' || recUpper.startsWith('DAILY')) {
+        recBuilder.addDailyRule().until(until);
+      } else if (recUpper === 'MONTHLY' || recUpper.startsWith('MONTHLY')) {
+        recBuilder.addMonthlyRule().until(until);
+      } else if (recUpper === 'YEARLY' || recUpper.startsWith('YEARLY')) {
+        recBuilder.addYearlyRule().until(until);
+      } else if (recUpper.startsWith('EVERY ')) {
+        const parts = recUpper.replace('EVERY ', '').split(' ');
+        const dayName = parts[0];
+        const DAY_MAP = {
+          SUNDAY: CalendarApp.Weekday.SUNDAY,
+          MONDAY: CalendarApp.Weekday.MONDAY,
+          TUESDAY: CalendarApp.Weekday.TUESDAY,
+          WEDNESDAY: CalendarApp.Weekday.WEDNESDAY,
+          THURSDAY: CalendarApp.Weekday.THURSDAY,
+          FRIDAY: CalendarApp.Weekday.FRIDAY,
+          SATURDAY: CalendarApp.Weekday.SATURDAY,
+        };
+        const weekday = DAY_MAP[dayName];
+        if (weekday) {
+          recBuilder.addWeeklyRule().onlyOnWeekday(weekday).until(until);
+        } else {
+          recBuilder.addWeeklyRule().until(until);
+        }
+      } else {
+        recBuilder.addWeeklyRule().until(until);
+      }
+
+      const eventSeries = cal.createEventSeries(title, new Date(startTime), new Date(endTime), recBuilder);
+
+      return ok({
+        seriesId: eventSeries.getId(),
+        title: title,
+        start: startTime,
+        end: endTime,
+        recurrence: recurrence,
+      });
+    } catch (e) {
+      return err('CREATE_FAILED', e.message || 'Could not create event series');
+    }
+  }
+
+  function setEventColor(params) {
+    const id = requireParam(params, 'eventId');
+    const color = requireParam(params, 'color');
+    const calendarId = optionalString(params, 'calendarId');
+
+    const COLOR_MAP = {
+      PALE_BLUE: CalendarApp.EventColor.PALE_BLUE,
+      PALE_GREEN: CalendarApp.EventColor.PALE_GREEN,
+      MAUVE: CalendarApp.EventColor.MAUVE,
+      PALE_RED: CalendarApp.EventColor.PALE_RED,
+      YELLOW: CalendarApp.EventColor.YELLOW,
+      ORANGE: CalendarApp.EventColor.ORANGE,
+      CYAN: CalendarApp.EventColor.CYAN,
+      GRAY: CalendarApp.EventColor.GRAY,
+      BLUE: CalendarApp.EventColor.BLUE,
+      GREEN: CalendarApp.EventColor.GREEN,
+      RED: CalendarApp.EventColor.RED,
+    };
+
+    const eventColor = COLOR_MAP[color];
+    if (!eventColor) return err('BAD_REQUEST', `Invalid color: ${color}. Must be one of: ${Object.keys(COLOR_MAP).join(', ')}.`);
+
+    try {
+      const cal = resolveCalendar(calendarId);
+      const event = cal.getEventById(id);
+      if (!event) return err('NOT_FOUND', `Event not found: ${id}`);
+
+      event.setColor(eventColor);
+      const e = eventToJSON(event);
+      e.calendarName = cal.getName();
+      return ok({ event: e, color: color });
+    } catch (e) {
+      return err('UPDATE_FAILED', e.message || 'Could not set event color');
     }
   }
 

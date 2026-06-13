@@ -16,6 +16,8 @@ const DocsService = (() => {
       case 'formatText':           return formatText(params);
       case 'headerSet':            return headerSet(params);
       case 'footerSet':            return footerSet(params);
+      case 'tocInsert':            return tocInsert(params);
+      case 'footnoteInsert':       return footnoteInsert(params);
       case 'batch':                return batch(params);
       default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
     }
@@ -404,6 +406,45 @@ const DocsService = (() => {
       if (text) footer.appendParagraph(text);
       return ok({ set: true, text });
     } catch (e) { return err('FOOTER_FAILED', `Could not set footer: ${e.message}`); }
+  }
+
+  // ── Table of contents ──
+
+  function tocInsert(params) {
+    const id = requireParam(params, 'documentId');
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    try {
+      const body = doc.getBody();
+      body.appendTableOfContents();
+      return ok({ inserted: true });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert table of contents: ${e.message}`); }
+  }
+
+  // ── Footnote ──
+
+  function footnoteInsert(params) {
+    const id = requireParam(params, 'documentId');
+    const text = requireParam(params, 'text');
+    const paraIndex = optionalNumber(params, 'paragraphIndex', -1);
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    try {
+      const body = doc.getBody();
+      const paras = body.getParagraphs();
+
+      if (paraIndex >= 0 && paraIndex < paras.length) {
+        paras[paraIndex].appendFootnote(String(text));
+      } else {
+        body.appendFootnote(String(text));
+      }
+
+      return ok({ inserted: true, paragraphIndex: paraIndex >= 0 ? paraIndex : 'body' });
+    } catch (e) { return err('INSERT_FAILED', `Could not insert footnote: ${e.message}`); }
   }
 
   // ── Batch ──

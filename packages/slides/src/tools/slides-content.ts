@@ -2,6 +2,7 @@ import { formatResponse } from '@workspace-lite/shared'
 import {
   slidesInsertTextBoxSchema, slidesInsertImageSchema,
   slidesInsertShapeSchema, slidesInsertTableSchema,
+  slidesInsertLineSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -43,6 +44,16 @@ export function registerSlidesContentTools(server: { tool: Function }) {
     async (args: Record<string, unknown>) => {
       const result = await callProxy('tableInsert', args)
       return formatResponse(result, { summary: 'Table inserted.' })
+    },
+  )
+
+  server.tool(
+    'slides_insert_line',
+    'Insert a line connector between two points on a slide. Supports STRAIGHT, BENT, and CURVED line categories with optional line type (SOLID, DOTTED, DASHED).',
+    slidesInsertLineSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('lineInsert', args)
+      return formatResponse(result, { summary: 'Line inserted.' })
     },
   )
 }

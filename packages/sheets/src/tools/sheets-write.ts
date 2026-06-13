@@ -1,7 +1,7 @@
 import { formatResponse } from '@workspace-lite/shared'
 import {
   sheetsRangeWriteSchema, sheetsAppendRowsSchema, sheetsClearRangeSchema,
-  sheetsSetFormulaSchema,
+  sheetsSetFormulaSchema, sheetsInsertRowsSchema, sheetsDeleteRowsSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -43,6 +43,26 @@ export function registerSheetsWriteTools(server: { tool: Function }) {
     async (args: Record<string, unknown>) => {
       const result = await callProxy('formulaSet', args)
       return formatResponse(result, { summary: 'Formula set.' })
+    },
+  )
+
+  server.tool(
+    'sheets_insert_rows',
+    'Insert blank rows at the specified position. Existing rows are shifted down.',
+    sheetsInsertRowsSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('rowsInsert', args)
+      return formatResponse(result, { summary: 'Rows inserted.' })
+    },
+  )
+
+  server.tool(
+    'sheets_delete_rows',
+    'Delete rows at the specified position. Existing rows below are shifted up.',
+    sheetsDeleteRowsSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('rowsDelete', args)
+      return formatResponse(result, { summary: 'Rows deleted.' })
     },
   )
 }

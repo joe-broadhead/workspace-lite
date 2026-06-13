@@ -47,6 +47,9 @@ var DriveService = (() => {
       case 'fileAddViewer':      return fileAddViewer(params);
       case 'fileRemoveEditor':   return fileRemoveEditor(params);
       case 'fileRemoveViewer':   return fileRemoveViewer(params);
+      case 'fileAddParent':      return fileAddParent(params);
+      case 'fileRemoveParent':   return fileRemoveParent(params);
+      case 'folderPath':         return folderPath(params);
       case 'fileTrash':          return fileTrash(params);
       case 'fileUntrash':        return fileUntrash(params);
       case 'fileDelete':         return fileDelete(params);
@@ -447,6 +450,88 @@ var DriveService = (() => {
     } catch(e) {
       return err('UPDATE_FAILED', `Could not remove viewer: ${email}`);
     }
+  }
+
+  // ── Parent management ──
+
+  function fileAddParent(params) {
+    const id = requireParam(params, 'fileId');
+    const folderId = requireParam(params, 'folderId');
+    validateDriveId(id);
+    validateDriveId(folderId);
+    try {
+      const file = DriveApp.getFileById(id);
+      const folder = DriveApp.getFolderById(folderId);
+      folder.addFile(file);
+      return ok({ file: fileToJSON(file) });
+    } catch(e) {
+      return err('UPDATE_FAILED', `Could not add parent folder: ${folderId}`);
+    }
+  }
+
+  function fileRemoveParent(params) {
+    const id = requireParam(params, 'fileId');
+    const folderId = requireParam(params, 'folderId');
+    validateDriveId(id);
+    validateDriveId(folderId);
+    try {
+      const file = DriveApp.getFileById(id);
+      const parents = file.getParents();
+      let found = false;
+      while (parents.hasNext()) {
+        const parent = parents.next();
+        if (parent.getId() === folderId) {
+          parent.removeFile(file);
+          found = true;
+          break;
+        }
+      }
+      if (!found) return err('NOT_FOUND', `Folder ${folderId} is not a parent of file ${id}`);
+      return ok({ file: fileToJSON(file) });
+    } catch(e) {
+      return err('UPDATE_FAILED', `Could not remove parent folder: ${folderId}`);
+    }
+  }
+
+  function folderPath(params) {
+    const id = requireParam(params, 'fileId');
+    validateDriveId(id);
+    try {
+      const file = DriveApp.getFileById(id);
+      const path = [];
+      const parentIter = file.getParents();
+      const parentArr = iteratorToArray(parentIter);
+
+      if (parentArr.length > 0) {
+        let current = parentArr[0];
+        path.push(folderToJSONLight(current));
+
+        while (true) {
+          const nextParents = iteratorToArray(current.getParents());
+          if (nextParents.length === 0) break;
+          current = nextParents[0];
+          path.push(folderToJSONLight(current));
+        }
+      }
+
+      path.reverse();
+
+      return ok({
+        fileId: id,
+        fileName: file.getName(),
+        path: path,
+        pathString: path.map(function(p) { return p.name; }).join(' / '),
+      });
+    } catch(e) {
+      return err('NOT_FOUND', `Could not get folder path for file: ${id}`);
+    }
+  }
+
+  function folderToJSONLight(f) {
+    return {
+      id: f.getId(),
+      name: f.getName(),
+    };
   }
 
   // ── Trash / delete ──
