@@ -153,7 +153,7 @@ export const calendarDeleteEventSchema = {
 
 export const calendarBatchSchema = {
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: calendarList, calendarGet, eventsList, eventsSearch, freeBusy, eventGet, eventCreate, eventUpdate, eventDelete).'),
+    action: z.string().describe('Action to perform (same names as individual tools: listCalendars, getCalendar, listEvents, searchEvents, findFreeBusy, getEvent, createEvent, updateEvent, deleteEvent).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
