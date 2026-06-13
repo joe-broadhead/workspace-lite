@@ -43,8 +43,5 @@
   "webapp": {
     "executeAs": "USER_DEPLOYING",
     "access": "ANYONE"
-  },
-  "executionApi": {
-    "access": "ANYONE"
   }
 }

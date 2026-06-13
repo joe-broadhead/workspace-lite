@@ -6,6 +6,7 @@ dist/
 .DS_Store
 **/.clasp.json
 **/.clasprc.json
+**/BootstrapSecret.gs
 *.swp
 *.swo
 *~
