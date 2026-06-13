@@ -1,131 +1,181 @@
 # Google Apps Script MCP
 
-MCP servers that expose Google Workspace services through Apps Script web app proxies. No OAuth dance per API call — Apps Script runs as you, using your Google identity automatically.
-
-## Architecture
+MCP servers exposing all Google Workspace services through Apps Script web app proxies. No OAuth dance per API call — Apps Script runs as **you**, using your Google identity automatically.
 
 ```
 ┌──────────┐   STDIO   ┌──────────────┐   HTTPS POST   ┌───────────────────┐
-│ opencode │◄─────────►│  MCP Server   │──────────────►│ Apps Script Web App│──► DriveApp/GmailApp/...
+│ opencode │◄─────────►│  MCP Server   │──────────────►│ Apps Script Web App│──► Workspace APIs
 │  (agent) │   JSON-RPC │  (local tsx)  │   JSON+token  │  script.google.com │
 └──────────┘            └──────────────┘               └───────────────────┘
 ```
 
 - **MCP Server**: TypeScript process using `@modelcontextprotocol/sdk`, communicates via STDIO
-- **Apps Script Web App**: Deployed with `clasp`, runs as `USER_DEPLOYING` with shared bearer token auth
-- **Security**: HTTPS transport, 48-char random token, input validation, content truncation
+- **Apps Script Web App**: Deployed with `clasp`, runs as `USER_DEPLOYING` with bearer token auth
+- **Security**: HTTPS transport, 48-char random token, rate limiting, input validation
 
-## Packages
+## Packages (118 tools)
 
-| Package | Status | Tools | Description |
-|---------|--------|-------|-------------|
-| `packages/drive` | ✅ Live | 14 | Full Drive CRUD: list, search, read, create, update, copy, move, share, trash |
-| `packages/gmail` | ✅ Live | 30 | Search, read, send, reply, forward, drafts, labels, trash |
-| `packages/calendar` | ✅ Live | 9 | List events, search, create, update, delete, free/busy |
-| `packages/sheets` | ✅ Live | 19 | Full Sheets: create, read/write/append, format, charts, sort, freeze, merge, notes, batch |
-| `packages/slides` | ✅ Live | 14 | Full Slides: create, add/delete/duplicate/move slides, text, images, shapes, tables, notes, replace text, batch |
-| `packages/docs` | ✅ Live | 12 | Full Docs: create, read, paragraphs, headings, lists, tables, images, page breaks, text formatting, find/replace, batch |
+| Package | Tools | Batch | Key capabilities |
+|---------|-------|-------|------------------|
+| `drive` | 23 | ✅ | Full Drive CRUD: list, search, read, create, update, copy, move, share, trash, permissions |
+| `gmail` | 31 | ✅ | Search, read, send (draft-first), reply, forward, drafts, labels, threads, trash |
+| `calendar` | 10 | ✅ | List events, search, create/update/delete, free/busy, multi-calendar |
+| `sheets` | 21 | ✅ | Create/read/write/append, formulas, formatting, charts, sort, freeze, merge, notes |
+| `slides` | 17 | ✅ | Create, add/delete/duplicate/move slides, text, images, shapes, tables, auto-position, notes |
+| `docs` | 16 | ✅ | Create/read, paragraphs, headings, lists, tables, images, page breaks, text formatting, headers/footers |
 
-## Quick Start
+## Quick Start (one-time setup)
 
 ### Prerequisites
-- Node.js 20+
-- Google account with Drive access
-- `clasp` installed globally (`npm install -g @google/clasp`)
 
-### 1. Install dependencies
+- **Node.js 20+**
+- **Google account** with Workspace access
+- **clasp** installed globally: `npm install -g @google/clasp`
+- **jq** (for token parsing): `brew install jq`
+
+### 1. Clone and build
+
 ```bash
+git clone https://github.com/joe-broadhead/google-apps-script-mcp.git
+cd google-apps-script-mcp
 npm install
-```
-
-### 2. Build
-```bash
 npm run build
 ```
 
-### 3. Deploy the Apps Script proxy
-```bash
-# Login to Google
-clasp login
+### 2. Run setup script
 
-# Deploy Drive proxy
-cd packages/drive/apps-script
-clasp push
+```bash
+chmod +x scripts/setup.sh
+./scripts/setup.sh
 ```
 
-### 4. Deploy as web app
-1. Open the script in the Apps Script editor: `clasp open-script`
-2. **Deploy** → **New deployment** → Type: **Web app**
-3. Execute as: **Me**, Access: **Anyone**
-4. Copy the deployment URL
+The script will:
+1. Authenticate with clasp (opens browser once)
+2. Create 6 Apps Script projects (one per service)
+3. Push code to all projects
+4. Guide you through web app deployment (GUI step, 6×)
+5. Collect deployment URLs and bootstrap tokens
+6. Output ready-to-paste OpenCode config
 
-### 5. Get the auth token
+### 3. Deploy web apps (GUI — required, cannot be automated)
+
+For each service, the setup script will prompt you to:
+```bash
+cd packages/<service>/apps-script && clasp open
+```
+In the Apps Script editor that opens:
+- **Deploy → New deployment → Type: Web app**
+- **Execute as: Me (USER_DEPLOYING)**
+- **Access: Anyone**
+
+Paste each deployment URL back into the script. It will automatically bootstrap the auth token and generate your config.
+
+### 4. Install the agent skill
+
+```bash
+ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
+```
+
+### 5. Restart OpenCode
+
+Source the generated `.env` file (or copy exports to `.zshrc`), add the printed config to `opencode.jsonc`, restart.
+
+## Manual Setup (if you prefer step-by-step)
+
+### Environment variables
+
+For each service, set two env vars:
+
+```bash
+export GOOGLE_WORKSPACE_DRIVE_PROXY_URL="https://script.google.com/macros/s/.../exec"
+export GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN="your-token-here"
+# ... repeat for GMAIL, CALENDAR, SHEETS, SLIDES, DOCS
+```
+
+### Bootstrap tokens
+
+After deploying each web app, bootstrap once:
+
 ```bash
 curl -sL "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?bootstrap=1" | jq -r '.data.token'
 ```
 
-### 6. Set environment variables
-```bash
-export GOOGLE_WORKSPACE_DRIVE_PROXY_URL="https://script.google.com/macros/s/.../exec"
-export GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN="your-token-here"
-```
+The token is generated once and stored in Apps Script properties. The bootstrap endpoint only works once per deployment.
 
-### 7. Add to OpenCode config
+### OpenCode config
+
+Add all 6 servers to `opencode.jsonc` under `mcpServers`:
+
 ```jsonc
-"google-drive": {
-  "type": "local",
-  "command": ["npx", "tsx", "/path/to/packages/drive/src/index.ts"],
-  "environment": {
-    "GOOGLE_WORKSPACE_DRIVE_PROXY_URL": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_URL}",
-    "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"
+{
+  "mcpServers": {
+    "google-drive": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/drive/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_URL": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_URL}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"
+      }
+    },
+    "google-gmail": { "..." },
+    "google-calendar": { "..." },
+    "google-sheets": { "..." },
+    "google-slides": { "..." },
+    "google-docs": { "..." }
   }
 }
+```
+
+## Architecture
+
+Each MCP server is a standalone STDIO process that calls its own Apps Script web app proxy. The web apps run as `USER_DEPLOYING` — your identity, your permissions. No service accounts, no OAuth refresh tokens.
+
+```
+packages/drive/src/index.ts  →  Drive Proxy  →  DriveApp
+packages/gmail/src/index.ts  →  Gmail Proxy  →  GmailApp
+packages/calendar/src/index.ts → Calendar Proxy → CalendarApp
+packages/sheets/src/index.ts → Sheets Proxy → SpreadsheetApp
+packages/slides/src/index.ts → Slides Proxy → SlidesApp
+packages/docs/src/index.ts   →  Docs Proxy   →  DocumentApp
+```
+
+All Apps Script proxies share identical auth, rate limiting, and response patterns.
+
+## Agent Skill
+
+The included `google-workspace` skill provides LLMs with tool catalogs, numbered workflows, and safety rules. See `skills/google-workspace/SKILL.md` for the fast-start index and `references/` for deep dives.
+
+```bash
+ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
 ```
 
 ## Development
 
 ```bash
-npm run build          # Build all packages
-npm run typecheck      # Type-check all packages
-npm run dev:drive      # Run Drive MCP in dev mode
+npm run build        # Build all packages
+npm run typecheck    # Type-check all packages
+npm run dev:drive    # Run a single MCP server in dev mode
 ```
 
-## OpenCode Skills
+### Adding a new service
 
-An agent skill is included to help LLMs use these tools effectively. The skill covers all 80+ tools with workflows for email triage, meeting prep, scheduling, spreadsheet creation, data analysis, and dashboards.
-
-### Install
-
+Copy from any existing package:
 ```bash
-# Symlink into your OpenCode skills directory
-ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
-
-# Or copy
-cp -r skills/google-workspace ~/.config/opencode/skills/
+cp -r packages/sheets packages/new-service
+# Update package.json, appsscript.json, tsconfig.json
+# Create NewService.gs following the SheetsService.gs pattern
+# Add schemas to shared/src/schemas.ts
+# Create tools in src/tools/
 ```
-
-The skill will be auto-discovered on next OpenCode restart. Agents load it with `skill({ name: "google-workspace" })`. SKILL.md is the fast-start index; `references/` contains the full tool catalog, workflows, and safety rules.
-
-## Adding a New Service
-
-1. Create the package from the template:
-```bash
-cp -r template packages/new-service
-# Update package.json name/description
-# Create apps-script/ with appropriate OAuth scopes in appsscript.json
-```
-
-2. Implement `apps-script/Service.gs` following the `DriveService.gs` pattern
-3. Create MCP tools in `src/tools/` following the drive pattern
-4. Reuse `@google-apps-script-mcp/shared` for Zod schemas and response formatters
 
 ## Quotas
 
 | Limit | Value |
-|---|---|
-| Apps Script execution | 6 min |
+|-------|-------|
+| Apps Script execution | 6 min per request |
 | URL Fetch calls/day | 20,000 |
 | Drive API quota | 10,000 req/100s/user |
+| Rate limiting | 100 req/min per proxy |
 
 ## License
 
