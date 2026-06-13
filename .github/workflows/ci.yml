@@ -28,6 +28,7 @@ jobs:
       - run: npm run validate:responses
       - run: npm run validate:mutations
       - run: npm run validate:inputs
+      - run: npm run validate:architecture
       - run: npm run audit
 
   docs:

@@ -3,14 +3,15 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
-const serviceFiles = [
-  { key: 'drive', path: 'packages/drive/apps-script/DriveService.gs' },
-  { key: 'gmail', path: 'packages/gmail/apps-script/GmailService.gs' },
-  { key: 'calendar', path: 'packages/calendar/apps-script/CalendarService.gs' },
-  { key: 'sheets', path: 'packages/sheets/apps-script/SheetsService.gs' },
-  { key: 'slides', path: 'packages/slides/apps-script/SlidesService.gs' },
-  { key: 'docs', path: 'packages/docs/apps-script/DocsService.gs' },
-]
+interface ServiceMetadata {
+  key: string
+  title: string
+  globalName: string
+  proxyServiceName: string
+  tokenEnvName: string
+}
+
+const registry = JSON.parse(readFileSync('config/service-registry.json', 'utf8')) as { healthVersion: string; services: ServiceMetadata[] }
 
 function objectBlock(source: string, name: string) {
   const start = source.indexOf(`const ${name} = {`)
@@ -36,8 +37,8 @@ describe('Apps Script proxy contracts', () => {
   })
 
   it('keeps action policies and batch allowlists aligned', () => {
-    for (const service of serviceFiles) {
-      const source = readFileSync(service.path, 'utf8')
+    for (const service of registry.services) {
+      const source = readFileSync(`packages/${service.key}/apps-script/${service.title}Service.gs`, 'utf8')
       const policies = new Set(policyKeys(source))
       const batchActions = batchKeys(source)
 
@@ -49,6 +50,16 @@ describe('Apps Script proxy contracts', () => {
       for (const action of batchActions) {
         assert.ok(policies.has(action), `${service.key} batch action ${action} must have an ACTION_POLICIES entry`)
       }
+    }
+  })
+
+  it('keeps generated proxy shell identity tied to service metadata', () => {
+    for (const service of registry.services) {
+      const code = readFileSync(`packages/${service.key}/apps-script/Code.gs`, 'utf8')
+      assert.ok(code.includes(`const TOKEN_ENV_NAME = '${service.tokenEnvName}'`), `${service.key} token env must come from registry`)
+      assert.ok(code.includes(`service: '${service.proxyServiceName}'`), `${service.key} health identity must come from registry`)
+      assert.ok(code.includes(`${service.globalName}.requestWeight`), `${service.key} rate weight must call registered service module`)
+      assert.ok(code.includes(`${service.globalName}.handle`), `${service.key} dispatch must call registered service module`)
     }
   })
 

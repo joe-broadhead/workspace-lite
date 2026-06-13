@@ -94,6 +94,7 @@ nav:
       - Setup Script: getting-started/setup-script.md
   - Architecture:
       - Overview: architecture/overview.md
+      - Service Registry: architecture/registry.md
       - Security: architecture/security.md
   - Services:
       - Drive: services/drive.md

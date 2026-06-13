@@ -23,6 +23,8 @@
     "validate:responses": "node scripts/validate-responses.mjs",
     "validate:mutations": "node scripts/validate-mutation-safety.mjs",
     "validate:inputs": "node scripts/validate-high-risk-inputs.mjs",
+    "validate:architecture": "node scripts/validate-architecture.mjs",
+    "generate:proxy-shell": "node scripts/generate-proxy-shell.mjs",
     "clean": "rm -rf packages/*/dist shared/dist packages/*/*.tsbuildinfo shared/*.tsbuildinfo *.tsbuildinfo",
     "dev:drive": "cd packages/drive && npm run dev",
     "install:deps": "npm install",

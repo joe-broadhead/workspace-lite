@@ -34,13 +34,19 @@ class CaptureServer {
 }
 
 const services = [
-  { key: 'drive', title: 'Drive', expected: 29, register: registerDriveTools },
-  { key: 'gmail', title: 'Gmail', expected: 33, register: registerGmailTools },
-  { key: 'calendar', title: 'Calendar', expected: 15, register: registerCalendarTools },
-  { key: 'sheets', title: 'Sheets', expected: 27, register: registerSheetsTools },
-  { key: 'slides', title: 'Slides', expected: 19, register: registerSlidesTools },
-  { key: 'docs', title: 'Docs', expected: 17, register: registerDocsTools },
-]
+  ...((JSON.parse(readFileSync('config/service-registry.json', 'utf8')) as { services: Array<{ key: string; title: string; toolCount: number }> }).services),
+].map((service) => ({
+  ...service,
+  expected: service.toolCount,
+  register: {
+    drive: registerDriveTools,
+    gmail: registerGmailTools,
+    calendar: registerCalendarTools,
+    sheets: registerSheetsTools,
+    slides: registerSlidesTools,
+    docs: registerDocsTools,
+  }[service.key],
+}))
 
 function registrationsFor(register: (server: ToolServer) => void) {
   const server = new CaptureServer()
@@ -56,6 +62,7 @@ describe('tool registration', () => {
   it('registers the expected tool count with descriptions and schemas for every service', () => {
     let total = 0
     for (const service of services) {
+      assert.ok(service.register, `${service.key} must have a tool registrar`)
       const registrations = registrationsFor(service.register)
       const names = registrations.map((registration) => registration.name)
       total += registrations.length
@@ -70,7 +77,7 @@ describe('tool registration', () => {
       }
     }
 
-    assert.equal(total, 140)
+    assert.equal(total, services.reduce((sum, service) => sum + service.expected, 0))
   })
 
   it('keeps README, service docs, and skill catalog tool names aligned with registrations', () => {
@@ -78,6 +85,7 @@ describe('tool registration', () => {
     const catalog = readFileSync('skills/google-workspace/references/tool-catalog.md', 'utf8')
 
     for (const service of services) {
+      assert.ok(service.register, `${service.key} must have a tool registrar`)
       const registrations = registrationsFor(service.register)
       const serviceDocs = readFileSync(`docs/services/${service.key}.md`, 'utf8')
 

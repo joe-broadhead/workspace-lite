@@ -1,14 +1,7 @@
 import { readFileSync } from 'node:fs'
+import { loadRegistry } from './registry-helpers.mjs'
 
-const services = ['drive', 'gmail', 'calendar', 'sheets', 'docs', 'slides']
-const serviceGlobals = {
-  drive: 'DriveService',
-  gmail: 'GmailService',
-  calendar: 'CalendarService',
-  sheets: 'SheetsService',
-  docs: 'DocsService',
-  slides: 'SlidesService',
-}
+const { services } = loadRegistry()
 
 const failures = []
 
@@ -25,20 +18,19 @@ if (!proxySource.includes('validateProxyResponse(json)')) failures.push('shared/
 if (!proxySource.includes('await res.text()')) failures.push('shared/src/proxy-client.ts: proxy client must safely parse response text')
 
 for (const service of services) {
-  const serviceTitle = service.charAt(0).toUpperCase() + service.slice(1)
-  const serviceFile = `packages/${service}/apps-script/${serviceTitle}Service.gs`
-  const codeFile = `packages/${service}/apps-script/Code.gs`
-  const responseFile = `packages/${service}/apps-script/Response.gs`
-  const policyFile = `packages/${service}/apps-script/Policy.gs`
+  const serviceFile = `packages/${service.key}/apps-script/${service.title}Service.gs`
+  const codeFile = `packages/${service.key}/apps-script/Code.gs`
+  const responseFile = `packages/${service.key}/apps-script/Response.gs`
+  const policyFile = `packages/${service.key}/apps-script/Policy.gs`
 
   const source = readFileSync(serviceFile, 'utf8')
   const code = readFileSync(codeFile, 'utf8')
   const response = readFileSync(responseFile, 'utf8')
   const policy = readFileSync(policyFile, 'utf8')
 
-  if (!code.includes(`service: 'google-workspace-proxy-${service}'`)) failures.push(`${codeFile}: health endpoint reports the wrong service`)
+  if (!code.includes(`service: '${service.proxyServiceName}'`)) failures.push(`${codeFile}: health endpoint reports the wrong service`)
   if (!code.includes('correlationId = Utilities.getUuid()')) failures.push(`${codeFile}: top-level internal errors must include correlation IDs`)
-  if (!code.includes(`return respond(${serviceGlobals[service]}.handle(body.action, body.params || {}))`)) failures.push(`${codeFile}: doPost must return the service response envelope directly`)
+  if (!code.includes(`return respond(${service.globalName}.handle(body.action, body.params || {}))`)) failures.push(`${codeFile}: doPost must return the service response envelope directly`)
 
   if (!response.includes('function ok(data, pagination, warnings)')) failures.push(`${responseFile}: ok() must expose data, pagination, and warnings`)
   if (!response.includes('function err(code, message, correlationId)')) failures.push(`${responseFile}: err() must expose correlationId`)

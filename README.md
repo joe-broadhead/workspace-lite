@@ -139,6 +139,8 @@ npm run typecheck    # Type-check all packages
 npm run lint         # Strict unused/type gate
 npm test             # Run repository tests
 npm run audit        # Fail on moderate+ npm advisories
+npm run validate:architecture  # Check service registry, action registry, and generated proxy shell
+npm run generate:proxy-shell   # Regenerate service Code.gs files from service metadata
 ```
 
 ### Adding a new service

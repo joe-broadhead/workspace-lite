@@ -179,15 +179,15 @@ The `action` field in each operation uses the **same names as the individual too
 
 | Individual Tool | Batch `action` |
 |---|---|
-| `calendar_list_calendars` | `calendarList` |
-| `calendar_get_calendar` | `calendarGet` |
-| `calendar_list_events` | `eventsList` |
-| `calendar_search_events` | `eventsSearch` |
-| `calendar_find_freebusy` | `freeBusy` |
-| `calendar_get_event` | `eventGet` |
-| `calendar_create_event` | `eventCreate` |
-| `calendar_update_event` | `eventUpdate` |
-| `calendar_delete_event` | `eventDelete` |
+| `calendar_list_calendars` | `listCalendars` |
+| `calendar_get_calendar` | `getCalendar` |
+| `calendar_list_events` | `listEvents` |
+| `calendar_search_events` | `searchEvents` |
+| `calendar_find_freebusy` | `findFreeBusy` |
+| `calendar_get_event` | `getEvent` |
+| `calendar_create_event` | `createEvent` |
+| `calendar_update_event` | `updateEvent` |
+| `calendar_delete_event` | `deleteEvent` |
 | `calendar_respond_to_event` | `respondToEvent` |
 | `calendar_create_event_series` | `createEventSeries` |
 | `calendar_set_event_color` | `setEventColor` |
@@ -198,7 +198,6 @@ The `action` field in each operation uses the **same names as the individual too
 
 | Individual Tool | Batch `action` |
 |---|---|
-| `sheets_create_spreadsheet` | `spreadsheetCreate` |
 | `sheets_get_spreadsheet` | `spreadsheetGet` |
 | `sheets_add_sheet` | `sheetAdd` |
 | `sheets_delete_sheet` | `sheetDelete` |
