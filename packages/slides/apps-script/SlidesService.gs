@@ -580,32 +580,26 @@ var SlidesService = (function() {
       const text = shape.getText()
       if (!text) return err('NOT_FOUND', `Element has no text: ${objectId}`)
 
-      const ranges = []
-      let cursor = 0
-      while (true) {
-        const found = text.find(findText, cursor)
-        if (!found) break
-        ranges.push(found)
-        cursor = found.getEndOffsetInclusive() + 1
+      const runs = text.getRuns()
+      let formattedCount = 0
+      for (let i = 0; i < runs.length; i++) {
+        const run = runs[i]
+        const runText = run.asString()
+        if (runText.indexOf(findText) === -1) continue
+
+        const style = run.getTextStyle()
+        if (params.bold !== undefined) style.setBold(optionalBool(params, 'bold', false))
+        if (params.italic !== undefined) style.setItalic(optionalBool(params, 'italic', false))
+        if (params.underline !== undefined) style.setUnderline(optionalBool(params, 'underline', false))
+        if (params.fontFamily !== undefined) style.setFontFamily(String(params.fontFamily))
+        if (params.fontSize !== undefined) style.setFontSize(Number(params.fontSize))
+        if (params.foregroundColor !== undefined) style.setForegroundColor(String(params.foregroundColor))
+        if (params.backgroundColor !== undefined) style.setBackgroundColor(String(params.backgroundColor))
+        if (params.linkUrl !== undefined) style.setLinkUrl(String(params.linkUrl))
+        formattedCount++
       }
 
-      if (ranges.length === 0) return err('NOT_FOUND', `Text "${findText}" not found in element: ${objectId}`)
-
-      for (const range of ranges) {
-        const start = range.getStartOffset()
-        const end = range.getEndOffsetInclusive()
-        const txtEl = range.getElement().asText()
-        if (params.bold !== undefined) txtEl.setBold(start, end, optionalBool(params, 'bold', false))
-        if (params.italic !== undefined) txtEl.setItalic(start, end, optionalBool(params, 'italic', false))
-        if (params.underline !== undefined) txtEl.setUnderline(start, end, optionalBool(params, 'underline', false))
-        if (params.fontFamily !== undefined) txtEl.setFontFamily(start, end, String(params.fontFamily))
-        if (params.fontSize !== undefined) txtEl.setFontSize(start, end, Number(params.fontSize))
-        if (params.foregroundColor !== undefined) txtEl.setForegroundColor(start, end, String(params.foregroundColor))
-        if (params.backgroundColor !== undefined) txtEl.setBackgroundColor(start, end, String(params.backgroundColor))
-        if (params.linkUrl !== undefined) txtEl.setLinkUrl(start, end, String(params.linkUrl))
-      }
-
-      return ok({ formatted: true, objectId, slideIndex, formattedCount: ranges.length })
+      return ok({ formatted: true, objectId, slideIndex, formattedCount })
     } catch (e) { return err('FORMAT_FAILED', `Could not format element text: ${e.message}`) }
   }
 
