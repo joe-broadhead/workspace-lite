@@ -9,8 +9,14 @@ function doGet(e) {
 
 function doPost(e) {
   var body
+  if (e && e.postData && e.postData.contents && e.postData.contents.length > 1000000) {
+    return respond(err('LIMIT_EXCEEDED', 'request bytes limit exceeded: max 1000000'))
+  }
   try { body = JSON.parse(e.postData.contents) } catch(_) { return respond(err('BAD_REQUEST', 'Invalid JSON body')) }
   if (!validateRequest(body)) {
+    if (isAuthFailureRateLimited(body && body.token)) {
+      return respond(err('RATE_LIMITED', 'Too many failed authentication attempts. Try again in 60 seconds.'))
+    }
     return respond(err('UNAUTHORIZED', 'Invalid or missing auth token'))
   }
 

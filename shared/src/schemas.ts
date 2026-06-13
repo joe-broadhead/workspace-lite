@@ -61,7 +61,7 @@ export const folderCreateSchema = {
 
 export const fileCreateSchema = {
   name: z.string().describe('File name.'),
-  content: z.string().describe('File content.'),
+  content: z.string().max(1000000).describe('File content.'),
   mimeType: z.string().default('text/plain').describe('MIME type (e.g. text/markdown, application/json).'),
   parentId: driveIdSchema.optional().describe('Parent folder ID. Omit for root.'),
 }
@@ -85,7 +85,7 @@ export const fileUpdateMetaSchema = {
 
 export const fileUpdateContentSchema = {
   fileId: driveIdSchema.describe('File ID.'),
-  content: z.string().describe('New file content.'),
+  content: z.string().max(1000000).describe('New file content.'),
 }
 
 export const fileSetSharingSchema = {
@@ -392,7 +392,7 @@ export const gmailAttachmentGetSchema = {
 }
 
 export const gmailBatchModifySchema = {
-  messageIds: z.array(z.string().min(1)).min(1).describe('Array of message IDs to modify.'),
+  messageIds: z.array(z.string().min(1)).min(1).max(500).describe('Array of message IDs to modify.'),
   addLabels: z.array(z.string()).optional().describe('Label names or IDs to add.'),
   removeLabels: z.array(z.string()).optional().describe('Label names or IDs to remove.'),
 }
@@ -619,21 +619,21 @@ export const sheetsDataValidationSchema = {
 
 export const sheetsBatchGetSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
-  ranges: z.array(z.string()).describe('Array of range strings in A1 notation (e.g. ["Sheet1!A1:B10", "Sheet2!C1:D20"]).'),
+  ranges: z.array(z.string()).min(1).max(10).describe('Array of range strings in A1 notation (e.g. ["Sheet1!A1:B10", "Sheet2!C1:D20"]).'),
 }
 
 export const sheetsInsertRowsSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
   startPosition: z.number().int().min(1).describe('Row index to insert before (1-based).'),
-  howMany: z.number().int().min(1).default(1).describe('Number of rows to insert.'),
+  howMany: z.number().int().min(1).max(5000).default(1).describe('Number of rows to insert.'),
 }
 
 export const sheetsDeleteRowsSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
   startPosition: z.number().int().min(1).describe('Row index to start deleting from (1-based).'),
-  howMany: z.number().int().min(1).default(1).describe('Number of rows to delete.'),
+  howMany: z.number().int().min(1).max(5000).default(1).describe('Number of rows to delete.'),
   ...confirmationSchema,
 }
 

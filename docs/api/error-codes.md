@@ -18,8 +18,7 @@ All errors follow a consistent JSON structure:
 |------|---------|------------|
 | `UNAUTHORIZED` | Invalid or missing bearer token | Check `*_PROXY_TOKEN` env var; re-bootstrap if token was lost |
 | `BAD_REQUEST` | Missing required parameter or invalid JSON body | Check parameter names and types against the tool schema |
-| `CONTENT_TOO_LARGE` | File content exceeds size limit | Reduce file size or split into smaller operations |
-| `ATTACHMENT_TOO_LARGE` | Email attachment exceeds size limit | Reduce attachment size or use a different delivery method |
+| `LIMIT_EXCEEDED` | Request, response, batch, date-window, attachment, export, range, or scan limit exceeded | Reduce page size, date window, range size, batch size, or payload size and retry |
 | `NOT_FOUND` | Resource (file, email, event, spreadsheet, slide, document) not found | Verify the ID is correct and the resource exists |
 | `FORBIDDEN` | Bootstrap already completed | Token is one-time; use the saved token |
 | `RATE_LIMITED` | Exceeded 100 requests per minute | Wait 60 seconds; requests reset every minute |

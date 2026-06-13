@@ -62,12 +62,36 @@ var DriveService = (() => {
     commentsList: true, commentCreate: true,
   }
 
+  const LIMITS = {
+    pageSize: 100,
+    pageOffset: 5000,
+    folderEntries: 200,
+    textChars: 500000,
+    exportBytes: 5000000,
+    writeBytes: 1000000,
+    responseBytes: 1000000,
+    pathDepth: 50,
+  }
+
   function ok(data) {
+    const payload = JSON.stringify(data || {});
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
     return { success: true, data: data };
   }
 
   function err(code, message) {
     return { success: false, error: { code: code, message: message } };
+  }
+
+  function limitExceeded(name, requested, max) {
+    return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
+  }
+
+  function boundedPageSize(params, name, def) {
+    const value = Math.floor(optionalNumber(params, name, def));
+    if (value < 1) return { error: err('BAD_REQUEST', `${name} must be at least 1`) };
+    if (value > LIMITS.pageSize) return { error: limitExceeded(name, value, LIMITS.pageSize) };
+    return { value: value };
   }
 
   const ACTIONS = {
@@ -122,7 +146,10 @@ var DriveService = (() => {
   }
 
   function trap(fn, errorCode, errorMsg) {
-    try { return ok(fn()); }
+    try {
+      const result = fn();
+      return result && result.success === false ? result : ok(result);
+    }
     catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
   }
 
@@ -198,8 +225,12 @@ var DriveService = (() => {
 
   function fileList(params) {
     const folderId = optionalString(params, 'folderId');
-    const pageSize = optionalNumber(params, 'pageSize', 50);
-    const pageToken = optionalNumber(params, 'pageToken', 0);
+    const pageSizeLimit = boundedPageSize(params, 'pageSize', 50);
+    if (pageSizeLimit.error) return pageSizeLimit.error;
+    const pageSize = pageSizeLimit.value;
+    const pageToken = Math.floor(optionalNumber(params, 'pageToken', 0));
+    if (pageToken < 0) return err('BAD_REQUEST', 'pageToken must be non-negative');
+    if (pageToken > LIMITS.pageOffset) return limitExceeded('Drive page offset', pageToken, LIMITS.pageOffset);
 
     let files;
     if (folderId) {
@@ -233,7 +264,9 @@ var DriveService = (() => {
 
   function fileSearch(params) {
     const query = requireParam(params, 'query');
-    const maxResults = optionalNumber(params, 'maxResults', 50);
+    const maxResultLimit = boundedPageSize(params, 'maxResults', 50);
+    if (maxResultLimit.error) return maxResultLimit.error;
+    const maxResults = maxResultLimit.value;
     const files = DriveApp.searchFiles(query);
     const results = [];
     let count = 0;
@@ -251,15 +284,15 @@ var DriveService = (() => {
     return trap(function() {
       const file = DriveApp.getFileById(id);
       const size = file.getSize()
-      if (size > 5000000) return err('CONTENT_TOO_LARGE', `File exceeds 5MB read limit (${Math.round(size/1024/1024)}MB)`)
+      if (size > LIMITS.exportBytes) return limitExceeded('fileExport bytes', size, LIMITS.exportBytes)
       const text = file.getBlob().getDataAsString();
       return {
         id: file.getId(),
         name: file.getName(),
         mimeType: file.getMimeType(),
         size: file.getSize(),
-        content: text.substring(0, 500000),
-        truncated: text.length > 500000
+        content: text.substring(0, LIMITS.textChars),
+        truncated: text.length > LIMITS.textChars
       };
     }, 'NOT_FOUND', `File not found: ${id}`);
   }
@@ -279,14 +312,14 @@ var DriveService = (() => {
 
       const subfolders = [];
       const subIter = folder.getFolders();
-      while (subIter.hasNext()) {
+      while (subIter.hasNext() && subfolders.length < LIMITS.folderEntries) {
         const f = subIter.next();
         subfolders.push({ id: f.getId(), name: f.getName(), url: f.getUrl() });
       }
 
       const fileListArr = [];
       const fileIter = folder.getFiles();
-      while (fileIter.hasNext()) {
+      while (fileIter.hasNext() && (subfolders.length + fileListArr.length) < LIMITS.folderEntries) {
         const f = fileIter.next();
         fileListArr.push({ id: f.getId(), name: f.getName(), mimeType: f.getMimeType(), url: f.getUrl() });
       }
@@ -295,7 +328,9 @@ var DriveService = (() => {
         folderId: folder.getId(),
         folderName: folder.getName(),
         folders: subfolders,
-        files: fileListArr
+        files: fileListArr,
+        hasMore: subIter.hasNext() || fileIter.hasNext(),
+        limit: LIMITS.folderEntries
       };
     }, 'NOT_FOUND', `Folder not found: ${folderId || 'root'}`);
   }
@@ -318,6 +353,7 @@ var DriveService = (() => {
   function fileCreate(params) {
     const name = requireParam(params, 'name');
     const content = requireParam(params, 'content');
+    if (String(content).length > LIMITS.writeBytes) return limitExceeded('fileCreate content bytes', String(content).length, LIMITS.writeBytes);
     const mimeType = optionalString(params, 'mimeType', 'text/plain');
     const parentId = optionalString(params, 'parentId');
     return trap(function() {
@@ -375,6 +411,7 @@ var DriveService = (() => {
   function fileUpdateContent(params) {
     const id = requireParam(params, 'fileId');
     const content = requireParam(params, 'content');
+    if (String(content).length > LIMITS.writeBytes) return limitExceeded('fileUpdateContent bytes', String(content).length, LIMITS.writeBytes);
     validateDriveId(id);
     return trap(function() {
       const file = DriveApp.getFileById(id);
@@ -495,12 +532,13 @@ var DriveService = (() => {
         let current = parentArr[0];
         path.push(folderToJSONLight(current));
 
-        while (true) {
+        while (path.length < LIMITS.pathDepth) {
           const nextParents = iteratorToArray(current.getParents());
           if (nextParents.length === 0) break;
           current = nextParents[0];
           path.push(folderToJSONLight(current));
         }
+        if (path.length >= LIMITS.pathDepth) return limitExceeded('folder path depth', path.length, LIMITS.pathDepth);
       }
 
       path.reverse();
@@ -550,6 +588,7 @@ var DriveService = (() => {
     return trap(function() {
       const blob = Drive.Files.export(id, mimeType);
       const bytes = blob.getBytes();
+      if (bytes.length > LIMITS.exportBytes) return limitExceeded('fileExportAs bytes', bytes.length, LIMITS.exportBytes);
       const base64 = Utilities.base64Encode(bytes);
       return {
         fileId: id,
@@ -605,7 +644,7 @@ var DriveService = (() => {
   function runBatch(params, handleFn) {
     const ops = params.operations;
     if (!Array.isArray(ops) || ops.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
-    if (ops.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
+    if (ops.length > 20) return limitExceeded('batch operations', ops.length, 20);
     const results = [];
     let operationWeight = 1;
     for (let i = 0; i < ops.length; i++) {

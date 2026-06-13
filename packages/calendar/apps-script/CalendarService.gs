@@ -25,6 +25,16 @@ const CalendarService = (() => {
     deleteEvent: true, findFreeBusy: true,
   }
 
+  const LIMITS = {
+    pageSize: 100,
+    pageOffset: 5000,
+    listWindowDays: 31,
+    searchWindowDays: 31,
+    freeBusyWindowDays: 31,
+    instanceWindowDays: 31,
+    responseBytes: 1000000,
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
     if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
@@ -38,11 +48,17 @@ const CalendarService = (() => {
   }
 
   function ok(data) {
+    const payload = JSON.stringify(data || {});
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
     return { success: true, data };
   }
 
   function err(code, message) {
     return { success: false, error: { code, message } };
+  }
+
+  function limitExceeded(name, requested, max) {
+    return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
   }
 
   // ─── Parameter helpers ───
@@ -77,8 +93,35 @@ const CalendarService = (() => {
     return def;
   }
 
+  function boundedPageSize(params, name, def) {
+    const value = Math.floor(optionalNumber(params, name, def));
+    if (value < 1) return { error: err('BAD_REQUEST', `${name} must be at least 1`) };
+    if (value > LIMITS.pageSize) return { error: limitExceeded(name, value, LIMITS.pageSize) };
+    return { value: value };
+  }
+
+  function boundedPage(params) {
+    const page = Math.floor(optionalNumber(params, 'page', 0));
+    if (page < 0) return { error: err('BAD_REQUEST', 'page must be non-negative') };
+    return { value: page };
+  }
+
+  function boundedDateWindow(timeMin, timeMax, defaultDays, maxDays) {
+    const now = Date.now();
+    const start = new Date(timeMin || now);
+    const end = new Date(timeMax || (now + defaultDays * 24 * 60 * 60 * 1000));
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return { error: err('BAD_REQUEST', 'timeMin/timeMax must be valid date strings') };
+    if (end.getTime() <= start.getTime()) return { error: err('BAD_REQUEST', 'timeMax must be after timeMin') };
+    const requestedDays = Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+    if (requestedDays > maxDays) return { error: limitExceeded('calendar date window days', requestedDays, maxDays) };
+    return { start: start, end: end };
+  }
+
   function trap(fn, errorCode, errorMsg) {
-    try { return ok(fn()); }
+    try {
+      const result = fn();
+      return result && result.success === false ? result : ok(result);
+    }
     catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
   }
 
@@ -182,21 +225,23 @@ const CalendarService = (() => {
     const calendarId = optionalString(params, 'calendarId');
     const timeMin = optionalString(params, 'timeMin');
     const timeMax = optionalString(params, 'timeMax');
-    const maxResults = optionalNumber(params, 'maxResults', 50);
-    const page = optionalNumber(params, 'page', 0);
+    const maxResultLimit = boundedPageSize(params, 'maxResults', 50);
+    if (maxResultLimit.error) return maxResultLimit.error;
+    const pageLimit = boundedPage(params);
+    if (pageLimit.error) return pageLimit.error;
+    const maxResults = maxResultLimit.value;
+    const page = pageLimit.value;
+    const offset = page * maxResults;
+    if (offset > LIMITS.pageOffset) return limitExceeded('calendar list offset', offset, LIMITS.pageOffset);
+    const window = boundedDateWindow(timeMin, timeMax, 30, LIMITS.listWindowDays);
+    if (window.error) return window.error;
 
     return trap(function() {
       const cal = resolveCalendar(calendarId);
-      // implicit time dependency: new Date() / Date.now()
-      const start = new Date(timeMin || new Date().toISOString());
-      const end = new Date(timeMax || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
-
-      const events = cal.getEvents(start, end);
-      const offset = page * maxResults;
-      const limit = Math.min(offset + maxResults, events.length);
+      const events = cal.getEvents(window.start, window.end, { start: offset, max: maxResults });
       const results = [];
 
-      for (let i = offset; i < limit; i++) {
+      for (let i = 0; i < events.length; i++) {
         const e = eventToJSON(events[i]);
         e.calendarName = cal.getName();
         results.push(e);
@@ -204,9 +249,8 @@ const CalendarService = (() => {
 
       return {
         events: results,
-        nextPageToken: limit < events.length ? String(page + 1) : undefined,
-        hasMore: limit < events.length,
-        total: events.length,
+        nextPageToken: events.length === maxResults ? String(page + 1) : undefined,
+        hasMore: events.length === maxResults,
       };
     }, 'LIST_FAILED', function(e) { return e.message || 'Could not list events'; });
   }
@@ -216,25 +260,24 @@ const CalendarService = (() => {
     const calendarId = optionalString(params, 'calendarId');
     const timeMin = optionalString(params, 'timeMin');
     const timeMax = optionalString(params, 'timeMax');
-    const maxResults = optionalNumber(params, 'maxResults', 50);
+    const maxResultLimit = boundedPageSize(params, 'maxResults', 50);
+    if (maxResultLimit.error) return maxResultLimit.error;
+    const maxResults = maxResultLimit.value;
+    const window = boundedDateWindow(timeMin, timeMax, 30, LIMITS.searchWindowDays);
+    if (window.error) return window.error;
 
     return trap(function() {
       const cal = resolveCalendar(calendarId);
-      // implicit time dependency: new Date() / Date.now()
-      const start = new Date(timeMin || new Date().toISOString());
-      const end = new Date(timeMax || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString());
-      const events = cal.getEvents(start, end, { search: query });
-      const limit = Math.min(maxResults, events.length);
+      const events = cal.getEvents(window.start, window.end, { search: query, max: maxResults });
       const results = [];
 
-      for (let i = 0; i < limit; i++) {
+      for (let i = 0; i < events.length; i++) {
         results.push(eventToJSON(events[i]));
       }
 
       return {
         events: results,
-        hasMore: limit < events.length,
-        total: events.length,
+        hasMore: events.length === maxResults,
       };
     }, 'SEARCH_FAILED', function(e) { return e.message || 'Search failed'; });
   }
@@ -260,11 +303,11 @@ const CalendarService = (() => {
     const calendarId = optionalString(params, 'calendarId', 'primary');
     const timeMin = optionalString(params, 'timeMin', null);
     const timeMax = optionalString(params, 'timeMax', null);
+    const window = boundedDateWindow(timeMin, timeMax, LIMITS.instanceWindowDays, LIMITS.instanceWindowDays);
+    if (window.error) return window.error;
 
     return trap(function() {
-      const options = {};
-      if (timeMin) options.timeMin = timeMin;
-      if (timeMax) options.timeMax = timeMax;
+      const options = { timeMin: window.start.toISOString(), timeMax: window.end.toISOString(), maxResults: LIMITS.pageSize };
       const result = Calendar.Events.instances(calendarId, eventId, options);
       return { eventId: eventId, calendarId: calendarId, instances: result.items || [] };
     }, 'LIST_FAILED', function(e) { return e.message || 'Could not get event instances'; });
@@ -368,13 +411,14 @@ const CalendarService = (() => {
 
   function findFreeBusy(params) {
     const calendarId = optionalString(params, 'calendarId');
-    // implicit time dependency: Date() / Date.now()
     const timeMin = optionalString(params, 'timeMin', new Date().toISOString());
     const timeMax = optionalString(params, 'timeMax', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString());
+    const window = boundedDateWindow(timeMin, timeMax, 7, LIMITS.freeBusyWindowDays);
+    if (window.error) return window.error;
 
     return trap(function() {
       const cal = resolveCalendar(calendarId);
-      const events = cal.getEvents(new Date(timeMin), new Date(timeMax));
+      const events = cal.getEvents(window.start, window.end, { max: LIMITS.pageSize });
       const slots = [];
 
       for (let i = 0; i < events.length; i++) {
@@ -522,7 +566,7 @@ const CalendarService = (() => {
   function runBatch(params, handleFn) {
     const ops = params.operations;
     if (!Array.isArray(ops) || ops.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
-    if (ops.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
+    if (ops.length > 20) return limitExceeded('batch operations', ops.length, 20);
     const results = [];
     let operationWeight = 1;
     for (let i = 0; i < ops.length; i++) {

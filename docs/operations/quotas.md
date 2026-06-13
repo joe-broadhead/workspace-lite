@@ -24,10 +24,83 @@ Each proxy applies its own rate limit, independent of Google API quotas:
 | Limit | Value |
 |---|---|
 | **Requests per minute** | 100 per proxy |
+| **Authenticated request cost** | Weighted by action risk and batch operations |
+| **Failed authentication attempts** | 20 per minute per supplied token/missing-token bucket |
 | **Reset window** | 60 seconds |
 | **Error when exceeded** | `RATE_LIMITED: "Too many requests. Try again in 60 seconds."` |
 
-This rate limit is enforced by `CacheService.getScriptCache()` in the Apps Script proxy layer and is **independent** of the per-API quotas below. Hitting this limit protects the proxy from abuse but does not relate to Google API consumption limits.
+This rate limit is enforced by `CacheService.getScriptCache()` under a script lock in the Apps Script proxy layer and is **independent** of the per-API quotas below. If the lock cannot be acquired, the request fails closed as rate-limited.
+
+## Enforced Proxy Limits
+
+The proxy rejects requests before or immediately after bounded API calls when they exceed these limits. Limit failures use `LIMIT_EXCEEDED` with the requested and maximum values in the message.
+
+| Limit | Value |
+|---|---:|
+| Request body payload | 1,000,000 characters |
+
+### Drive Proxy
+
+| Limit | Value |
+|---|---:|
+| Page size (`drive_list_files`, `drive_search_files`) | 100 |
+| Maximum page offset | 5,000 |
+| Folder entries returned by `drive_list_folders` | 200 |
+| Text returned by `drive_read_file` | 500,000 characters |
+| Export bytes (`drive_read_file`, `drive_export_as`) | 5,000,000 bytes |
+| Text write payload (`drive_create_file`, `drive_update_content`) | 1,000,000 characters |
+| Folder path depth | 50 |
+| Total response payload | 1,000,000 JSON characters |
+
+### Gmail Proxy
+
+| Limit | Value |
+|---|---:|
+| Page size (`gmail_search_messages`, `gmail_list_threads`, `gmail_list_drafts`) | 100 |
+| Maximum page offset | 5,000 |
+| Threads scanned per message search page | 200 |
+| Messages returned from a single thread | 100 |
+| Drafts scanned | 500 |
+| Message/draft body field | 100,000 characters |
+| Attachment bytes | 5,000,000 bytes |
+| `gmail_batch_modify` message IDs | 500 |
+| Total response payload | 1,000,000 JSON characters |
+
+### Calendar Proxy
+
+| Limit | Value |
+|---|---:|
+| Page size (`calendar_list_events`, `calendar_search_events`) | 100 |
+| Maximum page offset | 5,000 |
+| Event/free-busy/instance date window | 31 days |
+| Total response payload | 1,000,000 JSON characters |
+
+### Sheets Proxy
+
+| Limit | Value |
+|---|---:|
+| Cells read per operation | 10,000 |
+| Cells written or mutated per range operation | 10,000 |
+| Ranges in `sheets_batch_get` | 10 |
+| Rows inserted/deleted per call | 5,000 |
+| Total response payload | 1,000,000 JSON characters |
+
+### Docs Proxy
+
+| Limit | Value |
+|---|---:|
+| Paragraphs returned by `docs_get_document` | 500 |
+| Characters returned by `docs_get_document` | 500,000 |
+| Full document JSON payload | 1,000,000 JSON characters |
+| Total response payload | 1,000,000 JSON characters |
+
+### Slides Proxy
+
+| Limit | Value |
+|---|---:|
+| Page elements returned by `slides_get_slide_elements` | 200 |
+| Text returned from slide elements or notes | 200,000 characters |
+| Total response payload | 1,000,000 JSON characters |
 
 ## Per-Service API Quotas
 
@@ -38,8 +111,8 @@ These are Google API quotas enforced by the underlying Workspace APIs. The proxy
 | Limit | Value |
 |---|---|
 | File read/write operations | No documented hard limit; throttled at high volumes |
-| File size for content read (`drive_read_file`) | 500 KB (enforced by the proxy, not Google) |
-| Search results per query | ~1,000 results max (Drive API limitation) |
+| File size for content read (`drive_read_file`) | 5,000,000 source bytes and 500,000 returned characters (enforced by the proxy, not Google) |
+| Search results per query | 100 per proxy call |
 | Sharing changes per file | No documented limit |
 | Trash/delete operations | No documented limit |
 
@@ -52,7 +125,7 @@ These are Google API quotas enforced by the underlying Workspace APIs. The proxy
 | Email recipients per message | 500 (free) / 1,500 (Workspace) |
 | Draft creation per day | No documented limit |
 | Label operations per day | No documented limit |
-| Search results per query | ~500 results practical limit |
+| Search results per query | 100 per proxy call; bounded thread scan |
 
 ### Calendar
 
@@ -67,8 +140,8 @@ These are Google API quotas enforced by the underlying Workspace APIs. The proxy
 
 | Limit | Value |
 |---|---|
-| Cells read per call | ~10M cells practical limit |
-| Cells written per call | ~10M cells practical limit |
+| Cells read per proxy call | 10,000 |
+| Cells written per proxy call | 10,000 |
 | Spreadsheets accessible | 200 spreadsheets open simultaneously |
 | Sheet tabs per spreadsheet | 200 |
 | Rows per sheet | 100,000 |
@@ -80,7 +153,7 @@ These are Google API quotas enforced by the underlying Workspace APIs. The proxy
 | Limit | Value |
 |---|---|
 | Slides per presentation | 200 |
-| Elements per slide | 500 |
+| Elements returned per slide by proxy | 200 |
 | Presentations accessible | No documented limit |
 | Image size for insertion | No documented limit (URL must be publicly accessible) |
 
@@ -88,8 +161,8 @@ These are Google API quotas enforced by the underlying Workspace APIs. The proxy
 
 | Limit | Value |
 |---|---|
-| Document length | ~1M characters |
-| Paragraphs per document | No documented limit |
+| Document characters returned by proxy | 500,000 |
+| Paragraphs returned by proxy | 500 |
 | Tables per document | No documented hard limit |
 | Images per document | No documented limit |
 
@@ -97,11 +170,11 @@ These are Google API quotas enforced by the underlying Workspace APIs. The proxy
 
 ### File Read Truncation
 
-The `drive_read_file` operation truncates file content at **500 KB**:
+The `drive_read_file` operation truncates file content at **500,000 characters** after enforcing a **5,000,000 byte** source/export size cap:
 
 ```json
 {
-  "content": "...first 500KB of file...",
+  "content": "...first 500,000 characters of file...",
   "truncated": true,
   "size": 1200000
 }
@@ -114,11 +187,11 @@ When content is truncated, the `truncated` field is `true` and the `size` field 
 | Limit | Value |
 |---|---|
 | **Operations per batch** | 20 max |
-| **Error when exceeded** | `BAD_REQUEST: "Max 20 operations per batch"` |
+| **Error when exceeded** | `LIMIT_EXCEEDED` |
 | **Minimum batch size** | 1 operation |
 | **Error when empty** | `BAD_REQUEST: "operations must be a non-empty array"` |
 
-Batch operations share the 6-minute execution time budget. A batch of 20 read operations is fast; a batch of 20 file creation operations may take longer.
+Batch operations share the 6-minute execution time budget and are charged by operation weight for rate limiting. A batch of 20 read operations is fast; a batch of 20 file creation operations may take longer.
 
 ## What Happens When Quotas Are Hit
 
@@ -162,6 +235,18 @@ This is a generic error that can mean quota exhaustion, API throttling, or an un
 
 If a request exceeds 6 minutes, Apps Script terminates it. No error is returned to the MCP server; the HTTP connection is dropped. The MCP server will report a network error or timeout. Long-running batch operations (e.g., iterating over thousands of Drive files) are the most likely trigger. Move such workloads to paginated individual calls.
 
-### Maximum File Read (500 KB)
+### Hard Proxy Limits
 
-When `drive_read_file` hits the 500 KB limit, the response includes the first 500 KB of content and sets `truncated: true`. For files larger than this, consider exporting to a format that yields less content, or reading the file in a different way outside the proxy.
+When a proxy limit is exceeded, the proxy returns:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "LIMIT_EXCEEDED",
+    "message": "rangeRead cells limit exceeded: requested 20000, max 10000"
+  }
+}
+```
+
+For truncated text fields, the response includes a `*Truncated` boolean where practical. For hard byte, cell, date-window, and batch limits, reduce the requested page size, date range, range size, or batch size and retry.

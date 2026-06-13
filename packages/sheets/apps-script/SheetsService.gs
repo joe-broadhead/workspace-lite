@@ -59,6 +59,14 @@ const SheetsService = (() => {
     rowsInsert: true, rowsDelete: true,
   }
 
+  const LIMITS = {
+    readCells: 10000,
+    writeCells: 10000,
+    batchRanges: 10,
+    responseBytes: 1000000,
+    rowsMutated: 5000,
+  }
+
   function parseCellReference(cellRef) {
     const match = cellRef.match(/^([A-Z]+)(\d+)$/);
     if (!match) return { col: 1, row: 1 };
@@ -70,6 +78,8 @@ const SheetsService = (() => {
   }
 
   function ok(data) {
+    const payload = JSON.stringify(data || {});
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
     return { success: true, data: data };
   }
 
@@ -77,8 +87,15 @@ const SheetsService = (() => {
     return { success: false, error: { code: code, message: message } };
   }
 
+  function limitExceeded(name, requested, max) {
+    return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
+  }
+
   function trap(fn, errorCode, errorMsg) {
-    try { return ok(fn()); }
+    try {
+      const result = fn();
+      return result && result.success === false ? result : ok(result);
+    }
     catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
   }
 
@@ -89,7 +106,7 @@ const SheetsService = (() => {
       if (!Array.isArray(operations) || operations.length === 0) {
         return err('BAD_REQUEST', 'operations must be a non-empty array');
       }
-      if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
+      if (operations.length > 20) return limitExceeded('batch operations', operations.length, 20);
 
       const results = [];
       let operationWeight = 1;
@@ -150,6 +167,22 @@ const SheetsService = (() => {
     if (params[name] === 'true') return true;
     if (params[name] === 'false') return false;
     return def;
+  }
+
+  function valueCellCount(values) {
+    let cells = 0;
+    for (let i = 0; i < values.length; i++) cells += Array.isArray(values[i]) ? values[i].length : 0;
+    return cells;
+  }
+
+  function rangeCellCount(range) {
+    return range.getNumRows() * range.getNumColumns();
+  }
+
+  function enforceRangeLimit(range, max, label) {
+    const cells = rangeCellCount(range);
+    if (cells > max) return limitExceeded(label, cells, max);
+    return null;
   }
 
   function validateSpreadsheetId(id) {
@@ -302,6 +335,9 @@ const SheetsService = (() => {
       range = sheet.getRange(1, 1, lr, lc);
     }
 
+    const limitError = enforceRangeLimit(range, LIMITS.readCells, 'rangeRead cells');
+    if (limitError) return limitError;
+
     const values = range.getValues();
     return ok({
       sheetName: sheet.getName(),
@@ -329,6 +365,9 @@ const SheetsService = (() => {
       if (lr === 0 && lc === 0) return ok({ sheetName: sheet.getName(), range: 'A1', values: [], formulas: [], displayValues: [], numRows: 0, numCols: 0 });
       range = sheet.getRange(1, 1, lr, lc);
     }
+
+    const limitError = enforceRangeLimit(range, LIMITS.readCells, 'rangeGetFormulas cells');
+    if (limitError) return limitError;
 
     return ok({
       sheetName: sheet.getName(),
@@ -359,6 +398,9 @@ const SheetsService = (() => {
       range = sheet.getRange(1, 1, lr, lc);
     }
 
+    const limitError = enforceRangeLimit(range, LIMITS.readCells, 'rangeGetNotes cells');
+    if (limitError) return limitError;
+
     return ok({
       sheetName: sheet.getName(),
       range: range.getA1Notation(),
@@ -377,10 +419,15 @@ const SheetsService = (() => {
     if (!Array.isArray(ranges) || ranges.length === 0) {
       return err('BAD_REQUEST', 'ranges must be a non-empty array of A1 notation strings');
     }
+    if (ranges.length > LIMITS.batchRanges) return limitExceeded('valuesBatchGet ranges', ranges.length, LIMITS.batchRanges);
 
     return trap(
       () => {
         const result = Sheets.Spreadsheets.Values.batchGet(id, { ranges });
+        let cells = 0;
+        const valueRanges = result.valueRanges || [];
+        for (let i = 0; i < valueRanges.length; i++) cells += valueCellCount(valueRanges[i].values || []);
+        if (cells > LIMITS.readCells) return limitExceeded('valuesBatchGet cells', cells, LIMITS.readCells);
         return { spreadsheetId: id, valueRanges: result.valueRanges || [] };
       },
       'READ_FAILED',
@@ -396,6 +443,8 @@ const SheetsService = (() => {
     const sheetName = optionalString(params, 'sheetName', null);
     const values = params.values;
     if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array');
+    const requestedCells = valueCellCount(values);
+    if (requestedCells > LIMITS.writeCells) return limitExceeded('rangeWrite cells', requestedCells, LIMITS.writeCells);
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -410,6 +459,8 @@ const SheetsService = (() => {
           numCols = Math.min(values[0].length, sheet.getMaxColumns() - range.getColumn() + 1);
           range = sheet.getRange(range.getRow(), range.getColumn(), numRows, numCols);
         }
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'rangeWrite target cells');
+        if (limitError) return limitError;
         const padded = [];
         for (let i = 0; i < numRows; i++) {
           const row = [];
@@ -429,6 +480,8 @@ const SheetsService = (() => {
     const sheetName = optionalString(params, 'sheetName', null);
     const values = params.values;
     if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array');
+    const requestedCells = valueCellCount(values);
+    if (requestedCells > LIMITS.writeCells) return limitExceeded('rowsAppend cells', requestedCells, LIMITS.writeCells);
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -460,8 +513,17 @@ const SheetsService = (() => {
 
     return trap(
       () => {
-        if (rangeStr) { r.sheet.getRange(rangeStr).clearContent(); }
-        else { r.sheet.clearContents(); }
+        let range;
+        if (rangeStr) {
+          range = r.sheet.getRange(rangeStr);
+        } else {
+          const lr = r.sheet.getLastRow(), lc = r.sheet.getLastColumn();
+          if (lr === 0 && lc === 0) return { sheetName: r.sheet.getName(), cleared: '(empty)' };
+          range = r.sheet.getRange(1, 1, lr, lc);
+        }
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'rangeClear cells');
+        if (limitError) return limitError;
+        range.clearContent();
         return { sheetName: r.sheet.getName(), cleared: rangeStr || '(all)' };
       },
       'CLEAR_FAILED',
@@ -481,6 +543,8 @@ const SheetsService = (() => {
     return trap(
       () => {
         const range = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'formulaSet cells');
+        if (limitError) return limitError;
         const numRows = range.getNumRows(), numCols = range.getNumColumns();
         if (numRows === 1 && numCols === 1) {
           range.setFormula(formula);
@@ -513,6 +577,8 @@ const SheetsService = (() => {
     return trap(
       () => {
         const range = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'rangeFormat cells');
+        if (limitError) return limitError;
         const applied = [];
 
         if (params.background !== undefined) { range.setBackground(String(params.background)); applied.push('background'); }
@@ -587,7 +653,13 @@ const SheetsService = (() => {
     if (r.err) return err(r.err, r.msg);
 
     return trap(
-      () => { r.sheet.getRange(rangeStr).merge(); return { sheetName: r.sheet.getName(), range: rangeStr, merged: true }; },
+      () => {
+        const range = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'rangeMerge cells');
+        if (limitError) return limitError;
+        range.merge();
+        return { sheetName: r.sheet.getName(), range: rangeStr, merged: true };
+      },
       'MERGE_FAILED',
       (e) => `Could not merge: ${e.message}`
     );
@@ -602,7 +674,13 @@ const SheetsService = (() => {
     if (r.err) return err(r.err, r.msg);
 
     return trap(
-      () => { r.sheet.getRange(rangeStr).breakApart(); return { sheetName: r.sheet.getName(), range: rangeStr, unmerged: true }; },
+      () => {
+        const range = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'rangeUnmerge cells');
+        if (limitError) return limitError;
+        range.breakApart();
+        return { sheetName: r.sheet.getName(), range: rangeStr, unmerged: true };
+      },
       'UNMERGE_FAILED',
       (e) => `Could not unmerge: ${e.message}`
     );
@@ -654,6 +732,8 @@ const SheetsService = (() => {
     return trap(
       () => {
         const range = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'rangeSort cells');
+        if (limitError) return limitError;
         range.sort({ column: sortCol, ascending: asc });
         return { sheetName: r.sheet.getName(), range: rangeStr, sortColumn: sortCol, ascending: asc };
       },
@@ -684,6 +764,8 @@ const SheetsService = (() => {
     return trap(
       () => {
         const dataRange = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(dataRange, LIMITS.readCells, 'chart data cells');
+        if (limitError) return limitError;
         const ct = CHART_TYPE_MAP[chartType] || Charts.ChartType.COLUMN;
         const pos = parseCellReference(position);
 
@@ -728,11 +810,14 @@ const SheetsService = (() => {
 
     return trap(
       () => {
+        const range = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'noteSet cells');
+        if (limitError) return limitError;
         if (note === '') {
-          r.sheet.getRange(rangeStr).clearNote();
+          range.clearNote();
           return { sheetName: r.sheet.getName(), range: rangeStr, cleared: true };
         }
-        r.sheet.getRange(rangeStr).setNote(note);
+        range.setNote(note);
         return { sheetName: r.sheet.getName(), range: rangeStr, note: note };
       },
       'UPDATE_FAILED',
@@ -945,6 +1030,8 @@ const SheetsService = (() => {
     return trap(
       () => {
         const range = r.sheet.getRange(rangeStr);
+        const limitError = enforceRangeLimit(range, LIMITS.writeCells, 'dataValidationSet cells');
+        if (limitError) return limitError;
         const result = buildValidationRule(validationType, params);
         if (result.error) throw new Error(result.error.message);
 
@@ -973,6 +1060,7 @@ const SheetsService = (() => {
     const startPosition = Number(requireParam(params, 'startPosition'));
     const howMany = optionalNumber(params, 'howMany', 1);
     const sheetName = optionalString(params, 'sheetName', null);
+    if (howMany > LIMITS.rowsMutated) return limitExceeded('rowsInsert count', howMany, LIMITS.rowsMutated);
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -989,6 +1077,7 @@ const SheetsService = (() => {
     const startPosition = Number(requireParam(params, 'startPosition'));
     const howMany = optionalNumber(params, 'howMany', 1);
     const sheetName = optionalString(params, 'sheetName', null);
+    if (howMany > LIMITS.rowsMutated) return limitExceeded('rowsDelete count', howMany, LIMITS.rowsMutated);
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);

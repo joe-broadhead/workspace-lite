@@ -31,6 +31,12 @@ const SlidesService = (() => {
     slideBackground: true, lineInsert: true,
   }
 
+  const LIMITS = {
+    pageElements: 200,
+    textChars: 200000,
+    responseBytes: 1000000,
+  }
+
   const SHAPE_TYPE_MAP = {
     RECTANGLE: SlidesApp.ShapeType.RECTANGLE,
     ROUND_RECTANGLE: SlidesApp.ShapeType.ROUND_RECTANGLE,
@@ -76,11 +82,27 @@ const SlidesService = (() => {
     return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
   }
 
-  function ok(data) { return { success: true, data }; }
+  function ok(data) {
+    const payload = JSON.stringify(data || {});
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    return { success: true, data };
+  }
   function err(code, message) { return { success: false, error: { code, message } }; }
 
+  function limitExceeded(name, requested, max) {
+    return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
+  }
+
+  function truncateText(value, maxChars) {
+    const text = String(value || '');
+    return { text: text.substring(0, maxChars), truncated: text.length > maxChars };
+  }
+
   function trap(fn, errorCode, errorMsg) {
-    try { return ok(fn()); }
+    try {
+      const result = fn();
+      return result && result.success === false ? result : ok(result);
+    }
     catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
   }
 
@@ -89,7 +111,7 @@ const SlidesService = (() => {
       const presentationId = requireParam(params, 'presentationId');
       const operations = params.operations;
       if (!Array.isArray(operations) || operations.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
-      if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
+      if (operations.length > 20) return limitExceeded('batch operations', operations.length, 20);
 
       const results = [];
       let operationWeight = 1;
@@ -570,6 +592,7 @@ const SlidesService = (() => {
     if (r.err) return err(r.err, r.msg);
 
     const pageEls = r.slide.getPageElements();
+    if (pageEls.length > LIMITS.pageElements) return limitExceeded('slide page elements', pageEls.length, LIMITS.pageElements);
     const elements = [];
     for (const el of pageEls) {
       const info = elementToJSON(el);
@@ -578,7 +601,11 @@ const SlidesService = (() => {
         try {
           const shape = el.asShape();
           const txt = shape.getText();
-          if (txt) info.text = txt.asString();
+          if (txt) {
+            const clipped = truncateText(txt.asString(), LIMITS.textChars);
+            info.text = clipped.text;
+            info.textTruncated = clipped.truncated;
+          }
         } catch (s) {}
       } else if (elType === SlidesApp.PageElementType.TABLE) {
         try {
@@ -608,7 +635,8 @@ const SlidesService = (() => {
           notesShape.getText().setText(String(notesText));
           return { slideIndex, notesSet: true };
         }
-        return { slideIndex, notes: notesShape.getText().asString() };
+        const notes = truncateText(notesShape.getText().asString(), LIMITS.textChars);
+        return { slideIndex, notes: notes.text, notesTruncated: notes.truncated };
       },
       'READ_FAILED',
       (e) => `Could not access speaker notes: ${e.message}`
@@ -675,8 +703,8 @@ const SlidesService = (() => {
       () => {
         const shape = el.asShape();
         const text = shape.getText();
-        const fullText = text ? text.asString() : '';
-        return { objectId, text: fullText, slideIndex };
+        const fullText = truncateText(text ? text.asString() : '', LIMITS.textChars);
+        return { objectId, text: fullText.text, textTruncated: fullText.truncated, slideIndex };
       },
       'READ_FAILED',
       (e) => `Could not read element text: ${e.message}`

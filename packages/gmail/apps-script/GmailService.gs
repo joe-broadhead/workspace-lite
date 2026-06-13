@@ -47,6 +47,18 @@ const GmailService = (() => {
     deleteMessage: true, batchModify: true,
   }
 
+  const LIMITS = {
+    pageSize: 100,
+    pageOffset: 5000,
+    searchThreads: 200,
+    threadMessages: 100,
+    draftScan: 500,
+    messageBodyChars: 100000,
+    responseBytes: 1000000,
+    attachmentBytes: 5000000,
+    batchModifyMessages: 500,
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
     if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
@@ -85,12 +97,38 @@ const GmailService = (() => {
     return def;
   }
 
-  function ok(data) {
-    return { success: true, data };
+  function ok(data, pagination) {
+    const payload = JSON.stringify(data || {});
+    if (payload.length > LIMITS.responseBytes) {
+      return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    }
+    return { success: true, data: data, pagination: pagination };
   }
 
   function err(code, message) {
     return { success: false, error: { code, message } };
+  }
+
+  function limitExceeded(name, requested, max) {
+    return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
+  }
+
+  function boundedPageSize(params, name, def) {
+    const value = Math.floor(optionalNumber(params, name, def));
+    if (value < 1) return { error: err('BAD_REQUEST', `${name} must be at least 1`) };
+    if (value > LIMITS.pageSize) return { error: limitExceeded(name, value, LIMITS.pageSize) };
+    return { value: value };
+  }
+
+  function boundedPage(params) {
+    const page = Math.floor(optionalNumber(params, 'page', 0));
+    if (page < 0) return { error: err('BAD_REQUEST', 'page must be non-negative') };
+    return { value: page };
+  }
+
+  function truncateText(value, maxChars) {
+    const text = String(value || '');
+    return { text: text.substring(0, maxChars), truncated: text.length > maxChars, originalLength: text.length };
   }
 
   function optionalBool(params, name, def) {
@@ -101,7 +139,10 @@ const GmailService = (() => {
   }
 
   function trap(fn, errorCode, errorMsg) {
-    try { return ok(fn()); }
+    try {
+      const result = fn();
+      return result && result.success === false ? result : ok(result);
+    }
     catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
   }
 
@@ -131,6 +172,8 @@ const GmailService = (() => {
   }
 
   function messageToFullJSON(msg) {
+    const body = truncateText(msg.getPlainBody(), LIMITS.messageBodyChars);
+    const htmlBody = truncateText(msg.getBody(), LIMITS.messageBodyChars);
     return {
       id: msg.getId(),
       threadId: msg.getThread().getId(),
@@ -145,8 +188,10 @@ const GmailService = (() => {
       isDraft: msg.isDraft(),
       isInInbox: msg.isInInbox(),
       isInTrash: msg.isInTrash(),
-      body: msg.getPlainBody(),
-      htmlBody: msg.getBody(),
+      body: body.text,
+      bodyTruncated: body.truncated,
+      htmlBody: htmlBody.text,
+      htmlBodyTruncated: htmlBody.truncated,
       attachments: getAttachments(msg),
     };
   }
@@ -199,14 +244,18 @@ const GmailService = (() => {
 
   function draftToJSON(draft) {
     const msg = draft.getMessage();
+    const body = truncateText(msg.getPlainBody(), LIMITS.messageBodyChars);
+    const htmlBody = truncateText(msg.getBody(), LIMITS.messageBodyChars);
     return {
       id: draft.getId(),
       message: {
         subject: msg.getSubject(),
         to: msg.getTo(),
         cc: msg.getCc(),
-        body: msg.getPlainBody(),
-        htmlBody: msg.getBody(),
+        body: body.text,
+        bodyTruncated: body.truncated,
+        htmlBody: htmlBody.text,
+        htmlBodyTruncated: htmlBody.truncated,
       },
       updated: toString(draft.getLastUpdated ? draft.getLastUpdated() : msg.getDate()),
     };
@@ -255,36 +304,39 @@ const GmailService = (() => {
 
   function searchMessages(params) {
     const query = buildSearchQuery(params);
-    const maxResults = optionalNumber(params, 'maxResults', 20);
-    const page = optionalNumber(params, 'page', 0);
+    const maxResultLimit = boundedPageSize(params, 'maxResults', 20);
+    if (maxResultLimit.error) return maxResultLimit.error;
+    const pageLimit = boundedPage(params);
+    if (pageLimit.error) return pageLimit.error;
+    const maxResults = maxResultLimit.value;
+    const page = pageLimit.value;
+    const threadScanLimit = LIMITS.searchThreads;
+    const start = page * threadScanLimit;
+    if (start > LIMITS.pageOffset) return limitExceeded('Gmail search offset', start, LIMITS.pageOffset);
 
-    let allThreads;
+    let threads;
     try {
-      allThreads = GmailApp.search(query);
+      threads = GmailApp.search(query, start, threadScanLimit);
     } catch (e) {
       return err('SEARCH_FAILED', e.message || 'Search query failed');
     }
 
     const results = [];
-    const start = page * maxResults;
-    const end = start + maxResults;
-    let msgIdx = 0;
-    let t = 0;
-
-    for (; t < allThreads.length && msgIdx < end; t++) {
-      const msgs = allThreads[t].getMessages();
-      for (let m = 0; m < msgs.length && msgIdx < end; m++) {
-        if (msgIdx >= start) {
-          results.push(simpleMessageJSON(msgs[m]));
-        }
-        msgIdx++;
+    let messagesScanned = 0;
+    for (let t = 0; t < threads.length && results.length < maxResults; t++) {
+      const msgs = threads[t].getMessages();
+      if (msgs.length > LIMITS.threadMessages) return limitExceeded('thread messages', msgs.length, LIMITS.threadMessages);
+      for (let m = 0; m < msgs.length && results.length < maxResults; m++) {
+        results.push(simpleMessageJSON(msgs[m]));
+        messagesScanned++;
       }
     }
 
     return ok(results, {
       nextPageToken: String(page + 1),
-      hasMore: t < allThreads.length,
-      totalSearched: msgIdx,
+      hasMore: threads.length === threadScanLimit,
+      threadsScanned: threads.length,
+      messagesScanned: messagesScanned,
     });
   }
 
@@ -296,43 +348,50 @@ const GmailService = (() => {
 
   function listThreads(params) {
     const query = buildSearchQuery(params);
-    const maxResults = optionalNumber(params, 'maxResults', 20);
-    const page = optionalNumber(params, 'page', 0);
+    const maxResultLimit = boundedPageSize(params, 'maxResults', 20);
+    if (maxResultLimit.error) return maxResultLimit.error;
+    const pageLimit = boundedPage(params);
+    if (pageLimit.error) return pageLimit.error;
+    const maxResults = maxResultLimit.value;
+    const page = pageLimit.value;
+    const start = page * maxResults;
+    if (start > LIMITS.pageOffset) return limitExceeded('Gmail thread offset', start, LIMITS.pageOffset);
 
-    let allThreads;
+    let threads;
     try {
-      allThreads = GmailApp.search(query);
+      threads = GmailApp.search(query, start, maxResults);
     } catch (e) {
       return err('SEARCH_FAILED', e.message || 'Search query failed');
     }
 
     const results = [];
-    const start = page * maxResults;
-    const end = Math.min(start + maxResults, allThreads.length);
-    for (let i = start; i < end; i++) {
-      results.push(threadToJSON(allThreads[i]));
+    for (let i = 0; i < threads.length; i++) {
+      results.push(threadToJSON(threads[i]));
     }
 
     return ok(results, {
       nextPageToken: String(page + 1),
-      hasMore: end < allThreads.length,
+      hasMore: threads.length === maxResults,
     });
   }
 
   function getThread(params) {
     const id = requireParam(params, 'threadId');
     validateThreadId(id);
-    return trap(function() {
+    try {
       const thread = GmailApp.getThreadById(id);
       const msgs = thread.getMessages();
+      if (msgs.length > LIMITS.threadMessages) return limitExceeded('thread messages', msgs.length, LIMITS.threadMessages);
       const messages = [];
       for (let i = 0; i < msgs.length; i++) {
         messages.push(messageToFullJSON(msgs[i]));
       }
       const result = threadToJSON(thread);
       result.messages = messages;
-      return { thread: result };
-    }, 'NOT_FOUND', `Thread not found: ${id}`);
+      return ok({ thread: result });
+    } catch (e) {
+      return err('NOT_FOUND', `Thread not found: ${id}`);
+    }
   }
 
   function listLabels() {
@@ -444,9 +503,14 @@ const GmailService = (() => {
   }
 
   function listDrafts(params) {
-    const maxResults = optionalNumber(params, 'maxResults', 20);
-    const page = optionalNumber(params, 'page', 0);
+    const maxResultLimit = boundedPageSize(params, 'maxResults', 20);
+    if (maxResultLimit.error) return maxResultLimit.error;
+    const pageLimit = boundedPage(params);
+    if (pageLimit.error) return pageLimit.error;
+    const maxResults = maxResultLimit.value;
+    const page = pageLimit.value;
     const start = page * maxResults;
+    if (start > LIMITS.draftScan) return limitExceeded('draft scan offset', start, LIMITS.draftScan);
     try {
       const drafts = GmailApp.getDrafts();
       const results = [];
@@ -454,6 +518,7 @@ const GmailService = (() => {
 
       if (Array.isArray(drafts)) {
         const end = Math.min(start + maxResults, drafts.length);
+        if (end > LIMITS.draftScan) return limitExceeded('draft scan count', end, LIMITS.draftScan);
         for (let i = start; i < end; i++) {
           results.push(draftToJSON(drafts[i]));
         }
@@ -461,6 +526,7 @@ const GmailService = (() => {
       } else if (drafts && typeof drafts.next === 'function') {
         let idx = 0;
         while (drafts.hasNext()) {
+          if (idx >= LIMITS.draftScan) return limitExceeded('draft scan count', idx + 1, LIMITS.draftScan);
           const draft = drafts.next();
           if (idx >= start && results.length < maxResults) {
             results.push(draftToJSON(draft));
@@ -642,23 +708,26 @@ const GmailService = (() => {
     const messageId = requireParam(params, 'messageId');
     const attachmentId = requireParam(params, 'attachmentId');
     validateMessageId(messageId);
-    return trap(function() {
+    try {
       const attachment = Gmail.Users.Messages.attachments.get('me', messageId, attachmentId);
-      if (attachment.size > 10000000) return err('ATTACHMENT_TOO_LARGE', `Attachment exceeds 10MB limit`)
       const size = attachment.size || 0;
+      if (size > LIMITS.attachmentBytes) return limitExceeded('attachment bytes', size, LIMITS.attachmentBytes);
       const base64 = attachment.data || '';
       let text = null;
       try {
         text = Utilities.newBlob(Utilities.base64Decode(base64)).getDataAsString();
       } catch (_) { /* binary — return base64 */ }
-      return {
+      const result = {
         messageId: messageId,
         attachmentId: attachmentId,
         size: size,
         base64: text ? undefined : base64,
         text: text || undefined,
       };
-    }, 'NOT_FOUND', `Attachment not found: ${attachmentId} for message ${messageId}`);
+      return ok(result);
+    } catch (e) {
+      return err('NOT_FOUND', `Attachment not found: ${attachmentId} for message ${messageId}`);
+    }
   }
 
   // ─── BATCH MODIFY ───
@@ -667,6 +736,7 @@ const GmailService = (() => {
     const messageIds = params.messageIds;
     if (!Array.isArray(messageIds) || messageIds.length === 0)
       return err('BAD_REQUEST', 'messageIds must be a non-empty array');
+    if (messageIds.length > LIMITS.batchModifyMessages) return limitExceeded('batchModify messageIds', messageIds.length, LIMITS.batchModifyMessages);
     const addLabelIds = Array.isArray(params.addLabels) ? params.addLabels : [];
     const removeLabelIds = Array.isArray(params.removeLabels) ? params.removeLabels : [];
     if (addLabelIds.length === 0 && removeLabelIds.length === 0)
@@ -687,7 +757,7 @@ const GmailService = (() => {
   function runBatch(params, handleFn) {
     const ops = params.operations;
     if (!Array.isArray(ops) || ops.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
-    if (ops.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
+    if (ops.length > 20) return limitExceeded('batch operations', ops.length, 20);
     const results = [];
     let operationWeight = 1;
     for (let i = 0; i < ops.length; i++) {

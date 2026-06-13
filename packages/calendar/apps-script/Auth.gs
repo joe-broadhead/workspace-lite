@@ -11,6 +11,7 @@ const DESTRUCTIVE_TOKEN_PROPERTY_KEY = 'PROXY_DESTRUCTIVE_TOKEN'
 const ADMIN_TOKEN_PROPERTY_KEY = 'PROXY_ADMIN_TOKEN'
 
 var CURRENT_AUTH_CONTEXT_ = { authenticated: false, tokenKind: null, classes: {} }
+var CURRENT_AUTH_RATE_KEY_ = 'anonymous'
 
 function generateToken_() {
   return Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '')
@@ -145,6 +146,7 @@ function validateRequest(bodyOrEvent) {
   }
   const token = body && typeof body.token === 'string' ? body.token : ''
   CURRENT_AUTH_CONTEXT_ = authContextForToken_(token)
+  CURRENT_AUTH_RATE_KEY_ = CURRENT_AUTH_CONTEXT_.authenticated ? (CURRENT_AUTH_CONTEXT_.tokenKind || 'primary') : ('invalid_' + fingerprintString_(token || 'missing'))
   return CURRENT_AUTH_CONTEXT_.authenticated
 }
 
@@ -154,14 +156,18 @@ function getAuthContext() {
 
 function getStoredTokenFingerprint_() {
   const token = getExistingToken_() || 'NOT_SET'
+  return fingerprintString_(token)
+}
+
+function fingerprintString_(value) {
+  const token = String(value || 'NOT_SET')
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token)
   return Utilities.base64EncodeWebSafe(bytes)
 }
 
-function isRateLimited(maxRequests, weight) {
+function rateLimitWithKey_(key, maxRequests, weight) {
   const cache = CacheService.getScriptCache()
   const lock = LockService.getScriptLock()
-  const key = 'rate_' + getStoredTokenFingerprint_()
   let locked = false
   try {
     locked = lock.tryLock(1000)
@@ -174,4 +180,12 @@ function isRateLimited(maxRequests, weight) {
   } finally {
     if (locked) lock.releaseLock()
   }
+}
+
+function isAuthFailureRateLimited(token) {
+  return rateLimitWithKey_('authfail_' + fingerprintString_(token || 'missing'), 20, 1)
+}
+
+function isRateLimited(maxRequests, weight) {
+  return rateLimitWithKey_('rate_' + (CURRENT_AUTH_RATE_KEY_ || getStoredTokenFingerprint_()), maxRequests, weight)
 }

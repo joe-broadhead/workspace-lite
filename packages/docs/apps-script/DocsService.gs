@@ -27,6 +27,13 @@ const DocsService = (() => {
     formatText: true, headerSet: true, footerSet: true,
   }
 
+  const LIMITS = {
+    paragraphs: 500,
+    documentChars: 500000,
+    responseBytes: 1000000,
+    documentJsonBytes: 1000000,
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
     if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
@@ -39,12 +46,23 @@ const DocsService = (() => {
     return requestWeightForPolicy(action, params || {}, ACTION_POLICIES)
   }
 
-  function ok(data) { return { success: true, data }; }
+  function ok(data) {
+    const payload = JSON.stringify(data || {});
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    return { success: true, data };
+  }
 
   function err(code, message) { return { success: false, error: { code, message } }; }
 
+  function limitExceeded(name, requested, max) {
+    return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
+  }
+
   function trap(fn, errorCode, errorMsg) {
-    try { return ok(fn()); }
+    try {
+      const result = fn();
+      return result && result.success === false ? result : ok(result);
+    }
     catch (e) { return err(errorCode, typeof errorMsg === 'function' ? errorMsg(e) : errorMsg); }
   }
 
@@ -53,7 +71,7 @@ const DocsService = (() => {
       const documentId = requireParam(params, 'documentId');
       const operations = params.operations;
       if (!Array.isArray(operations) || operations.length === 0) return err('BAD_REQUEST', 'operations must be a non-empty array');
-      if (operations.length > 20) return err('BAD_REQUEST', 'Max 20 operations per batch');
+      if (operations.length > 20) return limitExceeded('batch operations', operations.length, 20);
 
       const results = [];
       let operationWeight = 1;
@@ -138,23 +156,29 @@ const DocsService = (() => {
   }
 
   function paragraphsToJSON(paras) {
+    if (paras.length > LIMITS.paragraphs) return { error: limitExceeded('document paragraphs', paras.length, LIMITS.paragraphs) };
     const paragraphList = [];
+    let charCount = 0;
     for (const p of paras) {
       const text = p.getText().replace(/\n+$/, '');
+      charCount += text.length;
+      if (charCount > LIMITS.documentChars) return { error: limitExceeded('document characters', charCount, LIMITS.documentChars) };
       const heading = HEADING_MAP_REVERSE.get(p.getHeading()) ?? 'NORMAL';
       paragraphList.push({ index: paragraphList.length, text, heading });
     }
-    return paragraphList;
+    return { paragraphs: paragraphList, charCount: charCount };
   }
 
   function fetchDocumentJSON(doc) {
-    const paragraphs = paragraphsToJSON(doc.getBody().getParagraphs());
+    const parsed = paragraphsToJSON(doc.getBody().getParagraphs());
+    if (parsed.error) return parsed.error;
     return {
       id: doc.getId(),
       name: doc.getName(),
       url: doc.getUrl(),
-      numParagraphs: paragraphs.length,
-      paragraphs: paragraphs,
+      numParagraphs: parsed.paragraphs.length,
+      charCount: parsed.charCount,
+      paragraphs: parsed.paragraphs,
     };
   }
 
@@ -165,7 +189,9 @@ const DocsService = (() => {
     return trap(
       () => {
         const doc = DocumentApp.create(name);
-        return { document: fetchDocumentJSON(doc) };
+        const document = fetchDocumentJSON(doc);
+        if (document && document.success === false) return document;
+        return { document: document };
       },
       'CREATE_FAILED',
       `Could not create document: ${name}`
@@ -176,7 +202,9 @@ const DocsService = (() => {
     const id = requireParam(params, 'documentId');
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
-    return ok({ document: fetchDocumentJSON(doc) });
+    const document = fetchDocumentJSON(doc);
+    if (document && document.success === false) return document;
+    return ok({ document: document });
   }
 
   function documentGetJson(params) {
@@ -185,6 +213,8 @@ const DocsService = (() => {
     return trap(
       () => {
         const doc = Docs.Documents.get(id);
+        const bytes = JSON.stringify(doc || {}).length;
+        if (bytes > LIMITS.documentJsonBytes) return limitExceeded('document JSON bytes', bytes, LIMITS.documentJsonBytes);
         return { document: doc };
       },
       'NOT_FOUND',
