@@ -3,15 +3,15 @@ const BOOTSTRAPPED_KEY = 'PROXY_BOOTSTRAPPED'
 
 function generateToken() {
   try {
-    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    var token = ''
-    for (var i = 0; i < 48; i++) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let token = ''
+    for (let i = 0; i < 48; i++) {
       token += chars.charAt(Math.floor(Math.random() * chars.length))
     }
     return token
   } catch(e) {
-    var fallback = ''
-    for (var j = 0; j < 48; j++) {
+    let fallback = ''
+    for (let j = 0; j < 48; j++) {
       fallback += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 62))
     }
     return fallback
@@ -19,8 +19,8 @@ function generateToken() {
 }
 
 function getOrCreateToken() {
-  var props = PropertiesService.getScriptProperties()
-  var token = props.getProperty(SCRIPT_PROPERTY_KEY)
+  const props = PropertiesService.getScriptProperties()
+  let token = props.getProperty(SCRIPT_PROPERTY_KEY)
   if (!token) { token = generateToken(); props.setProperty(SCRIPT_PROPERTY_KEY, token) }
   return token
 }
@@ -38,24 +38,24 @@ function markBootstrapped() {
 }
 
 function validateRequest(e) {
-  var token = null
+  let token = null
   if (e.parameter && e.parameter.token) {
     token = e.parameter.token
   } else {
-    try { var body = JSON.parse(e.postData.contents); if (body.token) token = body.token } catch(_) {}
+    try { let body = JSON.parse(e.postData.contents); if (body.token) token = body.token } catch(_) {}
   }
   if (!token) {
-    var authHeader = (e.postData && e.postData.headers) ? (e.postData.headers['Authorization'] || e.postData.headers['authorization'] || '') : ''
+    const authHeader = (e.postData && e.postData.headers) ? (e.postData.headers['Authorization'] || e.postData.headers['authorization'] || '') : ''
     if (authHeader.indexOf('Bearer ') === 0) token = authHeader.substring(7)
   }
-  var expected = getOrCreateToken()
+  const expected = getOrCreateToken()
   return token === expected
 }
 
 function isRateLimited(token, maxRequests) {
-  var cache = CacheService.getScriptCache()
-  var key = 'rate_' + (token || 'anon')
-  var count = parseInt(cache.get(key) || '0', 10)
+  const cache = CacheService.getScriptCache()
+  const key = 'rate_' + (token || 'anon')
+  const count = parseInt(cache.get(key) || '0', 10)
   if (count >= (maxRequests || 100)) return true
   cache.put(key, String(count + 1), 60)
   return false

@@ -4,10 +4,10 @@ hide:
   - toc
 ---
 
-# Google Apps Script MCP
+# workspace-lite
 
 <div class="subtitle" markdown>
-Google Workspace via Apps Script &mdash; no OAuth per call. Apps Script runs as **you**, using your Google identity automatically.
+MCP servers for Google Workspace
 </div>
 
 ---

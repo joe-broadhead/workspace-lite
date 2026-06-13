@@ -1,4 +1,4 @@
-var SheetsService = (function() {
+const SheetsService = (() => {
   const BORDER_STYLE_MAP = {
     SOLID: SpreadsheetApp.BorderStyle.SOLID,
     DOTTED: SpreadsheetApp.BorderStyle.DOTTED,

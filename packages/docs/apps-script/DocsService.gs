@@ -27,15 +27,13 @@ const DocsService = (() => {
 
   function requireParam(params, name) {
     const val = params[name];
-    if (val == null) throw new Error(`Missing required parameter: ${name}`);
+    if (val === undefined || val === null) throw new Error(`Missing required parameter: ${name}`);
     if (typeof val === 'string' && !val.trim()) throw new Error(`Missing required parameter: ${name}`);
     return typeof val === 'string' ? val.trim() : val;
   }
 
   function optionalString(params, name, def) {
-    if (typeof params[name] !== 'string') return def;
-    const trimmed = params[name].trim();
-    return trimmed || def;
+    return typeof params[name] === 'string' ? params[name].trim() || def : def;
   }
 
   function optionalNumber(params, name, def) {

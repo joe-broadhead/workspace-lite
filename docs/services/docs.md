@@ -21,6 +21,7 @@ Create, read, and programmatically build documents with paragraphs, headings, li
 | `docs_format_text` | Format text by search pattern — bold, italic, underline, strikethrough, font, size, colors, and links. |
 | `docs_set_header` | Set the document header text (empty string to clear). |
 | `docs_set_footer` | Set the document footer text (empty string to clear). |
+| `docs_batch` | Execute multiple operations (up to 20) in a single round-trip. |
 
 ## Key Features
 

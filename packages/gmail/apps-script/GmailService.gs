@@ -74,6 +74,14 @@ const GmailService = (() => {
     return def;
   }
 
+  function ok(data) {
+    return { success: true, data };
+  }
+
+  function err(code, message) {
+    return { success: false, error: { code, message } };
+  }
+
   function optionalBool(params, name, def) {
     if (typeof params[name] === 'boolean') return params[name];
     if (params[name] === 'true') return true;

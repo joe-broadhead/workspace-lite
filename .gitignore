@@ -4,8 +4,6 @@ dist/
 .env
 *.log
 .DS_Store
-.clasp.json
-.clasprc.json
 **/.clasp.json
 **/.clasprc.json
 *.swp

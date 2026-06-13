@@ -65,9 +65,9 @@ for svc in "${SERVICES[@]}"; do
     drive)    title="Google Workspace Proxy - Drive" ;;
     gmail)    title="Google Workspace Proxy - Gmail" ;;
     calendar) title="Google Workspace Proxy - Calendar" ;;
-    sheets)   title="Google Sheets MCP Proxy" ;;
-    slides)   title="Google Slides MCP Proxy" ;;
-    docs)     title="Google Docs MCP Proxy" ;;
+    sheets)   title="Google Workspace Proxy - Sheets" ;;
+    slides)   title="Google Workspace Proxy - Slides" ;;
+    docs)     title="Google Workspace Proxy - Docs" ;;
   esac
 
   clasprc="$dir/.clasprc.json"

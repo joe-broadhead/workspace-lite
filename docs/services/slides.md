@@ -21,6 +21,7 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 | `slides_format_text` | Format text within an element — bold, italic, underline, font, size, color, and links. |
 | `slides_set_notes` | Set or read speaker notes for a slide. |
 | `slides_replace_all_text` | Find and replace text across all slides in a presentation. |
+| `slides_batch` | Execute multiple operations (up to 20) in a single round-trip. |
 
 ## Key Features
 

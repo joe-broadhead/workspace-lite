@@ -95,7 +95,7 @@ Create a spreadsheet, add headers, populate data, apply formatting, and insert a
 }
 ```
 
-Returns the `spreadsheetId`. Let&rsquo;s say it&rsquo;s `1AbCdEfGhIjKlMnOpQrStUv`.
+Returns the `spreadsheetId`. Let's say it's `1AbCdEfGhIjKlMnOpQrStUv`.
 
 **Step 2** &mdash; Use batch to set up everything at once:
 

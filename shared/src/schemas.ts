@@ -479,7 +479,7 @@ export const slidesInsertShapeSchema = {
 export const slidesInsertTableSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
-  values: z.array(z.array(z.string())).describe('2D array of cell values.'),
+  values: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))).describe('2D array of cell values.'),
   rows: z.number().int().min(1).max(20).optional().describe('Number of rows (default: values.length).'),
   cols: z.number().int().min(1).max(10).optional().describe('Number of columns (default: values[0].length).'),
   autoPosition: z.boolean().default(true).describe('Auto-place below existing elements.'),
@@ -592,7 +592,7 @@ export const docsInsertListSchema = {
 
 export const docsInsertTableSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
-  values: z.array(z.array(z.string())).describe('2D array of cell values. First row is header.'),
+  values: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))).describe('2D array of cell values. First row is header.'),
   rows: z.number().int().min(1).max(50).optional().describe('Number of rows (default: values.length).'),
   cols: z.number().int().min(1).max(20).optional().describe('Number of columns (default: values[0].length).'),
   append: z.boolean().default(true).describe('If true, appends to end of document.'),

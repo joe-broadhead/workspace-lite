@@ -1,7 +1,7 @@
 ---
 name: google-workspace
-version: 3.0.0
-description: "Google Workspace automation: Drive (22 tools), Gmail (30), Calendar (9), Sheets (19). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, or build dashboards."
+version: 1.0.0
+description: "Google Workspace automation: Drive (23 tools), Gmail (31), Calendar (10), Sheets (21), Slides (17), Docs (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, or write documents."
 metadata:
   requires:
     bins: []
@@ -25,6 +25,8 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`.
 | Analyze data | `sheets_get_spreadsheet` → `sheets_read_range` → compute → `sheets_write_range` |
 | Create slides | `slides_create_presentation` → `slides_batch` for compound setup |
 | Build slides | `slides_add_slide` with titleText → `slides_insert_text_box` for body → `slides_insert_image`/`slides_insert_table` for visuals |
+| Write document | `docs_create_document` → `docs_batch` for compound setup |
+| Format document | `docs_insert_paragraph` with heading → `docs_format_text` for styling |
 
 ## When to Load References
 

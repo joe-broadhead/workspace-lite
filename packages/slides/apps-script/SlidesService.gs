@@ -1,4 +1,4 @@
-var SlidesService = (function() {
+const SlidesService = (() => {
 
   const SHAPE_TYPE_MAP = {
     RECTANGLE: SlidesApp.ShapeType.RECTANGLE,

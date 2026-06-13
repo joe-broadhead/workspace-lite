@@ -1,6 +1,6 @@
 # Tool Catalog
 
-## Drive — 22 tools
+## Drive — 23 tools
 
 | Category | Tool | Params |
 |---|---|---|
@@ -24,8 +24,9 @@
 | Restore | `drive_untrash_file` | `fileId` |
 | Delete | `drive_delete_file` | `fileId` |
 | Quota | `drive_about` | none |
+| **Batch** | `drive_batch` | `operations` — array of `{action, params}`, up to 20. Same action names as individual tools. Executes sequentially; errors collected per-operation. |
 
-## Gmail — 30 tools
+## Gmail — 31 tools
 
 **Read:**
 | Tool | Params |
@@ -72,7 +73,9 @@
 | `gmail_trash_thread` / `gmail_untrash_thread` | `threadId` |
 | `gmail_delete_message` | `messageId` |
 
-## Calendar — 9 tools
+| **Batch** | `gmail_batch` | `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
+
+## Calendar — 10 tools
 
 | Tool | Params |
 |---|---|
@@ -85,6 +88,7 @@
 | `calendar_update_event` | `eventId`, any optional field to change |
 | `calendar_delete_event` | `eventId`, `calendarId?` |
 | `calendar_find_freebusy` | `timeMin?`, `timeMax?` |
+| **Batch** | `calendar_batch` | `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
 
 ## Sheets — 19 tools
 
@@ -154,4 +158,4 @@
 | Tool | Params |
 |---|---|
 | `slides_replace_all_text` | `presentationId`, `findText`, `replaceText` |
-| `slides_batch` | `presentationId`, `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
+| **Batch** | `slides_batch` | `presentationId`, `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |

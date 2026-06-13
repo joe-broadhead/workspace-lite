@@ -4,7 +4,7 @@ function doGet(e) {
       return respond(err('FORBIDDEN', 'Bootstrap has already been completed. Use the token saved during initial setup.'))
     }
     markBootstrapped()
-    return respond(ok({ status: 'bootstrapped', token: getOrCreateToken(), note: 'Save this token as GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN. This endpoint will not return the token again.' }))
+    return respond(ok({ status: 'bootstrapped', token: getOrCreateToken(), note: 'Save this token as GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN. This endpoint will not return the token again.' }))
   }
   return respond(ok({ status: 'healthy', version: '1.0.0', service: 'google-workspace-proxy-sheets' }))
 }
@@ -25,9 +25,9 @@ function doPost(e) {
   if (!body.action) return respond(err('BAD_REQUEST', 'Missing action field'))
 
   try {
-    return respond(SheetsService.handle(body.action, body.params || {}))
+    return respond(DocsService.handle(body.action, body.params || {}))
   } catch(ex) {
-    console.error('[sheets-proxy] action=%s error=%s', body.action, ex.message || String(ex))
+    console.error('[docs-proxy] action=%s error=%s', body.action, ex.message || String(ex))
     return respond(err('INTERNAL_ERROR', 'An internal error occurred. Check developer console logs for details.'))
   }
 }
