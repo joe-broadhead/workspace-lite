@@ -136,3 +136,46 @@ Always use `sheets_batch` for compound setup to reduce round-trips.
 3. sheets_batch → [write summary headers, formulas (SUM, AVERAGE, COUNTIF), format (bold, freeze, number formats), merge title row]
 4. sheets_create_chart → chart on dashboard tab
 ```
+
+---
+
+## Slides
+
+### Build a Presentation
+
+"create a presentation about Q2 results"
+
+```
+1. slides_create_presentation → name:"Q2 Results QBR"
+2. slides_batch → [add title slide, add content slides with text boxes]
+3. slides_insert_text_box → add body text on content slides
+4. slides_insert_table → add data table on one slide
+5. slides_insert_image → add charts/logos
+6. slides_set_notes → add speaker notes per slide
+```
+
+Always use `slides_batch` for compound slide creation to reduce round-trips.
+
+### Create from Outline
+
+"turn this outline into slides"
+
+```
+1. slides_create_presentation → get presentationId
+2. For each section in outline:
+   - slides_add_slide → with titleText (section heading)
+   - slides_insert_text_box → with body content
+3. slides_get_slide_notes → add speaker notes as needed
+```
+
+Tip: use `slides_batch` to add multiple blank slides in one call, then populate content.
+
+### Inspect a Presentation
+
+"what's in this presentation"
+
+```
+1. slides_get_presentation → slides list with layout info
+2. slides_get_slide_elements → per slide, list elements with positions
+3. slides_get_slide_notes → read speaker notes
+```

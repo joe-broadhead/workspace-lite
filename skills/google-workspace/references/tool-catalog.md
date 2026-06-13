@@ -123,3 +123,35 @@
 | `sheets_create_chart` | `spreadsheetId`, `range`, `chartType` (AREA/BAR/COLUMN/COMBO/HISTOGRAM/LINE/PIE/SCATTER/TABLE/TIMELINE/WATERFALL), `title?`, `xAxisTitle?`, `yAxisTitle?`, `position?` (A1 anchor), `width?`, `height?`, `legendPosition?` (BOTTOM/TOP/LEFT/RIGHT/NONE/LABELED), `stacked?`, `sheetName?` |
 | `sheets_set_note` | `spreadsheetId`, `range`, `note` (empty string clears), `sheetName?` |
 | `sheets_batch` | `operations` — array of `{action, params}`, up to 20. Same action names as individual tools. Executes sequentially; errors collected per-operation. |
+
+## Slides — 14 tools
+
+**Manage:**
+| Tool | Params |
+|---|---|
+| `slides_create_presentation` | `name` |
+| `slides_get_presentation` | `presentationId` |
+| `slides_add_slide` | `presentationId`, `titleText?`, `bodyText?` |
+| `slides_delete_slide` | `presentationId`, `slideIndex` (0-based) |
+| `slides_duplicate_slide` | `presentationId`, `slideIndex` |
+| `slides_move_slide` | `presentationId`, `slideIndex`, `newIndex` |
+
+**Content:**
+| Tool | Params |
+|---|---|
+| `slides_insert_text_box` | `presentationId`, `slideIndex`, `text`, `left?`, `top?`, `width?`, `height?` |
+| `slides_insert_image` | `presentationId`, `slideIndex`, `imageUrl`, `left?`, `top?`, `width?`, `height?` |
+| `slides_insert_shape` | `presentationId`, `slideIndex`, `shapeType` (RECTANGLE/ROUND_RECTANGLE/ELLIPSE/TRIANGLE/ARROW_RIGHT/ARROW_LEFT/STAR_5/HEXAGON/CLOUD/FLOW_CHART_PROCESS/FLOW_CHART_DECISION/WAVE/CHEVRON/PENTAGON/TRAPEZOID), `left?`, `top?`, `width?`, `height?` |
+| `slides_insert_table` | `presentationId`, `slideIndex`, `values` (2D array), `rows?`, `cols?`, `left?`, `top?`, `width?`, `height?` |
+
+**Read:**
+| Tool | Params |
+|---|---|
+| `slides_get_slide_elements` | `presentationId`, `slideIndex` |
+| `slides_get_slide_notes` | `presentationId`, `slideIndex`, `notes?` (provide to set, omit to get) |
+
+**Operations:**
+| Tool | Params |
+|---|---|
+| `slides_replace_all_text` | `presentationId`, `findText`, `replaceText` |
+| `slides_batch` | `presentationId`, `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |

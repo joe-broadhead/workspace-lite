@@ -23,6 +23,8 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`.
 | Prep meeting | `calendar_get_event` → `gmail_search_messages` by attendees → `drive_search_files` |
 | Create sheet | `sheets_create_spreadsheet` → `sheets_batch` for compound setup |
 | Analyze data | `sheets_get_spreadsheet` → `sheets_read_range` → compute → `sheets_write_range` |
+| Create slides | `slides_create_presentation` → `slides_batch` for compound setup |
+| Build slides | `slides_add_slide` with titleText → `slides_insert_text_box` for body → `slides_insert_image`/`slides_insert_table` for visuals |
 
 ## When to Load References
 

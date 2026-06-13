@@ -23,6 +23,7 @@ MCP servers that expose Google Workspace services through Apps Script web app pr
 | `packages/gmail` | ✅ Live | 30 | Search, read, send, reply, forward, drafts, labels, trash |
 | `packages/calendar` | ✅ Live | 9 | List events, search, create, update, delete, free/busy |
 | `packages/sheets` | ✅ Live | 19 | Full Sheets: create, read/write/append, format, charts, sort, freeze, merge, notes, batch |
+| `packages/slides` | ✅ Live | 14 | Full Slides: create, add/delete/duplicate/move slides, text, images, shapes, tables, notes, replace text, batch |
 
 ## Quick Start
 
