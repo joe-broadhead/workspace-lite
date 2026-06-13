@@ -18,8 +18,6 @@ const SlidesService = (() => {
     TRAPEZOID: SlidesApp.ShapeType.TRAPEZOID,
   }
 
-  const lowestYCache = new WeakMap()
-
   function handle(action, params) {
     switch (action) {
       case 'presentationCreate':  return presentationCreate(params)
@@ -97,33 +95,25 @@ const SlidesService = (() => {
     return { pres, slide }
   }
 
-  function getLowestY(slide) {
-    let val = lowestYCache.get(slide)
-    if (val !== undefined) return val
+  function computeLowestY(slide) {
     let lowest = 0
     for (const el of slide.getPageElements()) {
       const bottom = el.getTop() + el.getHeight()
       if (bottom > lowest) lowest = bottom
     }
-    lowestYCache.set(slide, lowest)
     return lowest
   }
 
-  function invalidateLowestY(slide) {
-    lowestYCache.delete(slide)
-  }
-
-  function applyAutoPosition(r, params, fallbackLeft, fallbackTop, fallbackWidth, fallbackHeight) {
+  function computeAutoPosition(r, params, fallbackLeft, fallbackTop, fallbackWidth, fallbackHeight) {
+    const lowestY = computeLowestY(r.slide) + 8
     if (params.left === undefined && params.top === undefined) {
-      params.left = fallbackLeft
-      params.top = Math.max(getLowestY(r.slide) + 8, fallbackTop)
-      params.width = fallbackWidth
-      params.height = fallbackHeight
-    } else {
-      if (params.left === undefined) params.left = fallbackLeft
-      if (params.top === undefined) params.top = Math.max(getLowestY(r.slide) + 8, fallbackTop)
-      if (params.width === undefined) params.width = fallbackWidth
-      if (params.height === undefined) params.height = fallbackHeight
+      return { left: fallbackLeft, top: Math.max(lowestY, fallbackTop), width: fallbackWidth, height: fallbackHeight }
+    }
+    return {
+      left: params.left !== undefined ? Number(params.left) : fallbackLeft,
+      top: params.top !== undefined ? Number(params.top) : Math.max(lowestY, fallbackTop),
+      width: params.width !== undefined ? Number(params.width) : fallbackWidth,
+      height: params.height !== undefined ? Number(params.height) : fallbackHeight,
     }
   }
 
@@ -264,12 +254,11 @@ const SlidesService = (() => {
         }
       }
 
-      invalidateLowestY(slide)
       return ok({
         slideIndex: pres.getSlides().length - 1,
         objectId: slide.getObjectId(),
         layout: layout ? layout.getLayoutName() : 'default',
-        bottomY: getLowestY(slide) + 8,
+        bottomY: computeLowestY(slide) + 8,
       })
     } catch (e) { return err('CREATE_FAILED', `Could not add slide: ${e.message}`) }
   }
@@ -296,7 +285,6 @@ const SlidesService = (() => {
 
     try {
       const dup = r.slide.duplicate()
-      invalidateLowestY(r.slide)
       return ok({
         duplicated: true,
         originalIndex: slideIndex,
@@ -331,16 +319,10 @@ const SlidesService = (() => {
     const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
-    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72)
-
-    const left = params.left !== undefined ? Number(params.left) : 72
-    const top = params.top !== undefined ? Number(params.top) : 72
-    const width = params.width !== undefined ? Number(params.width) : 576
-    const height = params.height !== undefined ? Number(params.height) : 72
+    const pos = autoPosition ? computeAutoPosition(r, params, 72, computeLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72) : { left: 72, top: 72, width: 576, height: 72 }
 
     try {
-      const tb = r.slide.insertTextBox(text, left, top, width, height)
-      invalidateLowestY(r.slide)
+      const tb = r.slide.insertTextBox(text, pos.left, pos.top, pos.width, pos.height)
       return ok({
         objectId: tb.getObjectId(),
         left: tb.getLeft(),
@@ -360,16 +342,10 @@ const SlidesService = (() => {
     const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
-    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, 300, 200)
-
-    const left = params.left !== undefined ? Number(params.left) : 72
-    const top = params.top !== undefined ? Number(params.top) : 72
-    const width = params.width !== undefined ? Number(params.width) : 300
-    const height = params.height !== undefined ? Number(params.height) : 200
+    const pos = autoPosition ? computeAutoPosition(r, params, 72, computeLowestY(r.slide) + 8, 300, 200) : { left: 72, top: 72, width: 300, height: 200 }
 
     try {
-      const img = r.slide.insertImage(imageUrl, left, top, width, height)
-      invalidateLowestY(r.slide)
+      const img = r.slide.insertImage(imageUrl, pos.left, pos.top, pos.width, pos.height)
       return ok({
         objectId: img.getObjectId(),
         left: img.getLeft(),
@@ -389,17 +365,11 @@ const SlidesService = (() => {
     const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
-    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, 300, 200)
-
-    const left = params.left !== undefined ? Number(params.left) : 72
-    const top = params.top !== undefined ? Number(params.top) : 200
-    const width = params.width !== undefined ? Number(params.width) : 300
-    const height = params.height !== undefined ? Number(params.height) : 200
+    const pos = autoPosition ? computeAutoPosition(r, params, 72, computeLowestY(r.slide) + 8, 300, 200) : { left: 72, top: 200, width: 300, height: 200 }
 
     try {
       const st = SHAPE_TYPE_MAP[shapeType] || SlidesApp.ShapeType.RECTANGLE
-      const shape = r.slide.insertShape(st, left, top, width, height)
-      invalidateLowestY(r.slide)
+      const shape = r.slide.insertShape(st, pos.left, pos.top, pos.width, pos.height)
       return ok({
         objectId: shape.getObjectId(),
         shapeType,
@@ -424,21 +394,15 @@ const SlidesService = (() => {
     const r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
 
-    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72 * rows)
-
-    const left = params.left !== undefined ? Number(params.left) : 72
-    const top = params.top !== undefined ? Number(params.top) : 100
-    const width = params.width !== undefined ? Number(params.width) : 576
-    const height = params.height !== undefined ? Number(params.height) : 72 * Math.max(rows, 1)
+    const pos = autoPosition ? computeAutoPosition(r, params, 72, computeLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72 * rows) : { left: 72, top: 100, width: 576, height: 72 * Math.max(rows, 1) }
 
     try {
-      const table = r.slide.insertTable(Math.max(rows, 1), Math.max(cols, 1), left, top, width, height)
+      const table = r.slide.insertTable(Math.max(rows, 1), Math.max(cols, 1), pos.left, pos.top, pos.width, pos.height)
       for (let i = 0; i < Math.min(rows, values.length); i++) {
         for (let j = 0; j < Math.min(cols, values[i].length); j++) {
           try { table.getCell(i, j).getText().setText(String(values[i][j] || '')) } catch (cellErr) {}
         }
       }
-      invalidateLowestY(r.slide)
       return ok({
         objectId: table.getObjectId(),
         rows,
@@ -531,7 +495,6 @@ const SlidesService = (() => {
 
     try {
       el.remove()
-      invalidateLowestY(r.slide)
       return ok({ deleted: true, objectId, slideIndex })
     } catch (e) { return err('DELETE_FAILED', `Could not delete element: ${e.message}`) }
   }

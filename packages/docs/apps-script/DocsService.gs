@@ -41,9 +41,9 @@ const DocsService = (() => {
 
   function optionalNumber(params, name, def) {
     const val = params[name];
-    if (val == null) return def;
-    const num = Number(val);
-    return isNaN(num) ? def : num;
+    if (typeof val === 'number' && !isNaN(val)) return val;
+    if (typeof val === 'string' && !isNaN(Number(val))) return Number(val);
+    return def;
   }
 
   function optionalBool(params, name, def) {

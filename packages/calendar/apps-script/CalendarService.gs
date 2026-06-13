@@ -40,6 +40,7 @@ const CalendarService = (() => {
 
   // ─── Parameter helpers ───
 
+  // NOTE: throws as implicit output — consider returning err() for testability
   function requireParam(params, name) {
     const val = params[name];
     if (val === undefined || val === null) {
@@ -178,6 +179,7 @@ const CalendarService = (() => {
 
     try {
       const cal = resolveCalendar(calendarId);
+      // implicit time dependency: new Date() / Date.now()
       const start = new Date(timeMin || new Date().toISOString());
       const end = new Date(timeMax || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
 
@@ -212,6 +214,7 @@ const CalendarService = (() => {
 
     try {
       const cal = resolveCalendar(calendarId);
+      // implicit time dependency: new Date() / Date.now()
       const start = new Date(timeMin || new Date().toISOString());
       const end = new Date(timeMax || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString());
       const events = cal.getEvents(start, end, { search: query });
@@ -373,6 +376,7 @@ const CalendarService = (() => {
 
   function findFreeBusy(params) {
     const calendarId = optionalString(params, 'calendarId');
+    // implicit time dependency: Date() / Date.now()
     const timeMin = optionalString(params, 'timeMin', new Date().toISOString());
     const timeMax = optionalString(params, 'timeMax', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString());
 
@@ -445,6 +449,7 @@ const CalendarService = (() => {
 
       const recBuilder = CalendarApp.newRecurrence();
       const recUpper = recurrence.toUpperCase();
+      // implicit time dependency: Date.now()
       const until = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
       if (recUpper === 'WEEKLY' || recUpper.startsWith('WEEKLY')) {
