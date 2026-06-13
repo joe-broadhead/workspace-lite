@@ -68,6 +68,30 @@ var SlidesService = (function() {
     return { pres: pres, slide: slide }
   }
 
+  function getLowestY(slide) {
+    var elements = slide.getPageElements()
+    var lowest = 0
+    for (var i = 0; i < elements.length; i++) {
+      var bottom = elements[i].getTop() + elements[i].getHeight()
+      if (bottom > lowest) lowest = bottom
+    }
+    return lowest
+  }
+
+  function applyAutoPosition(r, params, fallbackLeft, fallbackTop, fallbackWidth, fallbackHeight) {
+    if (params.left === undefined && params.top === undefined) {
+      params.left = fallbackLeft
+      params.top = Math.max(getLowestY(r.slide) + 8, fallbackTop)
+      params.width = fallbackWidth
+      params.height = fallbackHeight
+    } else {
+      if (params.left === undefined) params.left = fallbackLeft
+      if (params.top === undefined) params.top = Math.max(getLowestY(r.slide) + 8, fallbackTop)
+      if (params.width === undefined) params.width = fallbackWidth
+      if (params.height === undefined) params.height = fallbackHeight
+    }
+  }
+
   function presentationToJSON(pres) {
     var slides = pres.getSlides()
     var list = []
@@ -192,7 +216,7 @@ var SlidesService = (function() {
         }
       }
 
-      return ok({ slideIndex: pres.getSlides().length - 1, objectId: slide.getObjectId(), layout: layout ? layout.getLayoutName() : 'default' })
+      return ok({ slideIndex: pres.getSlides().length - 1, objectId: slide.getObjectId(), layout: layout ? layout.getLayoutName() : 'default', bottomY: getLowestY(slide) + 8 })
     } catch(e) { return err('CREATE_FAILED', 'Could not add slide: ' + e.message) }
   }
 
@@ -242,13 +266,17 @@ var SlidesService = (function() {
     var id = requireParam(params, 'presentationId')
     var slideIndex = requireParam(params, 'slideIndex')
     var text = requireParam(params, 'text')
-    var left = optionalNumber(params, 'left', 72)
-    var top = optionalNumber(params, 'top', 72)
-    var width = optionalNumber(params, 'width', 576)
-    var height = optionalNumber(params, 'height', 72)
+    var autoPosition = optionalBool(params, 'autoPosition', true)
 
     var r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
+
+    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72)
+
+    var left = params.left !== undefined ? Number(params.left) : 72
+    var top = params.top !== undefined ? Number(params.top) : 72
+    var width = params.width !== undefined ? Number(params.width) : 576
+    var height = params.height !== undefined ? Number(params.height) : 72
 
     try {
       var tb = r.slide.insertTextBox(text, left, top, width, height)
@@ -260,13 +288,17 @@ var SlidesService = (function() {
     var id = requireParam(params, 'presentationId')
     var slideIndex = requireParam(params, 'slideIndex')
     var imageUrl = requireParam(params, 'imageUrl')
-    var left = optionalNumber(params, 'left', 72)
-    var top = optionalNumber(params, 'top', 72)
-    var width = optionalNumber(params, 'width', 300)
-    var height = optionalNumber(params, 'height', 200)
+    var autoPosition = optionalBool(params, 'autoPosition', true)
 
     var r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
+
+    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, 300, 200)
+
+    var left = params.left !== undefined ? Number(params.left) : 72
+    var top = params.top !== undefined ? Number(params.top) : 72
+    var width = params.width !== undefined ? Number(params.width) : 300
+    var height = params.height !== undefined ? Number(params.height) : 200
 
     try {
       var img = r.slide.insertImage(imageUrl, left, top, width, height)
@@ -278,13 +310,17 @@ var SlidesService = (function() {
     var id = requireParam(params, 'presentationId')
     var slideIndex = requireParam(params, 'slideIndex')
     var shapeType = requireParam(params, 'shapeType')
-    var left = optionalNumber(params, 'left', 72)
-    var top = optionalNumber(params, 'top', 200)
-    var width = optionalNumber(params, 'width', 300)
-    var height = optionalNumber(params, 'height', 200)
+    var autoPosition = optionalBool(params, 'autoPosition', true)
 
     var r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)
+
+    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, 300, 200)
+
+    var left = params.left !== undefined ? Number(params.left) : 72
+    var top = params.top !== undefined ? Number(params.top) : 200
+    var width = params.width !== undefined ? Number(params.width) : 300
+    var height = params.height !== undefined ? Number(params.height) : 200
 
     try {
       var typeMap = {
@@ -314,15 +350,21 @@ var SlidesService = (function() {
     var id = requireParam(params, 'presentationId')
     var slideIndex = requireParam(params, 'slideIndex')
     var values = params.values
-
     if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array')
 
     var rows = optionalNumber(params, 'rows', values.length)
     var cols = optionalNumber(params, 'cols', values[0].length)
-    var left = optionalNumber(params, 'left', 72)
-    var top = optionalNumber(params, 'top', 100)
-    var width = optionalNumber(params, 'width', 576)
-    var height = optionalNumber(params, 'height', 72 * rows)
+    var autoPosition = optionalBool(params, 'autoPosition', true)
+
+    var r = resolveSlide(id, slideIndex)
+    if (r.err) return err(r.err, r.msg)
+
+    if (autoPosition) applyAutoPosition(r, params, 72, getLowestY(r.slide) + 8, r.pres.getPageWidth() - 144, 72 * rows)
+
+    var left = params.left !== undefined ? Number(params.left) : 72
+    var top = params.top !== undefined ? Number(params.top) : 100
+    var width = params.width !== undefined ? Number(params.width) : 576
+    var height = params.height !== undefined ? Number(params.height) : 72 * Math.max(rows, 1)
 
     var r = resolveSlide(id, slideIndex)
     if (r.err) return err(r.err, r.msg)

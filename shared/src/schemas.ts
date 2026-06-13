@@ -413,30 +413,33 @@ export const slidesInsertTextBoxSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
   text: z.string().describe('Text content for the text box.'),
-  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
-  top: z.number().default(72).optional().describe('Top position in points (default: 72).'),
-  width: z.number().default(576).optional().describe('Width in points (default: 576, fits standard slide).'),
-  height: z.number().default(72).optional().describe('Height in points (default: 72).'),
+  autoPosition: z.boolean().default(true).describe('Auto-place below existing elements. When true, left/top/width/height are auto-computed; override any by providing an explicit value. When false, uses specified coordinates (defaults to 72, 72, 576, 72).'),
+  left: z.number().optional().describe('Left position in points. Overrides auto-positioning for this axis when set.'),
+  top: z.number().optional().describe('Top position in points. Overrides auto-positioning for this axis when set.'),
+  width: z.number().optional().describe('Width in points. Default auto-width fills between margins.'),
+  height: z.number().optional().describe('Height in points. Default: 72.'),
 }
 
 export const slidesInsertImageSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
   imageUrl: z.string().url().describe('Public URL of the image to insert.'),
-  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
-  top: z.number().default(72).optional().describe('Top position in points (default: 72).'),
-  width: z.number().default(300).optional().describe('Width in points (default: 300).'),
-  height: z.number().default(200).optional().describe('Height in points (default: 200).'),
+  autoPosition: z.boolean().default(true).describe('Auto-place below existing elements. When true and no coordinates given, auto-places.'),
+  left: z.number().optional().describe('Left position in points.'),
+  top: z.number().optional().describe('Top position in points.'),
+  width: z.number().optional().describe('Width in points (default: 300).'),
+  height: z.number().optional().describe('Height in points (default: 200).'),
 }
 
 export const slidesInsertShapeSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
   shapeType: z.enum(['RECTANGLE', 'ROUND_RECTANGLE', 'ELLIPSE', 'TRIANGLE', 'ARROW_RIGHT', 'ARROW_LEFT', 'STAR_5', 'HEXAGON', 'CLOUD', 'FLOW_CHART_PROCESS', 'FLOW_CHART_DECISION', 'WAVE', 'CHEVRON', 'PENTAGON', 'TRAPEZOID']).describe('Shape type.'),
-  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
-  top: z.number().default(200).optional().describe('Top position in points (default: 200).'),
-  width: z.number().default(300).optional().describe('Width in points (default: 300).'),
-  height: z.number().default(200).optional().describe('Height in points (default: 200).'),
+  autoPosition: z.boolean().default(true).describe('Auto-place below existing elements.'),
+  left: z.number().optional().describe('Left position in points.'),
+  top: z.number().optional().describe('Top position in points.'),
+  width: z.number().optional().describe('Width in points (default: 300).'),
+  height: z.number().optional().describe('Height in points (default: 200).'),
 }
 
 export const slidesInsertTableSchema = {
@@ -445,10 +448,11 @@ export const slidesInsertTableSchema = {
   values: z.array(z.array(z.string())).describe('2D array of cell values.'),
   rows: z.number().int().min(1).max(20).optional().describe('Number of rows (default: values.length).'),
   cols: z.number().int().min(1).max(10).optional().describe('Number of columns (default: values[0].length).'),
-  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
-  top: z.number().default(100).optional().describe('Top position in points (default: 100).'),
-  width: z.number().default(576).optional().describe('Width in points (default: 576).'),
-  height: z.number().default(200).optional().describe('Height in points (default: 200).'),
+  autoPosition: z.boolean().default(true).describe('Auto-place below existing elements.'),
+  left: z.number().optional().describe('Left position in points.'),
+  top: z.number().optional().describe('Top position in points.'),
+  width: z.number().optional().describe('Width in points (default: 576).'),
+  height: z.number().optional().describe('Height in points (default: 200).'),
 }
 
 export const slidesReplaceAllTextSchema = {

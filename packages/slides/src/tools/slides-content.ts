@@ -8,7 +8,7 @@ import { callProxy } from '../proxy.js'
 export function registerSlidesContentTools(server: { tool: Function }) {
   server.tool(
     'slides_insert_text_box',
-    'Insert a text box on a slide at the specified position with the given text content.',
+    'Insert a text box on a slide. Auto-positions below existing elements by default. Set autoPosition:false or provide coordinates to override.',
     slidesInsertTextBoxSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('textBoxInsert', args)
