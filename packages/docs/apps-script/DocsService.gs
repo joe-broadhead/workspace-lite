@@ -427,8 +427,8 @@ const DocsService = (() => {
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
-      const body = doc.getBody();
-      body.appendTableOfContents();
+      const request = { insert_table_of_contents: {} };
+      Docs.Documents.batchUpdate({ requests: [request] }, id);
       return ok({ inserted: true });
     } catch (e) { return err('INSERT_FAILED', `Could not insert table of contents: ${e.message}`); }
   }
@@ -438,22 +438,24 @@ const DocsService = (() => {
   function footnoteInsert(params) {
     const id = requireParam(params, 'documentId');
     const text = requireParam(params, 'text');
-    const paraIndex = optionalNumber(params, 'paragraphIndex', -1);
 
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
 
     try {
       const body = doc.getBody();
-      const paras = body.getParagraphs();
-
-      if (paraIndex >= 0 && paraIndex < paras.length) {
-        paras[paraIndex].appendFootnote(String(text));
-      } else {
-        body.appendFootnote(String(text));
-      }
-
-      return ok({ inserted: true, paragraphIndex: paraIndex >= 0 ? paraIndex : 'body' });
+      const endIndex = body.getText().length - 1;
+      Docs.Documents.batchUpdate({
+        requests: [
+          {
+            create_footnote: {
+              end_of_segment_location: { segment_id: '' },
+              insertion_text: { text: String(text) }
+            }
+          }
+        ]
+      }, id);
+      return ok({ inserted: true });
     } catch (e) { return err('INSERT_FAILED', `Could not insert footnote: ${e.message}`); }
   }
 

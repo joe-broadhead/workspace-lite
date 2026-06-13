@@ -665,10 +665,10 @@ const SlidesService = (() => {
         objectId: line.getObjectId(),
         lineCategory,
         lineType: lineType || 'SOLID',
-        startLeft: line.getStartLeft(),
-        startTop: line.getStartTop(),
-        endLeft: line.getEndLeft(),
-        endTop: line.getEndTop(),
+        startLeft: line.getStart().getX(),
+        startTop: line.getStart().getY(),
+        endLeft: line.getEnd().getX(),
+        endTop: line.getEnd().getY(),
       })
     } catch (e) { return err('INSERT_FAILED', `Could not insert line: ${e.message}`) }
   }

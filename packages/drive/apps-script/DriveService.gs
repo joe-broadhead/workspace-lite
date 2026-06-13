@@ -621,7 +621,7 @@ var DriveService = (() => {
     const content = requireParam(params, 'content');
     validateDriveId(id);
     try {
-      const comment = Drive.Comments.create({ content: content, anchor: JSON.stringify({ r: 'head' }) }, id);
+      const comment = Drive.Comments.create({ content: content, anchor: JSON.stringify({ r: 'head' }) }, id, { fields: '*' });
       return ok({
         fileId: id,
         comment: {
