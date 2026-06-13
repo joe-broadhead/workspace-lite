@@ -2,7 +2,7 @@ import { formatResponse } from '@workspace-lite/shared'
 import {
   docsInsertListSchema, docsInsertTableSchema,
   docsInsertImageSchema, docsInsertPageBreakSchema,
-  docsInsertHorizontalRuleSchema, docsTOCSchema, docsFootnoteSchema,
+  docsInsertHorizontalRuleSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 

@@ -246,8 +246,6 @@ The `action` field in each operation uses the **same names as the individual too
 | `docs_set_header` | `headerSet` |
 | `docs_set_footer` | `footerSet` |
 | `docs_get_as_json` | `documentGetJson` |
-| `docs_insert_footnote` | `footnoteInsert` |
-| `docs_insert_table_of_contents` | `tocInsert` |
 
 ## Error Response Format
 
