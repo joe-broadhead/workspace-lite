@@ -13,6 +13,7 @@
     "build:packages": "tsc -b packages/*",
     "build:drive": "cd packages/drive && npm run build",
     "typecheck": "npm run build:shared && tsc -b packages/* --noEmit",
+    "validate:manifests": "node scripts/validate-manifests.mjs",
     "clean": "rm -rf packages/*/dist shared/dist packages/*/*.tsbuildinfo shared/*.tsbuildinfo *.tsbuildinfo",
     "dev:drive": "cd packages/drive && npm run dev",
     "install:deps": "npm install",

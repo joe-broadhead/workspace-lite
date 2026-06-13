@@ -8,6 +8,10 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 SERVICES=("drive" "gmail" "calendar" "sheets" "slides" "docs")
+DRY_RUN=0
+if [ "${1:-}" = "--dry-run" ]; then
+  DRY_RUN=1
+fi
 
 banner() { echo -e "${BLUE}=== $1${NC}"; }
 success() { echo -e "${GREEN}✓ $1${NC}"; }
@@ -34,7 +38,10 @@ read_bootstrap_secret() {
 
 # ── Prerequisites ──
 banner "Prerequisites"
-if ! command -v clasp &>/dev/null; then
+if [ "$DRY_RUN" -eq 1 ]; then
+  warn "Dry run enabled: no clasp projects, Apps Script files, or .env output will be changed."
+fi
+if [ "$DRY_RUN" -eq 0 ] && ! command -v clasp &>/dev/null; then
   echo "clasp is not installed. Install it: npm install -g @google/clasp"
   exit 1
 fi
@@ -46,7 +53,9 @@ success "clasp and Node.js found"
 
 # ── clasp login ──
 banner "clasp login"
-if ! clasp login --status &>/dev/null 2>&1; then
+if [ "$DRY_RUN" -eq 1 ]; then
+  warn "Skipping clasp login in dry run."
+elif ! clasp login --status &>/dev/null 2>&1; then
   echo "Logging into Google... A browser will open."
   clasp login
 fi
@@ -55,7 +64,11 @@ success "clasp authenticated"
 # ── Build ──
 banner "Build"
 cd "$ROOT"
-npm install --silent
+if [ -f package-lock.json ]; then
+  npm ci --silent
+else
+  npm install --silent
+fi
 npm run build
 success "Build complete"
 
@@ -71,13 +84,25 @@ for svc in "${SERVICES[@]}"; do
     existing_id=$(grep -o '"scriptId"[[:space:]]*:[[:space:]]*"[^"]*"' "$dir/.clasp.json" 2>/dev/null | grep -o '"[^"]*"$' | tr -d '"' || true)
     if [ -n "$existing_id" ] && [ "$existing_id" != "YOUR_SCRIPT_ID" ]; then
       warn "$svc already has a clasp project ($existing_id). Skipping creation."
-      cd "$dir" && clasp push --force 2>&1 | tail -1
+      if [ "$DRY_RUN" -eq 0 ]; then
+        cd "$dir" && clasp push --force 2>&1 | tail -1
+      fi
       continue
     fi
   fi
 
   cd "$dir"
-  ensure_bootstrap_secret "$dir"
+  if [ "$DRY_RUN" -eq 0 ]; then
+    ensure_bootstrap_secret "$dir"
+  else
+    warn "$svc: would generate BootstrapSecret.gs if missing."
+  fi
+
+  manifest_backup=""
+  if [ -f "$dir/appsscript.json" ]; then
+    manifest_backup=$(mktemp)
+    cp "$dir/appsscript.json" "$manifest_backup"
+  fi
 
   # Create project title
   title=""
@@ -90,48 +115,22 @@ for svc in "${SERVICES[@]}"; do
     docs)     title="Google Workspace Proxy - Docs" ;;
   esac
 
-  clasprc="$dir/.clasprc.json"
-  if ! clasp create --type standalone --title "$title" 2>/dev/null; then
-    warn "Could not create $svc project. Check clasp login."
+  if [ "$DRY_RUN" -eq 1 ]; then
+    warn "$svc: would create Apps Script project '$title' and preserve appsscript.json."
+    if [ -n "$manifest_backup" ]; then rm -f "$manifest_backup"; fi
     continue
   fi
 
-  # Restore our appsscript.json (clasp create overwrites it)
-  cat > "$dir/appsscript.json" << 'APPSS'
-{
-  "timeZone": "America/Chicago",
-  "dependencies": {},
-  "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8",
-  "webapp": {
-    "executeAs": "USER_DEPLOYING",
-    "access": "ANYONE"
-  }
-}
-APPSS
+  if ! clasp create --type standalone --title "$title" 2>/dev/null; then
+    warn "Could not create $svc project. Check clasp login."
+    if [ -n "$manifest_backup" ]; then rm -f "$manifest_backup"; fi
+    continue
+  fi
 
-  # Set correct OAuth scopes
-  scope=""
-  case "$svc" in
-    drive)    scope='"https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/script.external_request"' ;;
-    gmail)    scope='"https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/script.send_mail", "https://www.googleapis.com/auth/script.external_request"' ;;
-    calendar) scope='"https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/script.external_request"' ;;
-    sheets)   scope='"https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/script.external_request"' ;;
-    slides)   scope='"https://www.googleapis.com/auth/presentations", "https://www.googleapis.com/auth/script.external_request"' ;;
-    docs)     scope='"https://www.googleapis.com/auth/documents", "https://www.googleapis.com/auth/script.external_request"' ;;
-  esac
-
-  # Write appsscript.json with correct scopes
-  cat > "$dir/appsscript.json" << EOF
-{
-  "timeZone": "America/Chicago",
-  "dependencies": {},
-  "exceptionLogging": "STACKDRIVER",
-  "oauthScopes": [${scope}],
-  "runtimeVersion": "V8",
-  "webapp": { "executeAs": "USER_DEPLOYING", "access": "ANYONE" }
-}
-EOF
+  if [ -n "$manifest_backup" ]; then
+    cp "$manifest_backup" "$dir/appsscript.json"
+    rm -f "$manifest_backup"
+  fi
 
   clasp push --force
   success "$svc: project created and code pushed"
@@ -157,15 +156,23 @@ echo ""
 # ── Token Bootstrap ──
 banner "Bootstrap tokens"
 echo ""
+if [ "$DRY_RUN" -eq 1 ]; then
+  warn "Skipping interactive token bootstrap and .env generation in dry run."
+  success "Dry run complete."
+  exit 0
+fi
+
 echo "After deploying each service, paste the deployment URLs below."
 echo "Press Enter to skip a service (can run again later)."
 echo ""
 
-declare -A URLS
+URL_SERVICES=()
+URL_VALUES=()
 for svc in "${SERVICES[@]}"; do
   read -r -p "Deployment URL for $svc: " url
   if [ -n "$url" ]; then
-    URLS[$svc]="$url"
+    URL_SERVICES+=("$svc")
+    URL_VALUES+=("$url")
   fi
 done
 
@@ -173,11 +180,9 @@ echo ""
 echo "# Generated on $(date)" > "$ROOT/.env"
 echo "" >> "$ROOT/.env"
 
-CONFIG_JSON=""
-for svc in "${SERVICES[@]}"; do
-  if [ -z "${URLS[$svc]:-}" ]; then continue; fi
-
-  url="${URLS[$svc]}"
+for i in "${!URL_SERVICES[@]}"; do
+  svc="${URL_SERVICES[$i]}"
+  url="${URL_VALUES[$i]}"
   dir="$ROOT/packages/$svc/apps-script"
   ensure_bootstrap_secret "$dir"
   setup_key=$(read_bootstrap_secret "$dir")
