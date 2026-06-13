@@ -148,11 +148,13 @@ Always use `sheets_batch` for compound setup to reduce round-trips.
 ```
 1. slides_create_presentation → name:"Q2 Results QBR"
 2. slides_batch → [add title slide, add content slides with text boxes]
-3. slides_insert_text_box → add body text on content slides
-4. slides_insert_table → add data table on one slide
-5. slides_insert_image → add charts/logos
+3. slides_insert_text_box → add body text on content slides (auto-positioned)
+4. slides_insert_table → add data table on one slide (auto-positioned)
+5. slides_insert_image → add charts/logos (auto-positioned)
 6. slides_set_notes → add speaker notes per slide
 ```
+
+**Content elements auto-position by default** — each new element stacks 8pt below the previous one, left-aligned, full-width. No need to specify coordinates. Override with explicit `left`/`top`/`width`/`height` or set `autoPosition: false`.
 
 Always use `slides_batch` for compound slide creation to reduce round-trips.
 
