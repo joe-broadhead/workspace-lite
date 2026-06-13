@@ -1,7 +1,28 @@
 const CalendarService = (() => {
+  const ACTION_POLICIES = {
+    listCalendars: { class: 'read' },
+    getCalendar: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    listEvents: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    searchEvents: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    findFreeBusy: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    getEvent: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    eventInstances: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'primary' }] },
+    quickAdd: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'primary' }] },
+    createEvent: { class: 'write', recipientParams: ['guests'], allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    updateEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    respondToEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    createEventSeries: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    setEventColor: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    deleteEvent: { class: 'destructive', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    batch: { class: 'read' },
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
-    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
+    if (policyError) return policyError
+    return fn(params || {})
   }
 
   function ok(data) {

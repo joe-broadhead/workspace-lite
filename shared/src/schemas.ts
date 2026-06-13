@@ -2,6 +2,10 @@ import { z } from 'zod'
 
 export const driveIdSchema = z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid Drive ID')
 
+export const confirmationSchema = {
+  confirm: z.boolean().optional().describe('Required for server-gated send, share, or destructive actions after explicit user approval.'),
+}
+
 export const fileListSchema = {
   folderId: z.string().optional().describe('Folder ID to list files from. Omit to list all files.'),
   pageSize: z.number().min(1).max(100).default(50).describe('Number of files per page.'),
@@ -15,6 +19,7 @@ export const fileSearchSchema = {
 
 export const fileGetSchema = {
   fileId: driveIdSchema.describe('Drive file ID.'),
+  ...confirmationSchema,
 }
 
 export const fileExportSchema = {
@@ -68,26 +73,31 @@ export const fileSetSharingSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   access: z.enum(['ANYONE', 'ANYONE_WITH_LINK', 'DOMAIN', 'DOMAIN_WITH_LINK', 'PRIVATE']).describe('Sharing access level.'),
   permission: z.enum(['NONE', 'VIEW', 'EDIT', 'COMMENT', 'ORGANIZER', 'FILE_ORGANIZER', 'OWNER']).describe('Sharing permission.'),
+  ...confirmationSchema,
 }
 
 export const fileAddEditorSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   email: z.string().email().describe('Email to add as editor.'),
+  ...confirmationSchema,
 }
 
 export const fileAddViewerSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   email: z.string().email().describe('Email to add as viewer.'),
+  ...confirmationSchema,
 }
 
 export const fileRemoveEditorSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   email: z.string().email().describe('Email to remove as editor.'),
+  ...confirmationSchema,
 }
 
 export const fileRemoveViewerSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   email: z.string().email().describe('Email to remove as viewer.'),
+  ...confirmationSchema,
 }
 
 export const driveAddParentSchema = {
@@ -98,6 +108,7 @@ export const driveAddParentSchema = {
 export const driveRemoveParentSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   folderId: z.string().describe('Folder ID to remove from parents.'),
+  ...confirmationSchema,
 }
 
 export const driveFolderPathSchema = {
@@ -177,6 +188,7 @@ export const calendarUpdateEventSchema = {
 export const calendarDeleteEventSchema = {
   eventId: calendarEventIdSchema,
   calendarId: z.string().optional().describe('Calendar ID.'),
+  ...confirmationSchema,
 }
 
 export const calendarRespondEventSchema = {
@@ -256,8 +268,8 @@ export const gmailGetMessageSchema = { messageId: gmailMessageIdSchema }
 export const gmailGetThreadSchema = { threadId: gmailThreadIdSchema }
 export const gmailListDraftsSchema = { maxResults: z.number().int().min(1).max(100).default(20).optional().describe('Max drafts.') }
 export const gmailGetDraftSchema = { draftId: gmailDraftIdSchema }
-export const gmailDeleteDraftSchema = { draftId: gmailDraftIdSchema }
-export const gmailSendDraftSchema = { draftId: gmailDraftIdSchema }
+export const gmailDeleteDraftSchema = { draftId: gmailDraftIdSchema, ...confirmationSchema }
+export const gmailSendDraftSchema = { draftId: gmailDraftIdSchema, ...confirmationSchema }
 
 export const gmailSendSchema = {
   to: gmailEmailSchema.describe('Recipient email.'),
@@ -266,6 +278,7 @@ export const gmailSendSchema = {
   cc: z.string().max(1000).optional().describe('CC recipient(s).'),
   bcc: z.string().max(1000).optional().describe('BCC recipient(s).'),
   htmlBody: z.string().max(200000).optional().describe('HTML body.'),
+  ...confirmationSchema,
 }
 
 export const gmailCreateDraftSchema = gmailSendSchema
@@ -284,10 +297,10 @@ export const gmailMarkUnreadSchema = { messageId: gmailMessageIdSchema }
 export const gmailArchiveSchema = { messageId: gmailMessageIdSchema }
 export const gmailStarSchema = { messageId: gmailMessageIdSchema }
 export const gmailUnstarSchema = { messageId: gmailMessageIdSchema }
-export const gmailTrashMessageSchema = { messageId: gmailMessageIdSchema }
+export const gmailTrashMessageSchema = { messageId: gmailMessageIdSchema, ...confirmationSchema }
 export const gmailUntrashMessageSchema = { messageId: gmailMessageIdSchema }
-export const gmailDeleteMessageSchema = { messageId: gmailMessageIdSchema }
-export const gmailTrashThreadSchema = { threadId: gmailThreadIdSchema }
+export const gmailDeleteMessageSchema = { messageId: gmailMessageIdSchema, ...confirmationSchema }
+export const gmailTrashThreadSchema = { threadId: gmailThreadIdSchema, ...confirmationSchema }
 export const gmailUntrashThreadSchema = { threadId: gmailThreadIdSchema }
 
 export const gmailLabelSchema = {
@@ -299,6 +312,7 @@ export const gmailReplySchema = {
   messageId: gmailMessageIdSchema,
   body: gmailBodySchema.describe('Reply body.'),
   htmlBody: z.string().max(200000).optional().describe('HTML body.'),
+  ...confirmationSchema,
 }
 
 export const gmailReplyAllSchema = gmailReplySchema
@@ -307,6 +321,7 @@ export const gmailForwardSchema = {
   messageId: gmailMessageIdSchema,
   to: gmailEmailSchema.describe('Recipient email.'),
   htmlBody: z.string().max(200000).optional(),
+  ...confirmationSchema,
 }
 
 export const gmailAttachmentGetSchema = {
@@ -362,6 +377,7 @@ export const sheetsClearRangeSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
   range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
+  ...confirmationSchema,
 }
 
 export const sheetsGetFormulasSchema = {
@@ -384,6 +400,7 @@ export const sheetsAddSheetSchema = {
 export const sheetsDeleteSheetSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().min(1).describe('Name of the sheet/tab to delete.'),
+  ...confirmationSchema,
 }
 
 export const sheetsRenameSheetSchema = {
@@ -533,6 +550,7 @@ export const sheetsDeleteRowsSchema = {
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
   startPosition: z.number().int().min(1).describe('Row index to start deleting from (1-based).'),
   howMany: z.number().int().min(1).default(1).describe('Number of rows to delete.'),
+  ...confirmationSchema,
 }
 
 // ─── SLIDES SCHEMAS ───
@@ -556,6 +574,7 @@ export const slidesAddSlideSchema = {
 export const slidesSlideIndexSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  ...confirmationSchema,
 }
 
 export const slidesMoveSlideSchema = {
@@ -626,6 +645,7 @@ export const slidesDeleteElementSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
   objectId: z.string().describe('Object ID of the element to delete.'),
+  ...confirmationSchema,
 }
 
 export const slidesGetElementTextSchema = {
@@ -703,6 +723,7 @@ export const docsUpdateParagraphSchema = {
 export const docsDeleteParagraphSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   paragraphIndex: z.number().int().min(0).describe('Index of the paragraph to delete (0-based).'),
+  ...confirmationSchema,
 }
 
 export const docsHeaderFooterSchema = {
@@ -713,6 +734,7 @@ export const docsHeaderFooterSchema = {
 export const docsSetTextSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   text: z.string().describe('New text content for the entire document.'),
+  ...confirmationSchema,
 }
 
 export const docsReplaceTextSchema = {

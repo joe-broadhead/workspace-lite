@@ -17,6 +17,36 @@ const SheetsService = (() => {
     BOTTOM: 'bottom', TOP: 'top', LEFT: 'left', RIGHT: 'right', NONE: 'none', LABELED: 'labeled'
   };
 
+  const ACTION_POLICIES = {
+    spreadsheetGet: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeRead: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeGetFormulas: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeGetNotes: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    valuesBatchGet: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    conditionalFormatGet: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    spreadsheetCreate: { class: 'write' },
+    sheetAdd: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    sheetRename: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    sheetCopy: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId', 'destSpreadsheetId'] }] },
+    rangeWrite: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rowsAppend: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeFormat: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeMerge: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeUnmerge: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    columnWidth: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    freezeRows: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeSort: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    formulaSet: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    chartCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    noteSet: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    dataValidationSet: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rowsInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    sheetDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeClear: { class: 'destructive', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rowsDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    batch: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+  }
+
   function parseCellReference(cellRef) {
     const match = cellRef.match(/^([A-Z]+)(\d+)$/);
     if (!match) return { col: 1, row: 1 };
@@ -71,7 +101,10 @@ const SheetsService = (() => {
 
   function handle(action, params) {
     const fn = ACTIONS[action]
-    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
+    if (policyError) return policyError
+    return fn(params || {})
   }
 
   function requireParam(params, name) {

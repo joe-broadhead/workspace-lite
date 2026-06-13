@@ -1,7 +1,46 @@
 const GmailService = (() => {
+  const ACTION_POLICIES = {
+    profile: { class: 'read' },
+    searchMessages: { class: 'read' },
+    getMessage: { class: 'read' },
+    listThreads: { class: 'read' },
+    getThread: { class: 'read' },
+    listLabels: { class: 'read' },
+    listDrafts: { class: 'read' },
+    getDraft: { class: 'read' },
+    attachmentGet: { class: 'read' },
+    markRead: { class: 'write' },
+    markUnread: { class: 'write' },
+    archive: { class: 'write' },
+    star: { class: 'write' },
+    unstar: { class: 'write' },
+    addLabel: { class: 'write' },
+    removeLabel: { class: 'write' },
+    batchModify: { class: 'write' },
+    createDraft: { class: 'write', allowDraftToken: true, recipientParams: ['to', 'cc', 'bcc'] },
+    updateDraft: { class: 'write', allowDraftToken: true, recipientParams: ['to', 'cc', 'bcc'] },
+    createDraftReply: { class: 'write', allowDraftToken: true },
+    createDraftReplyAll: { class: 'write', allowDraftToken: true },
+    untrashMessage: { class: 'write' },
+    untrashThread: { class: 'write' },
+    send: { class: 'send', recipientParams: ['to', 'cc', 'bcc'], requiresKnownRecipients: true },
+    sendDraft: { class: 'send', recipientParams: [], requiresKnownRecipients: true },
+    reply: { class: 'send', recipientParams: [], requiresKnownRecipients: true },
+    replyAll: { class: 'send', recipientParams: [], requiresKnownRecipients: true },
+    forward: { class: 'send', recipientParams: ['to'], requiresKnownRecipients: true },
+    trashMessage: { class: 'destructive' },
+    trashThread: { class: 'destructive' },
+    deleteMessage: { class: 'destructive' },
+    deleteDraft: { class: 'destructive' },
+    batch: { class: 'read' },
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
-    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
+    if (policyError) return policyError
+    return fn(params || {})
   }
 
   function validateMessageId(id) {

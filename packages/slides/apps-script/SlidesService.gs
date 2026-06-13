@@ -1,5 +1,27 @@
 const SlidesService = (() => {
 
+  const ACTION_POLICIES = {
+    presentationGet: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    slideElementsList: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementGetText: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    presentationCreate: { class: 'write' },
+    slideAdd: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    slideDuplicate: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    slideMove: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    textBoxInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    imageInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    shapeInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    tableInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    slideNotes: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    textReplaceAll: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementFormatText: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    slideBackground: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    lineInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    slideDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    batch: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+  }
+
   const SHAPE_TYPE_MAP = {
     RECTANGLE: SlidesApp.ShapeType.RECTANGLE,
     ROUND_RECTANGLE: SlidesApp.ShapeType.ROUND_RECTANGLE,
@@ -35,7 +57,10 @@ const SlidesService = (() => {
 
   function handle(action, params) {
     const fn = ACTIONS[action]
-    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
+    if (policyError) return policyError
+    return fn(params || {})
   }
 
   function ok(data) { return { success: true, data }; }

@@ -1,7 +1,30 @@
 const DocsService = (() => {
+  const ACTION_POLICIES = {
+    documentGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    documentGetJson: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    documentCreate: { class: 'write' },
+    paragraphInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    paragraphUpdate: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    replaceText: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    listInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    tableInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    imageInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    pageBreakInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    horizontalRuleInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    formatText: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    headerSet: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    footerSet: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    setText: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    paragraphDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    batch: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+  }
+
   function handle(action, params) {
     const fn = ACTIONS[action]
-    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
+    if (policyError) return policyError
+    return fn(params || {})
   }
 
   function ok(data) { return { success: true, data }; }

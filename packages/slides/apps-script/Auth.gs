@@ -1,6 +1,16 @@
 const SCRIPT_PROPERTY_KEY = 'PROXY_AUTH_TOKEN'
 const BOOTSTRAPPED_KEY = 'PROXY_BOOTSTRAPPED'
 const BOOTSTRAP_SECRET_PROPERTY_KEY = 'PROXY_BOOTSTRAP_SECRET'
+const AUTH_TOKEN_CLASSES_PROPERTY_KEY = 'PROXY_AUTH_TOKEN_CLASSES'
+const DEFAULT_AUTH_TOKEN_CLASSES = 'read,draft'
+const READ_TOKEN_PROPERTY_KEY = 'PROXY_READ_TOKEN'
+const WRITE_TOKEN_PROPERTY_KEY = 'PROXY_WRITE_TOKEN'
+const SEND_TOKEN_PROPERTY_KEY = 'PROXY_SEND_TOKEN'
+const SHARE_TOKEN_PROPERTY_KEY = 'PROXY_SHARE_TOKEN'
+const DESTRUCTIVE_TOKEN_PROPERTY_KEY = 'PROXY_DESTRUCTIVE_TOKEN'
+const ADMIN_TOKEN_PROPERTY_KEY = 'PROXY_ADMIN_TOKEN'
+
+var CURRENT_AUTH_CONTEXT_ = { authenticated: false, tokenKind: null, classes: {} }
 
 function generateToken_() {
   return Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '')
@@ -77,11 +87,69 @@ function bootstrapProxy(e, tokenEnvName) {
   }
 }
 
-function validateRequest(e) {
-  let token = null
-  try { const body = JSON.parse(e.postData.contents); token = body.token } catch(_) {}
-  const expected = getExistingToken_()
-  return !!expected && constantTimeEquals_(token, expected)
+function parseTokenClasses_(value, fallback) {
+  const classes = {}
+  String(value || fallback || '').split(',').forEach(function(part) {
+    const name = part.trim().toLowerCase()
+    if (name) classes[name] = true
+  })
+  if (classes.admin) {
+    classes.read = true
+    classes.draft = true
+    classes.write = true
+    classes.send = true
+    classes.share = true
+    classes.destructive = true
+  }
+  if (classes.send || classes.share || classes.destructive) classes.write = true
+  if (classes.write) classes.draft = true
+  if (classes.draft || classes.write) classes.read = true
+  return classes
+}
+
+function authContextForToken_(token) {
+  const props = PropertiesService.getScriptProperties()
+  const primaryToken = props.getProperty(SCRIPT_PROPERTY_KEY)
+  if (primaryToken && constantTimeEquals_(token, primaryToken)) {
+    return {
+      authenticated: true,
+      tokenKind: 'primary',
+      classes: parseTokenClasses_(props.getProperty(AUTH_TOKEN_CLASSES_PROPERTY_KEY), DEFAULT_AUTH_TOKEN_CLASSES),
+    }
+  }
+
+  const tokenSpecs = [
+    { key: READ_TOKEN_PROPERTY_KEY, kind: 'read', classes: 'read' },
+    { key: WRITE_TOKEN_PROPERTY_KEY, kind: 'write', classes: 'read,draft,write' },
+    { key: SEND_TOKEN_PROPERTY_KEY, kind: 'send', classes: 'read,draft,write,send' },
+    { key: SHARE_TOKEN_PROPERTY_KEY, kind: 'share', classes: 'read,draft,write,share' },
+    { key: DESTRUCTIVE_TOKEN_PROPERTY_KEY, kind: 'destructive', classes: 'read,draft,write,destructive' },
+    { key: ADMIN_TOKEN_PROPERTY_KEY, kind: 'admin', classes: 'admin' },
+  ]
+
+  for (let i = 0; i < tokenSpecs.length; i++) {
+    const spec = tokenSpecs[i]
+    const expected = props.getProperty(spec.key)
+    if (expected && constantTimeEquals_(token, expected)) {
+      return { authenticated: true, tokenKind: spec.kind, classes: parseTokenClasses_(spec.classes) }
+    }
+  }
+
+  return { authenticated: false, tokenKind: null, classes: {} }
+}
+
+function validateRequest(bodyOrEvent) {
+  let body = bodyOrEvent || {}
+  if (bodyOrEvent && bodyOrEvent.postData && bodyOrEvent.postData.contents) {
+    try { body = JSON.parse(bodyOrEvent.postData.contents) } catch(_) { body = {} }
+  }
+  const token = body && typeof body.token === 'string' ? body.token : ''
+  CURRENT_AUTH_CONTEXT_ = authContextForToken_(token)
+  return CURRENT_AUTH_CONTEXT_.authenticated
+}
+
+function getAuthContext() {
+  return CURRENT_AUTH_CONTEXT_ || { authenticated: false, tokenKind: null, classes: {} }
 }
 
 function getStoredTokenFingerprint_() {

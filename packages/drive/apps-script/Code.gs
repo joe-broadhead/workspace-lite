@@ -8,7 +8,9 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  if (!validateRequest(e)) {
+  var body
+  try { body = JSON.parse(e.postData.contents) } catch(_) { return respond(err('BAD_REQUEST', 'Invalid JSON body')) }
+  if (!validateRequest(body)) {
     return respond(err('UNAUTHORIZED', 'Invalid or missing auth token'))
   }
 
@@ -16,8 +18,6 @@ function doPost(e) {
     return respond(err('RATE_LIMITED', 'Too many requests. Try again in 60 seconds.'))
   }
 
-  var body
-  try { body = JSON.parse(e.postData.contents) } catch(_) { return respond(err('BAD_REQUEST', 'Invalid JSON body')) }
   if (!body.action) return respond(err('BAD_REQUEST', 'Missing action field'))
 
   try {

@@ -17,6 +17,39 @@ var DriveService = (() => {
     OWNER: DriveApp.Permission.OWNER
   };
 
+  const ACTION_POLICIES = {
+    about: { class: 'read' },
+    fileGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'], defaultValue: 'root' }] },
+    fileSearch: { class: 'read' },
+    fileExport: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    folderGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'] }] },
+    folderList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'], defaultValue: 'root' }] },
+    folderListRoot: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'], defaultValue: 'root' }] },
+    folderPath: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileGetPermissions: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileExportAs: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    commentsList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    folderCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['parentId'], defaultValue: 'root' }] },
+    fileCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['parentId'], defaultValue: 'root' }] },
+    fileCopy: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['destFolderId'] }] },
+    fileMove: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['destFolderId'] }] },
+    fileUpdateMeta: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileUpdateContent: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileAddParent: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'] }] },
+    commentCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileUntrash: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileSetSharing: { class: 'share', blockPublicSharing: true, allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileAddEditor: { class: 'share', recipientParams: ['email'], requiresKnownRecipients: true, allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileAddViewer: { class: 'share', recipientParams: ['email'], requiresKnownRecipients: true, allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileRemoveEditor: { class: 'share', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileRemoveViewer: { class: 'share', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileRemoveParent: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'] }] },
+    fileTrash: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    fileDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    batch: { class: 'read' },
+  }
+
   function ok(data) {
     return { success: true, data: data };
   }
@@ -37,7 +70,10 @@ var DriveService = (() => {
 
   function handle(action, params) {
     const fn = ACTIONS[action]
-    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    if (!fn) return err('UNKNOWN_ACTION', `Unknown action: ${action}`)
+    const policyError = enforceActionPolicy(action, params || {}, ACTION_POLICIES)
+    if (policyError) return policyError
+    return fn(params || {})
   }
 
   function requireParam(params, name) {
