@@ -56,24 +56,4 @@ export function registerDocsContentTools(server: { tool: Function }) {
       return formatResponse(result, { summary: 'Horizontal rule inserted.' })
     },
   )
-
-  server.tool(
-    'docs_insert_table_of_contents',
-    'Insert a table of contents into the document. The TOC automatically populates from document headings.',
-    docsTOCSchema,
-    async (args: Record<string, unknown>) => {
-      const result = await callProxy('tocInsert', args)
-      return formatResponse(result, { summary: 'Table of contents inserted.' })
-    },
-  )
-
-  server.tool(
-    'docs_insert_footnote',
-    'Insert a footnote at a specific paragraph or at the end of the document body.',
-    docsFootnoteSchema,
-    async (args: Record<string, unknown>) => {
-      const result = await callProxy('footnoteInsert', args)
-      return formatResponse(result, { summary: 'Footnote inserted.' })
-    },
-  )
 }

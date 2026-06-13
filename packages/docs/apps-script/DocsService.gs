@@ -502,58 +502,11 @@ const DocsService = (() => {
     );
   }
 
-  // ── Table of contents ──
-
-  function tocInsert(params) {
-    const id = requireParam(params, 'documentId');
-
-    const doc = getDocument(id);
-    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
-
-    return trap(
-      () => {
-        const request = { insert_table_of_contents: {} };
-        Docs.Documents.batchUpdate({ requests: [request] }, id);
-        return { inserted: true };
-      },
-      'INSERT_FAILED',
-      (e) => `Could not insert table of contents: ${e.message}`
-    );
-  }
-
-  // ── Footnote ──
-
-  function footnoteInsert(params) {
-    const id = requireParam(params, 'documentId');
-    const text = requireParam(params, 'text');
-
-    const doc = getDocument(id);
-    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
-
-    return trap(
-      () => {
-        Docs.Documents.batchUpdate({
-          requests: [
-            {
-              create_footnote: {
-                end_of_segment_location: { segment_id: '' },
-                insertion_text: { text: String(text) }
-              }
-            }
-          ]
-        }, id);
-        return { inserted: true };
-      },
-      'INSERT_FAILED',
-      (e) => `Could not insert footnote: ${e.message}`
-    );
-  }
-
   const ACTIONS = {
     documentCreate, documentGet, documentGetJson, paragraphInsert,
     paragraphUpdate, paragraphDelete, setText, replaceText, listInsert,
     tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert,
-    formatText, headerSet, footerSet, tocInsert, footnoteInsert,
+    formatText, headerSet, footerSet,
     batch: function(params) { return runBatch(handle)(params); },
   }
 

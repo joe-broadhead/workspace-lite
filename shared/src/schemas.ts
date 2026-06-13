@@ -752,16 +752,6 @@ export const docsInsertHorizontalRuleSchema = {
   append: z.boolean().default(true).describe('If true, appends to end of document.'),
 }
 
-export const docsTOCSchema = {
-  documentId: docsDocumentIdSchema.describe('Document ID.'),
-}
-
-export const docsFootnoteSchema = {
-  documentId: docsDocumentIdSchema.describe('Document ID.'),
-  paragraphIndex: z.number().int().min(0).optional().describe('Index of the paragraph to attach the footnote to (0-based). If omitted, attaches to the document body.'),
-  text: z.string().min(1).describe('Footnote text content.'),
-}
-
 export const docsFormatTextSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   findText: z.string().min(1).describe('Text to find and format.'),
@@ -783,7 +773,7 @@ export const docsGetAsJsonSchema = {
 export const docsBatchSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: documentGet, documentGetJson, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet, tocInsert, footnoteInsert).'),
+    action: z.string().describe('Action to perform (same names as individual tools: documentGet, documentGetJson, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
