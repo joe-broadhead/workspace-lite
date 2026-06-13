@@ -93,7 +93,7 @@ export const fileRemoveViewerSchema = {
 export const driveBatchSchema = {
   operations: z.array(z.object({
     action: z.string().describe('Action to perform (same names as individual tools: about, fileGet, fileList, fileSearch, fileExport, folderGet, folderList, folderListRoot, folderCreate, fileCreate, fileCopy, fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions, fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor, fileRemoveViewer, fileTrash, fileUntrash, fileDelete).'),
-    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
 
@@ -154,7 +154,7 @@ export const calendarDeleteEventSchema = {
 export const calendarBatchSchema = {
   operations: z.array(z.object({
     action: z.string().describe('Action to perform (same names as individual tools: calendarList, calendarGet, eventsList, eventsSearch, freeBusy, eventGet, eventCreate, eventUpdate, eventDelete).'),
-    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
 
@@ -250,7 +250,7 @@ export const gmailForwardSchema = {
 export const gmailBatchSchema = {
   operations: z.array(z.object({
     action: z.string().describe('Action to perform (same names as individual tools: profile, searchMessages, listThreads, getMessage, getThread, listLabels, send, createDraft, createDraftReply, createDraftReplyAll, listDrafts, getDraft, updateDraft, deleteDraft, sendDraft, markRead, markUnread, archive, star, unstar, addLabel, removeLabel, trashMessage, untrashMessage, deleteMessage, trashThread, untrashThread, reply, replyAll, forward).'),
-    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
 
@@ -410,7 +410,7 @@ export const sheetsBatchSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   operations: z.array(z.object({
     action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeGetFormulas, rangeGetNotes, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet).'),
-    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas for parameter details.'),
+    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas for parameter details.'),
   })).min(1).max(20).describe('Ordered list of operations to execute.'),
 }
 
@@ -532,7 +532,7 @@ export const slidesBatchSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   operations: z.array(z.object({
     action: z.string().describe('Action to perform (same names as individual tools: presentationGet, slideAdd, slideDelete, slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert, tableInsert, slideElementsList, elementDelete, elementGetText, elementFormatText, slideNotes, textReplaceAll).'),
-    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
 
@@ -632,6 +632,6 @@ export const docsBatchSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   operations: z.array(z.object({
     action: z.string().describe('Action to perform (same names as individual tools: documentGet, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet).'),
-    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+    params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
