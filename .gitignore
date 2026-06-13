@@ -11,4 +11,4 @@ dist/
 *~
 .vscode/
 coverage/
-site/
+site/*.js
