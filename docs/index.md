@@ -1,0 +1,101 @@
+---
+hide:
+  - navigation
+  - toc
+---
+
+# Google Apps Script MCP
+
+<div class="subtitle" markdown>
+Google Workspace via Apps Script &mdash; no OAuth per call. Apps Script runs as **you**, using your Google identity automatically.
+</div>
+
+---
+
+<div class="grid cards" markdown>
+
+-   :material-rocket-launch:{ .lg .middle } __Getting Started__
+
+    ---
+
+    Install, deploy, and run your first tool in under 5 minutes.
+
+    [:octicons-arrow-right-24: Installation](getting-started/installation.md)
+    [:octicons-arrow-right-24: Quickstart](getting-started/quickstart.md)
+    [:octicons-arrow-right-24: Setup Script](getting-started/setup-script.md)
+
+-   :material-graph:{ .lg .middle } __Architecture__
+
+    ---
+
+    Mermaid diagrams, package layout, Zod validation, auth flow, rate limiting, and batch internals.
+
+    [:octicons-arrow-right-24: Architecture Overview](architecture/overview.md)
+    [:octicons-arrow-right-24: Security Model](architecture/security.md)
+
+-   :material-package-variant-closed:{ .lg .middle } __Services__
+
+    ---
+
+    Deep dives into each of the 6 Google Workspace services.
+
+    [:octicons-arrow-right-24: Drive](services/drive.md)
+    [:octicons-arrow-right-24: Gmail](services/gmail.md)
+    [:octicons-arrow-right-24: Calendar](services/calendar.md)
+    [:octicons-arrow-right-24: Sheets](services/sheets.md)
+    [:octicons-arrow-right-24: Slides](services/slides.md)
+    [:octicons-arrow-right-24: Docs](services/docs.md)
+
+-   :material-robot:{ .lg .middle } __Agent Skill__
+
+    ---
+
+    The `google-workspace` skill for OpenCode: tool catalogs, numbered workflows, and safety rules.
+
+    [:octicons-arrow-right-24: Skill Overview](skill/overview.md)
+    [:octicons-arrow-right-24: Workflows](skill/workflows.md)
+
+-   :material-code-json:{ .lg .middle } __API Reference__
+
+    ---
+
+    Every tool signature, parameter, and expected output, per service plus batch reference.
+
+    [:octicons-arrow-right-24: Drive](services/drive.md)
+    [:octicons-arrow-right-24: Gmail](services/gmail.md)
+    [:octicons-arrow-right-24: Calendar](services/calendar.md)
+    [:octicons-arrow-right-24: Sheets](services/sheets.md)
+    [:octicons-arrow-right-24: Slides](services/slides.md)
+    [:octicons-arrow-right-24: Docs](services/docs.md)
+    [:octicons-arrow-right-24: Batch Operations](api/batch.md)
+
+</div>
+
+---
+
+## Key Features
+
+| Feature | Detail |
+|---------|--------|
+| :material-shield-key:{ .middle } **Bearer token auth** | One-time bootstrap per service. Token stored in Apps Script properties. No OAuth refresh loops, no service accounts. |
+| :material-package-variant-closed:{ .middle } **6 services** | Drive, Gmail, Calendar, Sheets, Slides, Docs &mdash; every service has a dedicated MCP server and Apps Script proxy. |
+| :material-counter:{ .middle } **118 tools** | Drive&nbsp;(23), Gmail&nbsp;(31), Calendar&nbsp;(10), Sheets&nbsp;(21), Slides&nbsp;(17), Docs&nbsp;(16). |
+| :material-layers-triple:{ .middle } **Batch on all 6** | `{service}_batch` tools combine up to 20 operations in one round-trip. Sequential execution with per-op error collection. |
+| :material-arrange-bring-forward:{ .middle } **Auto-positioning** | Slides text boxes, images, shapes, and tables auto-position below existing elements. Override with explicit coordinates. |
+| :material-email-fast:{ .middle } **Draft-first email** | `gmail_create_draft`, `gmail_create_draft_reply`, `gmail_create_draft_reply_all` &mdash; review before sending. Never sends without explicit approval. |
+| :material-clock-fast:{ .middle } **Rate limiting** | 100 req/min per proxy via Apps Script `CacheService`. Shared across all instances of a deployment. |
+
+---
+
+## Quick Install
+
+```bash
+git clone https://github.com/joe-broadhead/google-apps-script-mcp.git
+cd google-apps-script-mcp
+npm install && npm run build
+./scripts/setup.sh
+```
+
+The setup script creates 6 Apps Script projects, pushes code, guides you through web app deployment, bootstraps auth tokens, and prints ready-to-paste OpenCode config.
+
+[:material-arrow-right: Full installation guide](getting-started/installation.md)

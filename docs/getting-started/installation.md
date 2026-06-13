@@ -1,0 +1,219 @@
+# Installation
+
+Complete setup of all 6 Google Workspace MCP servers &mdash; one-time, roughly 10 minutes.
+
+## Prerequisites
+
+| Requirement | Version / Command | Notes |
+|-------------|-------------------|-------|
+| Node.js | 20+ | `node --version` |
+| clasp | latest | `npm install -g @google/clasp` |
+| jq | any | `brew install jq` |
+| Google account | &mdash; | With access to the Workspace services you plan to use |
+
+!!! tip "Verify prerequisites"
+    ```bash
+    node --version   # ≥ 20
+    clasp --version  # any
+    jq --version     # any
+    ```
+
+---
+
+## Step 1: Clone &amp; Build
+
+```bash
+git clone https://github.com/joe-broadhead/google-apps-script-mcp.git
+cd google-apps-script-mcp
+npm install
+npm run build
+```
+
+`npm install` triggers a `postinstall` script that builds the shared package. `npm run build` compiles all 6 service packages.
+
+---
+
+## Step 2: Run the Setup Script
+
+```bash
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+The script automates:
+
+| Step | What happens |
+|------|--------------|
+| 1. Authenticate | Opens a browser for `clasp login` (one-time) |
+| 2. Create projects | Creates 6 Apps Script standalone projects with correct OAuth scopes |
+| 3. Push code | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service files to each project |
+| 4. Deploy guide | Prints instructions for deploying each project as a web app |
+| 5. Token bootstrap | Collects deployment URLs, bootstraps auth tokens, writes `.env` |
+| 6. Config output | Prints ready-to-paste OpenCode `mcpServers` JSON |
+| 7. Skill setup | Prints the symlink command for the `google-workspace` skill |
+
+---
+
+## Step 3: Deploy Web Apps (GUI)
+
+The setup script pauses here. For each of the 6 services, it asks you to deploy manually:
+
+```bash
+cd packages/drive/apps-script && clasp open
+```
+
+In the Apps Script editor that opens:
+
+| Field | Value |
+|-------|-------|
+| Deploy type | **Web app** |
+| Execute as | **Me** (`USER_DEPLOYING`) |
+| Who has access | **Anyone** |
+
+Copy each deployment URL (looks like `https://script.google.com/macros/s/.../exec`) and paste it back into the script prompt.
+
+!!! warning "GUI step cannot be automated"
+    Google does not provide an API for creating web app deployments. You must click through the Apps Script editor 6 times.
+
+---
+
+## Step 4: Install the Agent Skill
+
+```bash
+ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
+```
+
+This makes the `google-workspace` skill available to OpenCode. The skill provides LLMs with tool catalogs, numbered workflows, and safety rules.
+
+---
+
+## Step 5: Configure OpenCode
+
+The setup script prints a JSON block. Add it to your `opencode.jsonc` under `mcpServers`:
+
+```jsonc
+{
+  "mcpServers": {
+    "google-drive": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/google-apps-script-mcp/packages/drive/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_URL": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_URL}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"
+      }
+    }
+    // ... repeat for google-gmail, google-calendar, google-sheets, google-slides, google-docs
+  }
+}
+```
+
+Source the generated `.env` file (or copy exports to `.zshrc`):
+
+```bash
+source .env
+```
+
+Restart OpenCode. All 118 tools are now available.
+
+---
+
+## Manual Setup (Alternative)
+
+If you prefer to configure each service step-by-step without the setup script.
+
+### Environment Variables
+
+For each service, two environment variables are required:
+
+| Service | URL variable | Token variable |
+|---------|--------------|----------------|
+| Drive | `GOOGLE_WORKSPACE_DRIVE_PROXY_URL` | `GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN` |
+| Gmail | `GOOGLE_WORKSPACE_GMAIL_PROXY_URL` | `GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN` |
+| Calendar | `GOOGLE_WORKSPACE_CALENDAR_PROXY_URL` | `GOOGLE_WORKSPACE_CALENDAR_PROXY_TOKEN` |
+| Sheets | `GOOGLE_WORKSPACE_SHEETS_PROXY_URL` | `GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN` |
+| Slides | `GOOGLE_WORKSPACE_SLIDES_PROXY_URL` | `GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN` |
+| Docs | `GOOGLE_WORKSPACE_DOCS_PROXY_URL` | `GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN` |
+
+### Deploying Manually
+
+1. Create each Apps Script project with `clasp create --type standalone`
+2. Push code with `clasp push`
+3. Deploy as web app manually (GUI) and copy the deployment URL
+4. Bootstrap the token:
+
+```bash
+curl -sL "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?bootstrap=1" | jq -r '.data.token'
+```
+
+5. Set the environment variables in `.zshrc` or a `.env` file
+
+### OpenCode Config (Manual)
+
+```jsonc
+{
+  "mcpServers": {
+    "google-drive": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/drive/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_URL": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_URL}",
+        "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"
+      }
+    },
+    "google-gmail": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/gmail/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_GMAIL_PROXY_URL": "{env:GOOGLE_WORKSPACE_GMAIL_PROXY_URL}",
+        "GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN}"
+      }
+    },
+    "google-calendar": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/calendar/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_CALENDAR_PROXY_URL": "{env:GOOGLE_WORKSPACE_CALENDAR_PROXY_URL}",
+        "GOOGLE_WORKSPACE_CALENDAR_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_CALENDAR_PROXY_TOKEN}"
+      }
+    },
+    "google-sheets": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/sheets/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_SHEETS_PROXY_URL": "{env:GOOGLE_WORKSPACE_SHEETS_PROXY_URL}",
+        "GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN}"
+      }
+    },
+    "google-slides": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/slides/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_SLIDES_PROXY_URL": "{env:GOOGLE_WORKSPACE_SLIDES_PROXY_URL}",
+        "GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN}"
+      }
+    },
+    "google-docs": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/docs/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_DOCS_PROXY_URL": "{env:GOOGLE_WORKSPACE_DOCS_PROXY_URL}",
+        "GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Token Lifecycle
+
+| Phase | Description |
+|-------|-------------|
+| **Bootstrap** | `GET ?bootstrap=1` triggers one-time token generation. A 48-char random token is stored in `PropertiesService.getScriptProperties()` under `PROXY_AUTH_TOKEN`. The bootstrap endpoint returns the token and sets `PROXY_BOOTSTRAPPED=true`. |
+| **Storage** | Token lives in Apps Script properties &mdash; durable across deployments, survives code pushes. |
+| **Rotation** | Re-run bootstrap? The endpoint returns `FORBIDDEN` once bootstrapped. To rotate, manually clear script properties: **Project Settings &rarr; Script Properties** in the Apps Script editor, then re-bootstrap. |
+| **Usage** | Every `POST` request includes `token` in the JSON body. `Auth.gs` validates against the stored token. |
+
+!!! warning "Bootstrap is one-shot"
+    The bootstrap endpoint (`?bootstrap=1`) only works once per deployment. Save the token immediately. If lost, you must clear script properties and re-bootstrap.
