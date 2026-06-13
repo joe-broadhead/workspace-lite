@@ -586,21 +586,23 @@ var SlidesService = (function() {
         const found = text.find(findText, cursor)
         if (!found) break
         ranges.push(found)
-        cursor = found.getEndIndex()
+        cursor = found.getEndOffsetInclusive() + 1
       }
 
       if (ranges.length === 0) return err('NOT_FOUND', `Text "${findText}" not found in element: ${objectId}`)
 
       for (const range of ranges) {
-        const style = range.getTextStyle()
-        if (params.bold !== undefined) style.setBold(optionalBool(params, 'bold', false))
-        if (params.italic !== undefined) style.setItalic(optionalBool(params, 'italic', false))
-        if (params.underline !== undefined) style.setUnderline(optionalBool(params, 'underline', false))
-        if (params.fontFamily !== undefined) style.setFontFamily(optionalString(params, 'fontFamily', null))
-        if (params.fontSize !== undefined) style.setFontSize(optionalNumber(params, 'fontSize', 12))
-        if (params.foregroundColor !== undefined) style.setForegroundColor(optionalString(params, 'foregroundColor', null))
-        if (params.backgroundColor !== undefined) style.setBackgroundColor(optionalString(params, 'backgroundColor', null))
-        if (params.linkUrl !== undefined) style.setLinkUrl(optionalString(params, 'linkUrl', null))
+        const start = range.getStartOffset()
+        const end = range.getEndOffsetInclusive()
+        const txtEl = range.getElement().asText()
+        if (params.bold !== undefined) txtEl.setBold(start, end, optionalBool(params, 'bold', false))
+        if (params.italic !== undefined) txtEl.setItalic(start, end, optionalBool(params, 'italic', false))
+        if (params.underline !== undefined) txtEl.setUnderline(start, end, optionalBool(params, 'underline', false))
+        if (params.fontFamily !== undefined) txtEl.setFontFamily(start, end, String(params.fontFamily))
+        if (params.fontSize !== undefined) txtEl.setFontSize(start, end, Number(params.fontSize))
+        if (params.foregroundColor !== undefined) txtEl.setForegroundColor(start, end, String(params.foregroundColor))
+        if (params.backgroundColor !== undefined) txtEl.setBackgroundColor(start, end, String(params.backgroundColor))
+        if (params.linkUrl !== undefined) txtEl.setLinkUrl(start, end, String(params.linkUrl))
       }
 
       return ok({ formatted: true, objectId, slideIndex, formattedCount: ranges.length })
