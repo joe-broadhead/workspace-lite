@@ -553,7 +553,7 @@ export const docsFormatTextSchema = {
 export const docsBatchSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: documentGet, insertParagraph, setText, replaceText, insertList, insertTable, insertImage, insertPageBreak, insertHorizontalRule, formatText).'),
+    action: z.string().describe('Action to perform (same names as individual tools: documentGet, paragraphInsert, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText).'),
     params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
