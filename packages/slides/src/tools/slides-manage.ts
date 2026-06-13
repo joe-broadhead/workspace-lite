@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   slidesCreatePresentationSchema, slidesPresentationGetSchema,
   slidesAddSlideSchema, slidesSlideIndexSchema,
@@ -7,7 +8,7 @@ import {
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerSlidesManageTools(server: { tool: Function }) {
+export function registerSlidesManageTools(server: ToolServer) {
   server.tool(
     'slides_create_presentation',
     'Create a new Google Slides presentation.',

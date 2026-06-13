@@ -1,8 +1,9 @@
 import { formatList, formatBytes } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { fileListSchema, fileSearchSchema, folderListSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerDriveListTools(server: { tool: Function }) {
+export function registerDriveListTools(server: ToolServer) {
   server.tool(
     'drive_about',
     'Get Drive storage information including total storage, used storage, and root folder ID.',

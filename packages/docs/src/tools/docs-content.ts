@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   docsInsertListSchema, docsInsertTableSchema,
   docsInsertImageSchema, docsInsertPageBreakSchema,
@@ -6,7 +7,7 @@ import {
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerDocsContentTools(server: { tool: Function }) {
+export function registerDocsContentTools(server: ToolServer) {
   server.tool(
     'docs_insert_list',
     'Insert a bulleted or numbered list into the document.',

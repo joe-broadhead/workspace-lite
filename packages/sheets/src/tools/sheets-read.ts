@@ -1,7 +1,8 @@
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { sheetsRangeReadSchema, sheetsGetFormulasSchema, sheetsGetNotesSchema, sheetsBatchGetSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerSheetsReadTools(server: { tool: Function }) {
+export function registerSheetsReadTools(server: ToolServer) {
   server.tool(
     'sheets_read_range',
     'Read values from a Google Sheets range. Returns a 2D array of cell values in the specified range.',

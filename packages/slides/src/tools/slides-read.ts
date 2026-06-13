@@ -1,10 +1,12 @@
 import {
   slidesSlideIndexSchema, slidesSlideNotesSchema,
   slidesDeleteElementSchema, slidesFormatTextSchema,
+  slidesGetElementTextSchema,
 } from '@workspace-lite/shared/schemas'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { callProxy } from '../proxy.js'
 
-export function registerSlidesReadTools(server: { tool: Function }) {
+export function registerSlidesReadTools(server: ToolServer) {
   server.tool(
     'slides_get_slide_elements',
     'List all page elements on a slide with their types, IDs, positions, dimensions, and full text content (no truncation).',
@@ -25,11 +27,21 @@ export function registerSlidesReadTools(server: { tool: Function }) {
   )
 
   server.tool(
+    'slides_get_element_text',
+    'Read text from a specific shape/text element on a slide. Get objectIds from slides_get_slide_elements.',
+    slidesGetElementTextSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('elementGetText', args)
+      const data = result.data as Record<string, unknown>
+      return { content: [{ type: 'text' as const, text: `Text for element ${data.objectId} on slide ${data.slideIndex}:\n\n${data.text || ''}` }] }
+    },
+  )
+
+  server.tool(
     'slides_get_slide_notes',
     'Get or set speaker notes for a slide. If notes param is provided, sets notes. If omitted, returns current notes.',
     slidesSlideNotesSchema,
     async (args: Record<string, unknown>) => {
-      const action = args.notes !== undefined ? 'slideNotes' : 'slideNotes'
       const result = await callProxy('slideNotes', args)
       const data = result.data as Record<string, unknown>
       if (args.notes !== undefined) {

@@ -1,8 +1,9 @@
 import { formatResponse, formatPermissions } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { fileGetSchema, fileExportSchema, folderGetSchema, driveFolderPathSchema, driveCommentsListSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerDriveReadTools(server: { tool: Function }) {
+export function registerDriveReadTools(server: ToolServer) {
   server.tool(
     'drive_get_file',
     'Get detailed metadata for a Drive file by ID. Returns id, name, mimeType, url, size, created, updated, starred, trashed, owner, parents.',

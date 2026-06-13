@@ -1,9 +1,10 @@
 import { formatResponse } from '@workspace-lite/shared'
-import { gmailAttachmentGetSchema } from '@workspace-lite/shared/schemas'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
+import { gmailAttachmentGetSchema, gmailGetMessageSchema, gmailGetThreadSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerGmailReadTools(server: { tool: Function }) {
-  server.tool('gmail_get_message', 'Get full details of a Gmail message by ID. Returns subject, from, to, cc, bcc, date, body, attachments.', {},
+export function registerGmailReadTools(server: ToolServer) {
+  server.tool('gmail_get_message', 'Get full details of a Gmail message by ID. Returns subject, from, to, cc, bcc, date, body, attachments.', gmailGetMessageSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('getMessage', args)
       const msg = (result.data as Record<string, unknown>)?.message as Record<string, unknown>
@@ -26,7 +27,7 @@ export function registerGmailReadTools(server: { tool: Function }) {
       }
     })
 
-  server.tool('gmail_get_thread', 'Get a complete Gmail thread by ID with all messages.', {},
+  server.tool('gmail_get_thread', 'Get a complete Gmail thread by ID with all messages.', gmailGetThreadSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('getThread', args)
       const thread = (result.data as Record<string, unknown>)?.thread as Record<string, unknown>

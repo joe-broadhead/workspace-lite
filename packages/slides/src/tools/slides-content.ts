@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   slidesInsertTextBoxSchema, slidesInsertImageSchema,
   slidesInsertShapeSchema, slidesInsertTableSchema,
@@ -6,7 +7,7 @@ import {
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerSlidesContentTools(server: { tool: Function }) {
+export function registerSlidesContentTools(server: ToolServer) {
   server.tool(
     'slides_insert_text_box',
     'Insert a text box on a slide. Auto-positions below existing elements by default. Set autoPosition:false or provide coordinates to override.',

@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
-export const driveIdSchema = z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid Drive ID')
+export const googleIdSchema = z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid Google Workspace ID')
+export const driveIdSchema = googleIdSchema.describe('Drive file or folder ID.')
+export const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO datetime')
+export const gmailSearchDateSchema = z.string().regex(/^\d{4}\/\d{1,2}\/\d{1,2}$/, 'Use Gmail date format YYYY/MM/DD')
+export const emailListSchema = z.string().max(1000).refine((value) => value.split(',').map((email) => email.trim()).filter(Boolean).every((email) => z.string().email().safeParse(email).success), 'Use comma-separated email addresses')
 
 export const confirmationSchema = {
   confirm: z.boolean().optional().describe('Required for server-gated send, share, or destructive actions after explicit user approval.'),
@@ -43,34 +47,34 @@ export const fileExportSchema = {
 }
 
 export const folderGetSchema = {
-  folderId: z.string().describe('Folder ID.'),
+  folderId: driveIdSchema.describe('Folder ID.'),
 }
 
 export const folderListSchema = {
-  folderId: z.string().optional().describe('Folder ID. Omit for root folder.'),
+  folderId: driveIdSchema.optional().describe('Folder ID. Omit for root folder.'),
 }
 
 export const folderCreateSchema = {
   name: z.string().describe('Folder name.'),
-  parentId: z.string().optional().describe('Parent folder ID. Omit for root.'),
+  parentId: driveIdSchema.optional().describe('Parent folder ID. Omit for root.'),
 }
 
 export const fileCreateSchema = {
   name: z.string().describe('File name.'),
   content: z.string().describe('File content.'),
   mimeType: z.string().default('text/plain').describe('MIME type (e.g. text/markdown, application/json).'),
-  parentId: z.string().optional().describe('Parent folder ID. Omit for root.'),
+  parentId: driveIdSchema.optional().describe('Parent folder ID. Omit for root.'),
 }
 
 export const fileCopySchema = {
   fileId: driveIdSchema.describe('Source file ID.'),
   name: z.string().optional().describe('New name for copy.'),
-  destFolderId: z.string().optional().describe('Destination folder ID.'),
+  destFolderId: driveIdSchema.optional().describe('Destination folder ID.'),
 }
 
 export const fileMoveSchema = {
   fileId: driveIdSchema.describe('File ID to move.'),
-  destFolderId: z.string().describe('Destination folder ID.'),
+  destFolderId: driveIdSchema.describe('Destination folder ID.'),
 }
 
 export const fileUpdateMetaSchema = {
@@ -117,12 +121,12 @@ export const fileRemoveViewerSchema = {
 
 export const driveAddParentSchema = {
   fileId: driveIdSchema.describe('File ID.'),
-  folderId: z.string().describe('Folder ID to add as additional parent.'),
+  folderId: driveIdSchema.describe('Folder ID to add as additional parent.'),
 }
 
 export const driveRemoveParentSchema = {
   fileId: driveIdSchema.describe('File ID.'),
-  folderId: z.string().describe('Folder ID to remove from parents.'),
+  folderId: driveIdSchema.describe('Folder ID to remove from parents.'),
   ...confirmationSchema,
 }
 
@@ -202,6 +206,10 @@ export const calendarFreeBusySchema = {
   timeMax: z.string().optional().describe('End time ISO string (default: +7d).'),
 }
 
+export const calendarGetCalendarSchema = {
+  calendarId: z.string().optional().describe('Calendar ID. Omit for default.'),
+}
+
 export const calendarGetEventSchema = {
   eventId: calendarEventIdSchema,
   calendarId: z.string().optional().describe('Calendar ID.'),
@@ -209,12 +217,12 @@ export const calendarGetEventSchema = {
 
 export const calendarCreateEventSchema = {
   title: z.string().min(1).max(1000).describe('Event title.'),
-  startTime: z.string().describe('Start time ISO string.'),
-  endTime: z.string().describe('End time ISO string.'),
+  startTime: isoDateTimeSchema.describe('Start time ISO string.'),
+  endTime: isoDateTimeSchema.describe('End time ISO string.'),
   calendarId: z.string().optional().describe('Calendar ID.'),
   description: z.string().max(10000).optional().describe('Description.'),
   location: z.string().max(500).optional().describe('Location.'),
-  guests: z.string().optional().describe('Comma-separated emails.'),
+  guests: emailListSchema.optional().describe('Comma-separated emails.'),
 }
 
 export const calendarUpdateEventSchema = {
@@ -223,8 +231,8 @@ export const calendarUpdateEventSchema = {
   title: z.string().min(1).max(1000).optional().describe('New title.'),
   description: z.string().max(10000).optional().describe('New description.'),
   location: z.string().max(500).optional().describe('New location.'),
-  startTime: z.string().optional().describe('New start time ISO.'),
-  endTime: z.string().optional().describe('New end time ISO.'),
+  startTime: isoDateTimeSchema.optional().describe('New start time ISO.'),
+  endTime: isoDateTimeSchema.optional().describe('New end time ISO.'),
 }
 
 export const calendarDeleteEventSchema = {
@@ -241,8 +249,8 @@ export const calendarRespondEventSchema = {
 
 export const calendarCreateEventSeriesSchema = {
   title: z.string().min(1).max(1000).describe('Event title.'),
-  startTime: z.string().describe('Start time ISO string.'),
-  endTime: z.string().describe('End time ISO string.'),
+  startTime: isoDateTimeSchema.describe('Start time ISO string.'),
+  endTime: isoDateTimeSchema.describe('End time ISO string.'),
   recurrence: z.string().describe('Recurrence rule (e.g. "WEEKLY", "DAILY", "MONTHLY", "YEARLY", "EVERY MONDAY").'),
   calendarId: z.string().optional().describe('Calendar ID.'),
   description: z.string().max(10000).optional().describe('Description.'),
@@ -270,7 +278,7 @@ export const calendarQuickAddSchema = {
 export const calendarBatchSchema = {
   operations: z.array(z.discriminatedUnion('action', [
     batchOperationSchema('listCalendars'),
-    batchOperationSchema('getCalendar', { calendarId: z.string().optional().describe('Calendar ID. Omit for default.') }),
+    batchOperationSchema('getCalendar', calendarGetCalendarSchema),
     batchOperationSchema('listEvents', calendarListEventsSchema),
     batchOperationSchema('searchEvents', calendarSearchEventsSchema),
     batchOperationSchema('findFreeBusy', calendarFreeBusySchema),
@@ -302,8 +310,8 @@ export const gmailSearchMessagesSchema = {
   from: z.string().max(320).optional().describe('Filter by sender.'),
   to: z.string().max(320).optional().describe('Filter by recipient.'),
   subject: z.string().max(500).optional().describe('Filter by subject.'),
-  before: z.string().optional().describe('Before date (YYYY/MM/DD).'),
-  after: z.string().optional().describe('After date (YYYY/MM/DD).'),
+  before: gmailSearchDateSchema.optional().describe('Before date (YYYY/MM/DD).'),
+  after: gmailSearchDateSchema.optional().describe('After date (YYYY/MM/DD).'),
   label: z.string().max(100).optional().describe('Filter by label.'),
   maxResults: z.number().int().min(1).max(100).default(20).describe('Max results.'),
   page: z.number().int().min(0).default(0).describe('Page number.'),
@@ -329,8 +337,8 @@ export const gmailSendSchema = {
   to: gmailEmailSchema.describe('Recipient email.'),
   subject: gmailSubjectSchema.describe('Email subject.'),
   body: gmailBodySchema.describe('Plain text body.'),
-  cc: z.string().max(1000).optional().describe('CC recipient(s).'),
-  bcc: z.string().max(1000).optional().describe('BCC recipient(s).'),
+  cc: emailListSchema.optional().describe('CC recipient(s).'),
+  bcc: emailListSchema.optional().describe('BCC recipient(s).'),
   htmlBody: z.string().max(200000).optional().describe('HTML body.'),
   ...confirmationSchema,
 }
@@ -342,8 +350,8 @@ export const gmailUpdateDraftSchema = {
   to: z.string().max(320).optional(),
   subject: z.string().max(1000).optional(),
   body: z.string().max(100000).optional(),
-  cc: z.string().max(1000).optional(),
-  bcc: z.string().max(1000).optional(),
+  cc: emailListSchema.optional(),
+  bcc: emailListSchema.optional(),
 }
 
 export const gmailMarkReadSchema = { messageId: gmailMessageIdSchema }

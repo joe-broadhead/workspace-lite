@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   docsCreateDocumentSchema, docsDocumentGetSchema,
   docsInsertParagraphSchema, docsUpdateParagraphSchema,
@@ -8,7 +9,7 @@ import {
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerDocsManageTools(server: { tool: Function }) {
+export function registerDocsManageTools(server: ToolServer) {
   server.tool(
     'docs_create_document',
     'Create a new Google Docs document.',

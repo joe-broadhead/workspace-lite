@@ -1,5 +1,6 @@
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
 import { registerTool } from '@workspace-lite/shared/tool-helpers'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   calendarCreateEventSchema, calendarUpdateEventSchema, calendarDeleteEventSchema,
   calendarRespondEventSchema, calendarCreateEventSeriesSchema, calendarSetEventColorSchema,
@@ -7,13 +8,22 @@ import {
 
 const client = createProxyClient('calendar')
 
-export function registerCalendarWriteTools(server: { tool: Function }) {
+function validateDateOrder(args: Record<string, unknown>) {
+  const start = typeof args.startTime === 'string' ? Date.parse(args.startTime) : null
+  const end = typeof args.endTime === 'string' ? Date.parse(args.endTime) : null
+  if (start !== null && Number.isNaN(start)) throw new Error('startTime must be a valid ISO datetime')
+  if (end !== null && Number.isNaN(end)) throw new Error('endTime must be a valid ISO datetime')
+  if (start !== null && end !== null && end <= start) throw new Error('endTime must be after startTime')
+}
+
+export function registerCalendarWriteTools(server: ToolServer) {
   registerTool(server, client, {
     name: 'calendar_create_event',
     description: 'Create a new calendar event. Requires title, startTime, endTime (ISO strings).',
     schema: calendarCreateEventSchema,
     action: 'createEvent',
     summary: 'Event created.',
+    validate: validateDateOrder,
   })
   registerTool(server, client, {
     name: 'calendar_update_event',
@@ -21,6 +31,7 @@ export function registerCalendarWriteTools(server: { tool: Function }) {
     schema: calendarUpdateEventSchema,
     action: 'updateEvent',
     summary: 'Event updated.',
+    validate: validateDateOrder,
   })
   registerTool(server, client, {
     name: 'calendar_delete_event',
@@ -42,6 +53,7 @@ export function registerCalendarWriteTools(server: { tool: Function }) {
     schema: calendarCreateEventSeriesSchema,
     action: 'createEventSeries',
     summary: 'Event series created.',
+    validate: validateDateOrder,
   })
   registerTool(server, client, {
     name: 'calendar_set_event_color',

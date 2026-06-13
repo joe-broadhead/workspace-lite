@@ -8,7 +8,7 @@ const server = new McpServer({
   version: '1.0.0',
 })
 
-registerDriveTools(server as unknown as { tool: Function })
+registerDriveTools(server)
 
 async function main() {
   const transport = new StdioServerTransport()

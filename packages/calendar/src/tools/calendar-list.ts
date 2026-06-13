@@ -1,8 +1,9 @@
 import { formatList, formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { calendarListEventsSchema, calendarSearchEventsSchema, calendarFreeBusySchema, calendarEventInstancesSchema, calendarQuickAddSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerCalendarListTools(server: { tool: Function }) {
+export function registerCalendarListTools(server: ToolServer) {
   server.tool('calendar_list_calendars', 'List all calendars available to your account.', {},
     async () => {
       const result = await callProxy('listCalendars')

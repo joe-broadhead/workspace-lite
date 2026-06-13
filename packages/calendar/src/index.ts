@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { registerCalendarTools } from './tools/index.js'
 
 const server = new McpServer({ name: 'google-workspace-calendar', version: '1.0.0' })
-registerCalendarTools(server as unknown as { tool: Function })
+registerCalendarTools(server)
 
 async function main() {
   const transport = new StdioServerTransport()

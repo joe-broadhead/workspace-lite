@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   sheetsSpreadsheetCreateSchema, sheetsSpreadsheetGetSchema,
   sheetsAddSheetSchema, sheetsDeleteSheetSchema,
@@ -6,7 +7,7 @@ import {
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerSheetsManageTools(server: { tool: Function }) {
+export function registerSheetsManageTools(server: ToolServer) {
   server.tool(
     'sheets_create_spreadsheet',
     'Create a new Google Sheets spreadsheet.',

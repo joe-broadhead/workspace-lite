@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   sheetsFormatRangeSchema, sheetsMergeCellsSchema,
   sheetsSetColumnWidthSchema, sheetsFreezeRowsSchema,
@@ -7,7 +8,7 @@ import {
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerSheetsFormatTools(server: { tool: Function }) {
+export function registerSheetsFormatTools(server: ToolServer) {
   server.tool(
     'sheets_format_range',
     'Apply formatting to a range. Supports background, font color/size/family/bold/italic/underline/strikethrough, alignment, number format, text wrap, and borders. Only specified properties are applied.',

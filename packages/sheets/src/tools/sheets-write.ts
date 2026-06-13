@@ -1,11 +1,12 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   sheetsRangeWriteSchema, sheetsAppendRowsSchema, sheetsClearRangeSchema,
   sheetsSetFormulaSchema, sheetsInsertRowsSchema, sheetsDeleteRowsSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerSheetsWriteTools(server: { tool: Function }) {
+export function registerSheetsWriteTools(server: ToolServer) {
   server.tool(
     'sheets_write_range',
     'Write values to a Google Sheets range. Values is a 2D array where each inner array is a row.',

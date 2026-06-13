@@ -8,7 +8,7 @@ const server = new McpServer({
   version: '1.0.0',
 })
 
-registerDocsTools(server as unknown as { tool: Function })
+registerDocsTools(server)
 
 async function main() {
   const transport = new StdioServerTransport()

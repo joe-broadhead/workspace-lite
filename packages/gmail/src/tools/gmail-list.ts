@@ -1,8 +1,9 @@
 import { formatList } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { gmailSearchMessagesSchema, gmailListThreadsSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerGmailListTools(server: { tool: Function }) {
+export function registerGmailListTools(server: ToolServer) {
   server.tool('gmail_profile', 'Get Gmail profile info.', {},
     async () => {
       const result = await callProxy('profile')

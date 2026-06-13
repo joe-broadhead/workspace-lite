@@ -1,6 +1,7 @@
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
 import type { ProxyClient } from '@workspace-lite/shared/proxy-client'
 import { registerTool } from '@workspace-lite/shared/tool-helpers'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   folderCreateSchema, fileCreateSchema, fileCopySchema, fileMoveSchema,
   fileUpdateMetaSchema, fileUpdateContentSchema,
@@ -9,7 +10,7 @@ import {
 
 const client = createProxyClient('drive')
 
-export function registerDriveWriteTools(server: { tool: Function }) {
+export function registerDriveWriteTools(server: ToolServer) {
   registerTool(server, client, {
     name: 'drive_create_folder',
     description: 'Create a new folder in Drive. Optionally specify a parent folder ID.',

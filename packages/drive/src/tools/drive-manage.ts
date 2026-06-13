@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   fileSetSharingSchema, fileAddEditorSchema, fileAddViewerSchema,
   fileRemoveEditorSchema, fileRemoveViewerSchema, fileGetSchema,
@@ -6,7 +7,7 @@ import {
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
-export function registerDriveManageTools(server: { tool: Function }) {
+export function registerDriveManageTools(server: ToolServer) {
   server.tool(
     'drive_set_sharing',
     'Set sharing access and permission level for a file. Access: ANYONE, ANYONE_WITH_LINK, DOMAIN, DOMAIN_WITH_LINK, PRIVATE. Permission: VIEW, EDIT, COMMENT.',

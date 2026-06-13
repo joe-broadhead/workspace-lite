@@ -8,7 +8,7 @@ const server = new McpServer({
   version: '1.0.0',
 })
 
-registerSlidesTools(server as unknown as { tool: Function })
+registerSlidesTools(server)
 
 async function main() {
   const transport = new StdioServerTransport()
