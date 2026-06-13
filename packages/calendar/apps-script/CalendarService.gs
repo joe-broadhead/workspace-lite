@@ -61,6 +61,45 @@ const CalendarService = (() => {
     return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
   }
 
+  function partialOk(data, results, warnings) {
+    const response = { success: true, data: data, partial: true, results: results, warnings: warnings };
+    const payload = JSON.stringify(response);
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    return response;
+  }
+
+  function withIdempotency(action, params, fn) {
+    const key = optionalString(params || {}, 'idempotencyKey');
+    if (!key) return fn();
+    if (!/^[a-zA-Z0-9._:-]{1,128}$/.test(key)) return err('BAD_REQUEST', 'idempotencyKey must be 1-128 characters: letters, numbers, dot, underscore, colon, or dash');
+
+    const store = PropertiesService.getScriptProperties();
+    const prop = 'IDEMPOTENCY:calendar:' + action + ':' + key;
+    const cached = store.getProperty(prop);
+    if (cached) {
+      try {
+        const response = JSON.parse(cached);
+        if (response && response.success === true) {
+          response.warnings = (response.warnings || []).concat(['Idempotency key replayed; mutation was not repeated.']);
+          return response;
+        }
+      } catch (_) {
+        store.deleteProperty(prop);
+      }
+    }
+
+    const response = fn();
+    if (response && response.success === true) {
+      const payload = JSON.stringify(response);
+      if (payload.length <= 8000) {
+        store.setProperty(prop, payload);
+      } else {
+        response.warnings = (response.warnings || []).concat(['Idempotency result was too large to cache; retry may repeat the mutation.']);
+      }
+    }
+    return response;
+  }
+
   // ─── Parameter helpers ───
 
   // NOTE: throws as implicit output — consider returning err() for testability
@@ -91,6 +130,16 @@ const CalendarService = (() => {
     if (params[name] === 'true') return true;
     if (params[name] === 'false') return false;
     return def;
+  }
+
+  function parseGuestEmails(guests) {
+    const emails = guests ? guests.split(',').map(function(e) { return e.trim(); }).filter(Boolean) : [];
+    const invalid = [];
+    for (let i = 0; i < emails.length; i++) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emails[i])) invalid.push(emails[i]);
+    }
+    if (invalid.length > 0) return { error: err('BAD_REQUEST', 'Invalid guest email(s): ' + invalid.join(', ')) };
+    return { emails: emails };
   }
 
   function boundedPageSize(params, name, def) {
@@ -323,10 +372,10 @@ const CalendarService = (() => {
     const text = requireParam(params, 'text');
     const calendarId = optionalString(params, 'calendarId', 'primary');
 
-    return trap(function() {
+    return withIdempotency('quickAdd', params, function() { return trap(function() {
       const event = Calendar.Events.quickAdd(calendarId, text);
       return { event: event };
-    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not quick-add event'; });
+    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not quick-add event'; }); });
   }
 
   // ─── WRITE ───
@@ -339,8 +388,10 @@ const CalendarService = (() => {
     const description = optionalString(params, 'description', '');
     const location = optionalString(params, 'location', '');
     const guests = optionalString(params, 'guests', '');
+    const guestList = parseGuestEmails(guests);
+    if (guestList.error) return guestList.error;
 
-    return trap(function() {
+    return withIdempotency('createEvent', params, function() { return trap(function() {
       const cal = resolveCalendar(calendarId);
 
       const event = cal.createEvent(title, new Date(startTime), new Date(endTime), {
@@ -351,26 +402,33 @@ const CalendarService = (() => {
       const addedGuests = [];
       const failedGuests = [];
 
-      if (guests) {
-        const emails = guests.split(',').map(function(e) { return e.trim(); }).filter(Boolean);
-        for (let i = 0; i < emails.length; i++) {
+      if (guestList.emails.length > 0) {
+        for (let i = 0; i < guestList.emails.length; i++) {
           try {
-            event.addGuest(emails[i]);
-            addedGuests.push(emails[i]);
+            event.addGuest(guestList.emails[i]);
+            addedGuests.push(guestList.emails[i]);
           } catch (_) {
-            failedGuests.push(emails[i]);
+            failedGuests.push(guestList.emails[i]);
           }
         }
       }
 
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
-      return {
+      const data = {
         event: e,
         addedGuests: addedGuests,
         failedGuests: failedGuests,
       };
-    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not create event'; });
+      if (failedGuests.length > 0) {
+        return partialOk(
+          data,
+          [{ action: 'addGuests', success: false, error: { code: 'GUEST_ADD_FAILED', message: 'Event was created, but one or more guests could not be added.' }, data: { eventId: e.id, failedGuests: failedGuests, addedGuests: addedGuests } }],
+          ['Event was created; retry with the same idempotencyKey will not create a duplicate event.'],
+        );
+      }
+      return data;
+    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not create event'; }); });
   }
 
   function updateEvent(params) {
@@ -481,7 +539,7 @@ const CalendarService = (() => {
     const description = optionalString(params, 'description', '');
     const location = optionalString(params, 'location', '');
 
-    return trap(function() {
+    return withIdempotency('createEventSeries', params, function() { return trap(function() {
       const cal = resolveCalendar(calendarId);
 
       const recBuilder = CalendarApp.newRecurrence();
@@ -528,7 +586,7 @@ const CalendarService = (() => {
         end: endTime,
         recurrence: recurrence,
       };
-    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not create event series'; });
+    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not create event series'; }); });
   }
 
   function setEventColor(params) {

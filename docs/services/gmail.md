@@ -97,3 +97,4 @@ gmail_archive({ messageId: "<msg-id>" })
 - The Gmail API enforces daily usage quotas; batch operations help reduce API calls.
 - Attachments are referenced in message responses but are not downloaded inline; use Drive tools to fetch attachment content.
 - Gmail search query syntax uses operators like `from:`, `subject:`, `label:`, `has:attachment`, `is:unread`, etc. Refer to Google's Gmail search documentation for the full syntax.
+- For retry and partial-success behavior of sends, draft replacement, and `idempotencyKey`, see [Mutation Safety](../operations/mutation-safety.md).

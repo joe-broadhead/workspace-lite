@@ -79,3 +79,4 @@ calendar_find_freebusy({
 - `find_freebusy` returns busy periods; determining available slots requires computing the gaps.
 - Recurring event instances are listed as separate items; modifying a recurring series requires the recurrence rule from the parent event.
 - Calendar IDs for shared/group calendars must be obtained from `list_calendars`; they are not discoverable by name.
+- For retry and partial-success behavior of event creation, guest invitation failures, and `idempotencyKey`, see [Mutation Safety](../operations/mutation-safety.md).

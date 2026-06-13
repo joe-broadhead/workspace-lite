@@ -113,6 +113,45 @@ const GmailService = (() => {
     return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
   }
 
+  function partialOk(data, results, warnings) {
+    const response = { success: true, data: data, partial: true, results: results, warnings: warnings };
+    const payload = JSON.stringify(response);
+    if (payload.length > LIMITS.responseBytes) return limitExceeded('response bytes', payload.length, LIMITS.responseBytes);
+    return response;
+  }
+
+  function withIdempotency(action, params, fn) {
+    const key = optionalString(params || {}, 'idempotencyKey');
+    if (!key) return fn();
+    if (!/^[a-zA-Z0-9._:-]{1,128}$/.test(key)) return err('BAD_REQUEST', 'idempotencyKey must be 1-128 characters: letters, numbers, dot, underscore, colon, or dash');
+
+    const store = PropertiesService.getScriptProperties();
+    const prop = 'IDEMPOTENCY:gmail:' + action + ':' + key;
+    const cached = store.getProperty(prop);
+    if (cached) {
+      try {
+        const response = JSON.parse(cached);
+        if (response && response.success === true) {
+          response.warnings = (response.warnings || []).concat(['Idempotency key replayed; mutation was not repeated.']);
+          return response;
+        }
+      } catch (_) {
+        store.deleteProperty(prop);
+      }
+    }
+
+    const response = fn();
+    if (response && response.success === true) {
+      const payload = JSON.stringify(response);
+      if (payload.length <= 8000) {
+        store.setProperty(prop, payload);
+      } else {
+        response.warnings = (response.warnings || []).concat(['Idempotency result was too large to cache; retry may repeat the mutation.']);
+      }
+    }
+    return response;
+  }
+
   function boundedPageSize(params, name, def) {
     const value = Math.floor(optionalNumber(params, name, def));
     if (value < 1) return { error: err('BAD_REQUEST', `${name} must be at least 1`) };
@@ -421,7 +460,7 @@ const GmailService = (() => {
   // ─── WRITE ───
 
   function send(params) {
-    try {
+    return withIdempotency('send', params, function() { try {
       const to = requireParam(params, 'to');
       const subject = requireParam(params, 'subject');
       const body = requireParam(params, 'body');
@@ -440,7 +479,7 @@ const GmailService = (() => {
       const correlationId = Utilities.getUuid();
       console.error('[gmail-proxy] correlationId=%s code=SEND_FAILED error=%s', correlationId, e && e.message ? e.message : String(e));
       return err('SEND_FAILED', 'Could not send email. See Apps Script logs with correlationId ' + correlationId + '.', correlationId);
-    }
+    } });
   }
 
   function markRead(params) {
@@ -579,13 +618,15 @@ const GmailService = (() => {
     if (cc) options.cc = cc;
     if (bcc) options.bcc = bcc;
 
-    const draft = GmailApp.createDraft(to, subject, body, options);
-    return ok({ draft: draftToJSON(draft) });
+    return withIdempotency('createDraft', params, function() {
+      const draft = GmailApp.createDraft(to, subject, body, options);
+      return ok({ draft: draftToJSON(draft) });
+    });
   }
 
   function updateDraft(params) {
     const id = requireParam(params, 'draftId');
-    return trap(function() {
+    return withIdempotency('updateDraft', params, function() { return trap(function() {
       const draft = findDraftById(id);
       if (!draft) throw new Error('Not found');
 
@@ -600,10 +641,26 @@ const GmailService = (() => {
       if (cc) options.cc = cc;
       if (bcc) options.bcc = bcc;
 
-      draft.deleteDraft();
       const newDraft = GmailApp.createDraft(to, subject, body, options);
+      try {
+        draft.deleteDraft();
+      } catch (deleteError) {
+        try {
+          newDraft.deleteDraft();
+        } catch (rollbackError) {
+          const replacement = draftToJSON(newDraft);
+          return partialOk(
+            { draft: replacement, originalDraftId: id, rollbackFailed: true },
+            [{ action: 'deleteOriginalDraft', success: false, error: { code: 'DRAFT_DELETE_FAILED', message: 'Replacement draft was created, but the original draft could not be deleted and rollback failed.' }, data: { originalDraftId: id, replacementDraftId: replacement.id } }],
+            ['Two drafts may now exist. Review both draft IDs before retrying.'],
+          );
+        }
+        const correlationId = Utilities.getUuid();
+        console.error('[gmail-proxy] correlationId=%s code=UPDATE_FAILED deleteError=%s', correlationId, deleteError && deleteError.message ? deleteError.message : String(deleteError));
+        return err('UPDATE_FAILED', 'Could not replace draft; original draft was preserved and replacement was rolled back. See Apps Script logs with correlationId ' + correlationId + '.', correlationId);
+      }
       return { draft: draftToJSON(newDraft) };
-    }, 'UPDATE_FAILED', `Could not update draft: ${id}`);
+    }, 'UPDATE_FAILED', `Could not update draft: ${id}`); });
   }
 
   function deleteDraft(params) {
@@ -618,12 +675,12 @@ const GmailService = (() => {
 
   function sendDraft(params) {
     const id = requireParam(params, 'draftId');
-    return trap(function() {
+    return withIdempotency('sendDraft', params, function() { return trap(function() {
       const draft = findDraftById(id);
       if (!draft) throw new Error('Not found');
       draft.send();
       return { sent: true, draftId: id };
-    }, 'SEND_FAILED', `Could not send draft: ${id}`);
+    }, 'SEND_FAILED', `Could not send draft: ${id}`); });
   }
 
   // ─── REPLY & FORWARD ───
@@ -633,10 +690,10 @@ const GmailService = (() => {
     validateMessageId(id);
     const body = requireParam(params, 'body');
     const options = buildReplyOptions(params);
-    return trap(function() {
+    return withIdempotency('reply', params, function() { return trap(function() {
       GmailApp.getMessageById(id).reply(body, options);
       return { replied: true, messageId: id };
-    }, 'REPLY_FAILED', function(e) { return e.message || `Could not reply to message: ${id}`; });
+    }, 'REPLY_FAILED', function(e) { return e.message || `Could not reply to message: ${id}`; }); });
   }
 
   function replyAll(params) {
@@ -644,10 +701,10 @@ const GmailService = (() => {
     validateMessageId(id);
     const body = requireParam(params, 'body');
     const options = buildReplyOptions(params);
-    return trap(function() {
+    return withIdempotency('replyAll', params, function() { return trap(function() {
       GmailApp.getMessageById(id).replyAll(body, options);
       return { repliedAll: true, messageId: id };
-    }, 'REPLY_FAILED', function(e) { return e.message || `Could not reply all to message: ${id}`; });
+    }, 'REPLY_FAILED', function(e) { return e.message || `Could not reply all to message: ${id}`; }); });
   }
 
   function forwardMsg(params) {
@@ -655,10 +712,10 @@ const GmailService = (() => {
     validateMessageId(id);
     const to = requireParam(params, 'to');
     const options = buildReplyOptions(params);
-    return trap(function() {
+    return withIdempotency('forward', params, function() { return trap(function() {
       GmailApp.getMessageById(id).forward(to, options);
       return { forwarded: true, messageId: id, to: to };
-    }, 'FORWARD_FAILED', function(e) { return e.message || `Could not forward message: ${id}`; });
+    }, 'FORWARD_FAILED', function(e) { return e.message || `Could not forward message: ${id}`; }); });
   }
 
   function createDraftReply(params) {
@@ -666,11 +723,11 @@ const GmailService = (() => {
     validateMessageId(id);
     const body = requireParam(params, 'body');
     const options = buildReplyOptions(params);
-    return trap(function() {
+    return withIdempotency('createDraftReply', params, function() { return trap(function() {
       const msg = GmailApp.getMessageById(id);
       const draft = msg.createDraftReply(body, options);
       return { draft: draftToJSON(draft) };
-    }, 'DRAFT_FAILED', function(e) { return e.message || `Could not create draft reply: ${id}`; });
+    }, 'DRAFT_FAILED', function(e) { return e.message || `Could not create draft reply: ${id}`; }); });
   }
 
   function createDraftReplyAll(params) {
@@ -678,11 +735,11 @@ const GmailService = (() => {
     validateMessageId(id);
     const body = requireParam(params, 'body');
     const options = buildReplyOptions(params);
-    return trap(function() {
+    return withIdempotency('createDraftReplyAll', params, function() { return trap(function() {
       const msg = GmailApp.getMessageById(id);
       const draft = msg.createDraftReplyAll(body, options);
       return { draft: draftToJSON(draft) };
-    }, 'DRAFT_FAILED', function(e) { return e.message || `Could not create draft reply all: ${id}`; });
+    }, 'DRAFT_FAILED', function(e) { return e.message || `Could not create draft reply all: ${id}`; }); });
   }
 
   // ─── DESTRUCTIVE ───

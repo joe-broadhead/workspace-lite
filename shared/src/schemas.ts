@@ -5,6 +5,12 @@ export const driveIdSchema = googleIdSchema.describe('Drive file or folder ID.')
 export const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO datetime')
 export const gmailSearchDateSchema = z.string().regex(/^\d{4}\/\d{1,2}\/\d{1,2}$/, 'Use Gmail date format YYYY/MM/DD')
 export const emailListSchema = z.string().max(1000).refine((value) => value.split(',').map((email) => email.trim()).filter(Boolean).every((email) => z.string().email().safeParse(email).success), 'Use comma-separated email addresses')
+export const idempotencyKeySchema = z.string()
+  .min(1)
+  .max(128)
+  .regex(/^[a-zA-Z0-9._:-]+$/, 'Use letters, numbers, dot, underscore, colon, or dash')
+  .optional()
+  .describe('Stable caller-provided key used to deduplicate retry-prone create, send, and share operations.')
 
 export const confirmationSchema = {
   confirm: z.boolean().optional().describe('Required for server-gated send, share, or destructive actions after explicit user approval.'),
@@ -57,6 +63,7 @@ export const folderListSchema = {
 export const folderCreateSchema = {
   name: z.string().describe('Folder name.'),
   parentId: driveIdSchema.optional().describe('Parent folder ID. Omit for root.'),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const fileCreateSchema = {
@@ -64,12 +71,14 @@ export const fileCreateSchema = {
   content: z.string().max(1000000).describe('File content.'),
   mimeType: z.string().default('text/plain').describe('MIME type (e.g. text/markdown, application/json).'),
   parentId: driveIdSchema.optional().describe('Parent folder ID. Omit for root.'),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const fileCopySchema = {
   fileId: driveIdSchema.describe('Source file ID.'),
   name: z.string().optional().describe('New name for copy.'),
   destFolderId: driveIdSchema.optional().describe('Destination folder ID.'),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const fileMoveSchema = {
@@ -92,18 +101,21 @@ export const fileSetSharingSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   access: z.enum(['ANYONE', 'ANYONE_WITH_LINK', 'DOMAIN', 'DOMAIN_WITH_LINK', 'PRIVATE']).describe('Sharing access level.'),
   permission: z.enum(['NONE', 'VIEW', 'EDIT', 'COMMENT', 'ORGANIZER', 'FILE_ORGANIZER', 'OWNER']).describe('Sharing permission.'),
+  idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
 export const fileAddEditorSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   email: z.string().email().describe('Email to add as editor.'),
+  idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
 export const fileAddViewerSchema = {
   fileId: driveIdSchema.describe('File ID.'),
   email: z.string().email().describe('Email to add as viewer.'),
+  idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
@@ -146,6 +158,7 @@ export const driveCommentsListSchema = {
 export const driveCommentCreateSchema = {
   fileId: driveIdSchema.describe('Drive file ID to comment on.'),
   content: z.string().min(1).describe('Comment text content.'),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const driveBatchSchema = {
@@ -223,6 +236,7 @@ export const calendarCreateEventSchema = {
   description: z.string().max(10000).optional().describe('Description.'),
   location: z.string().max(500).optional().describe('Location.'),
   guests: emailListSchema.optional().describe('Comma-separated emails.'),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const calendarUpdateEventSchema = {
@@ -255,6 +269,7 @@ export const calendarCreateEventSeriesSchema = {
   calendarId: z.string().optional().describe('Calendar ID.'),
   description: z.string().max(10000).optional().describe('Description.'),
   location: z.string().max(500).optional().describe('Location.'),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const calendarSetEventColorSchema = {
@@ -273,6 +288,7 @@ export const calendarEventInstancesSchema = {
 export const calendarQuickAddSchema = {
   text: z.string().min(1).describe('Natural language event description (e.g. "Lunch with Sarah tomorrow at noon").'),
   calendarId: z.string().optional().describe('Calendar ID. Defaults to "primary".'),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const calendarBatchSchema = {
@@ -331,7 +347,7 @@ export const gmailGetThreadSchema = { threadId: gmailThreadIdSchema }
 export const gmailListDraftsSchema = { maxResults: z.number().int().min(1).max(100).default(20).optional().describe('Max drafts.') }
 export const gmailGetDraftSchema = { draftId: gmailDraftIdSchema }
 export const gmailDeleteDraftSchema = { draftId: gmailDraftIdSchema, ...confirmationSchema }
-export const gmailSendDraftSchema = { draftId: gmailDraftIdSchema, ...confirmationSchema }
+export const gmailSendDraftSchema = { draftId: gmailDraftIdSchema, idempotencyKey: idempotencyKeySchema, ...confirmationSchema }
 
 export const gmailSendSchema = {
   to: gmailEmailSchema.describe('Recipient email.'),
@@ -340,6 +356,7 @@ export const gmailSendSchema = {
   cc: emailListSchema.optional().describe('CC recipient(s).'),
   bcc: emailListSchema.optional().describe('BCC recipient(s).'),
   htmlBody: z.string().max(200000).optional().describe('HTML body.'),
+  idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
@@ -352,6 +369,7 @@ export const gmailUpdateDraftSchema = {
   body: z.string().max(100000).optional(),
   cc: emailListSchema.optional(),
   bcc: emailListSchema.optional(),
+  idempotencyKey: idempotencyKeySchema,
 }
 
 export const gmailMarkReadSchema = { messageId: gmailMessageIdSchema }
@@ -374,6 +392,7 @@ export const gmailReplySchema = {
   messageId: gmailMessageIdSchema,
   body: gmailBodySchema.describe('Reply body.'),
   htmlBody: z.string().max(200000).optional().describe('HTML body.'),
+  idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
@@ -383,6 +402,7 @@ export const gmailForwardSchema = {
   messageId: gmailMessageIdSchema,
   to: gmailEmailSchema.describe('Recipient email.'),
   htmlBody: z.string().max(200000).optional(),
+  idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 

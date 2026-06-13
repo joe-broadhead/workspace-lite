@@ -96,3 +96,4 @@ drive_file_export({
 - `file_delete` is destructive and cannot be undone after the trash step completes.
 - File listing and searching are paginated; use `page` and `pageSize` parameters to navigate large result sets.
 - Shared drive (Team Drive) support is not included in this surface; operations target "My Drive" and shared-with-me files.
+- For retry and partial-success behavior of `drive_move_file`, create/copy/share tools, and `idempotencyKey`, see [Mutation Safety](../operations/mutation-safety.md).

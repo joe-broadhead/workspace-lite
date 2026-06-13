@@ -110,6 +110,7 @@ nav:
       - Error Codes: api/error-codes.md
   - Operations:
       - Quotas & Limits: operations/quotas.md
+      - Mutation Safety: operations/mutation-safety.md
       - Troubleshooting: operations/troubleshooting.md
       - Security: operations/security.md
 

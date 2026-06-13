@@ -4,7 +4,9 @@ Every service exposes a `batch` tool that executes up to 20 operations in a sing
 
 ## How It Works
 
-The batch endpoint on the Apps Script proxy receives an ordered array of `{action, params}` objects, executes them sequentially, and returns a `results` array — one entry per operation. Execution is **strictly sequential**, so operation N+1 sees the effects of operations 1 through N. If an operation fails, execution continues through the remaining operations; errors are collected alongside successes.
+The batch endpoint on the Apps Script proxy receives an ordered array of `{action, params}` objects, executes them sequentially, and returns a `results` array - one entry per operation. Execution is **strictly sequential**, so operation N+1 sees the effects of operations 1 through N. If an operation fails, execution continues through the remaining operations; errors are collected alongside successes.
+
+If any operation fails, the proxy returns top-level `partial: true` and top-level `results`. Do not treat a successful HTTP response as an atomic transaction.
 
 ```
 POST /exec
@@ -53,33 +55,50 @@ Response:
 {
   "success": true,
   "data": {
-    "results": [
-      {
-        "index": 0,
-        "action": "fileSearch",
-        "success": true,
-        "data": [
-          { "id": "abc123", "name": "Q4_Report.pdf", "mimeType": "application/pdf" }
-        ]
-      },
-      {
-        "index": 1,
-        "action": "fileCreate",
-        "success": true,
-        "data": {
-          "file": { "id": "xyz789", "name": "README.md", "mimeType": "text/markdown" }
-        }
-      },
-      {
-        "index": 2,
-        "action": "fileGetPermissions",
-        "success": false,
-        "error": { "code": "NOT_FOUND", "message": "File not found: abc123XYZ456" }
+    "status": "PARTIAL_SUCCESS",
+    "totalOperations": 3,
+    "succeeded": 2,
+    "failed": 1,
+    "operationWeight": 5
+  },
+  "partial": true,
+  "results": [
+    {
+      "index": 0,
+      "action": "fileSearch",
+      "success": true,
+      "data": [
+        { "id": "abc123", "name": "Q4_Report.pdf", "mimeType": "application/pdf" }
+      ]
+    },
+    {
+      "index": 1,
+      "action": "fileCreate",
+      "success": true,
+      "data": {
+        "file": { "id": "xyz789", "name": "README.md", "mimeType": "text/markdown" }
       }
-    ]
-  }
+    },
+    {
+      "index": 2,
+      "action": "fileGetPermissions",
+      "success": false,
+      "error": { "code": "NOT_FOUND", "message": "File not found: abc123XYZ456" }
+    }
+  ]
 }
 ```
+
+## Atomicity And Retries
+
+Batch operations are not atomic. A successful batch with `partial: true` means at least one operation mutated state and at least one operation failed.
+
+Retry guidance:
+
+- Include `idempotencyKey` inside retry-prone create, send, and share operation params when the schema supports it.
+- If a batch returns `partial: true`, use the per-operation `results` to decide which operations already completed before retrying.
+- If a client times out and no response is available, inspect affected resources before retrying operations that did not include idempotency keys.
+- Destructive operations still require confirmation inside their operation params.
 
 ## Action Name Mapping
 
