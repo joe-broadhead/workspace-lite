@@ -1,7 +1,7 @@
 ---
 name: google-workspace
 version: 1.0.0
-description: "Google Workspace automation: Drive (29 tools), Gmail (33), Calendar (15), Sheets (27), Slides (18), Docs (17). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, or write documents."
+description: "Google Workspace automation: Drive (29 tools), Gmail (33), Calendar (15), Sheets (27), Slides (19), Docs (17), Tasks (13). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, or manage tasks."
 metadata:
   requires:
     bins: []
@@ -9,7 +9,7 @@ metadata:
 
 # Google Workspace Assistant
 
-Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`.
+Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `slides_*`, `docs_*`, `tasks_*`.
 
 ## Quick Start
 
@@ -41,6 +41,7 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`.
 | Write document | `docs_create_document` → `docs_batch` for compound setup |
 | Format document | `docs_insert_paragraph` with heading → `docs_format_text` for styling |
 | Doc as JSON | `docs_get_as_json` — full structured document tree |
+| Manage tasks | `tasks_list_tasklists` → `tasks_list_tasks` → `tasks_create_task` / `tasks_update_task` |
 
 ## When to Load References
 
@@ -59,6 +60,7 @@ Read the relevant reference file before executing complex multi-tool workflows.
 - **Never create** calendar events without suggesting a time and getting approval
 - **Never `sheets_delete_sheet`**, `sheets_clear_range`, or `sheets_delete_rows` without confirmation
 - **Never `drive_remove_parent`**, `drive_remove_editor` / `drive_remove_viewer` without confirmation
+- **Never `tasks_delete_tasklist`**, `tasks_delete_task`, or `tasks_clear_completed` without confirmation
 - **Use `sheets_batch`** for compound spreadsheet operations (one round-trip vs many)
 - **Use `sheets_batch_get`** to read multiple ranges in a single API call
 - **Handle errors**: partial failures in `sheets_batch` / `drive_batch` / `calendar_batch` etc. are collected per-operation — check `results[].success`

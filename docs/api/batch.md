@@ -266,6 +266,23 @@ The `action` field in each operation uses the **same names as the individual too
 | `docs_set_footer` | `footerSet` |
 | `docs_get_as_json` | `documentGetJson` |
 
+### Tasks
+
+| Individual Tool | Batch `action` |
+|---|---|
+| `tasks_list_tasklists` | `tasklistsList` |
+| `tasks_get_tasklist` | `tasklistsGet` |
+| `tasks_create_tasklist` | `tasklistsCreate` |
+| `tasks_update_tasklist` | `tasklistsUpdate` |
+| `tasks_delete_tasklist` | `tasklistsDelete` |
+| `tasks_list_tasks` | `tasksList` |
+| `tasks_get_task` | `tasksGet` |
+| `tasks_create_task` | `tasksCreate` |
+| `tasks_update_task` | `tasksUpdate` |
+| `tasks_delete_task` | `tasksDelete` |
+| `tasks_move_task` | `tasksMove` |
+| `tasks_clear_completed` | `tasksClear` |
+
 ## Error Response Format
 
 Each result entry in the `results` array has this shape:

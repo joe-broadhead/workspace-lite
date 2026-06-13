@@ -55,6 +55,7 @@ Each service requires its own set of OAuth scopes:
 | Sheets | `https://www.googleapis.com/auth/spreadsheets` |
 | Slides | `https://www.googleapis.com/auth/presentations` |
 | Docs | `https://www.googleapis.com/auth/documents` |
+| Tasks | `https://www.googleapis.com/auth/tasks` |
 
 ---
 

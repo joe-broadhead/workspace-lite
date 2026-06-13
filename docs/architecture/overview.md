@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 140 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 153 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
@@ -16,6 +16,7 @@ graph LR
     C -->|Workspace APIs| G[Sheets API]
     C -->|Workspace APIs| H[Slides API]
     C -->|Workspace APIs| I[Docs API]
+    C -->|Workspace APIs| J[Tasks API]
 ```
 
 | Layer | Technology | Responsibility |
@@ -33,7 +34,7 @@ graph LR
 workspace-lite/
 ├── shared/                     # Shared TypeScript package
 │   └── src/
-│       ├── schemas.ts          # Zod schemas for all 6 services (789 lines)
+│       ├── schemas.ts          # Zod schemas for all services
 │       ├── response.ts         # ProxyResponse interface, format helpers
 │       └── index.ts            # Barrel exports
 ├── packages/
@@ -46,8 +47,9 @@ workspace-lite/
 │   ├── gmail/                  # 33 tools
 │   ├── calendar/               # 15 tools
 │   ├── sheets/                 # 27 tools
-│   ├── slides/                 # 18 tools
-│   └── docs/                   # 17 tools
+│   ├── slides/                 # 19 tools
+│   ├── docs/                   # 17 tools
+│   └── tasks/                  # 13 tools
 ├── scripts/
 │   └── setup.sh                # One-shot setup: clasp login → create → push → deploy guide → bootstrap
 ├── skills/
@@ -185,7 +187,7 @@ function isRateLimited(token, maxWeight, weight) {
 | Aspect | Detail |
 |--------|--------|
 | Rate limit | 100 weighted units per 60-second window |
-| Per proxy | Separate rate limit for each of the 6 services |
+| Per proxy | Separate rate limit for each of the 7 services |
 | Response on limit | `{ success: false, error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 60 seconds." } }` |
 | Implementation | `CacheService` &mdash; zero external dependencies, works across all instances of a deployment |
 

@@ -7,7 +7,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-SERVICES=("drive" "gmail" "calendar" "sheets" "slides" "docs")
+SERVICES=("drive" "gmail" "calendar" "sheets" "slides" "docs" "tasks")
 DRY_RUN=0
 if [ "${1:-}" = "--dry-run" ]; then
   DRY_RUN=1
@@ -73,7 +73,7 @@ npm run build
 success "Build complete"
 
 # ── Create Projects + Push ──
-banner "Creating Apps Script projects (6 total)"
+banner "Creating Apps Script projects (${#SERVICES[@]} total)"
 for svc in "${SERVICES[@]}"; do
   dir="$ROOT/packages/$svc/apps-script"
   echo ""
@@ -113,6 +113,7 @@ for svc in "${SERVICES[@]}"; do
     sheets)   title="Google Workspace Proxy - Sheets" ;;
     slides)   title="Google Workspace Proxy - Slides" ;;
     docs)     title="Google Workspace Proxy - Docs" ;;
+    tasks)    title="Google Workspace Proxy - Tasks" ;;
   esac
 
   if [ "$DRY_RUN" -eq 1 ]; then
@@ -139,7 +140,7 @@ done
 # ── Deployment Guide ──
 banner "Deployment"
 echo ""
-echo "Each service needs a web app deployment. You'll need to do this 6 times."
+echo "Each service needs a web app deployment. You'll need to do this ${#SERVICES[@]} times."
 echo "For each service below:"
 echo "  1. Run: cd packages/<service>/apps-script && clasp open"
 echo "  2. Deploy → New deployment → Type: Web app"
@@ -238,4 +239,4 @@ banner "Install skill"
 echo ""
 echo "  ln -sf \"$ROOT/skills/google-workspace\" ~/.config/opencode/skills/google-workspace"
 echo ""
-success "Setup complete. Restart OpenCode to use all 140 tools."
+success "Setup complete. Restart OpenCode to use all 153 tools."

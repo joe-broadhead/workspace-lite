@@ -220,3 +220,26 @@
 | `docs_set_footer` | `documentId`, `text` (empty string to clear) |
 
 | **Batch** | `docs_batch` | `documentId`, `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
+
+## Tasks — 13 tools
+
+**Task Lists:**
+| Tool | Params |
+|---|---|
+| `tasks_list_tasklists` | `maxResults?`, `pageToken?` |
+| `tasks_get_tasklist` | `tasklistId` |
+| `tasks_create_tasklist` | `title`, `idempotencyKey?` |
+| `tasks_update_tasklist` | `tasklistId`, `title` |
+| `tasks_delete_tasklist` | `tasklistId`, `confirm` |
+
+**Tasks:**
+| Tool | Params |
+|---|---|
+| `tasks_list_tasks` | `tasklistId`, `maxResults?`, `pageToken?`, `showCompleted?`, `showDeleted?`, `showHidden?`, `completedMin?`, `completedMax?`, `dueMin?`, `dueMax?`, `updatedMin?` |
+| `tasks_get_task` | `tasklistId`, `taskId` |
+| `tasks_create_task` | `tasklistId`, `title`, `notes?`, `due?`, `status?`, `parent?`, `previous?`, `idempotencyKey?` |
+| `tasks_update_task` | `tasklistId`, `taskId`, then any of: `title?`, `notes?`, `due?`, `status?` (`needsAction`/`completed`) |
+| `tasks_delete_task` | `tasklistId`, `taskId`, `confirm` |
+| `tasks_move_task` | `tasklistId`, `taskId`, `parent?`, `previous?` |
+| `tasks_clear_completed` | `tasklistId`, `confirm` |
+| **Batch** | `tasks_batch` | `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |

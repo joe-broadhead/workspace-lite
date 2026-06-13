@@ -19,6 +19,8 @@ for (const name of [
   'gmailSendDraftSchema',
   'gmailReplySchema',
   'gmailForwardSchema',
+  'tasksCreateTasklistSchema',
+  'tasksCreateTaskSchema',
 ]) {
   const start = schemas.indexOf(`export const ${name}`)
   const end = schemas.indexOf('\n}\n', start)
@@ -48,6 +50,11 @@ if (!calendar.includes('function parseGuestEmails')) failures.push('Calendar cre
 if (!calendar.includes('GUEST_ADD_FAILED')) failures.push('Calendar createEvent must surface guest add failures as partial success')
 if (!calendar.includes("withIdempotency('createEvent'")) failures.push('Calendar createEvent must support idempotency replay')
 if (!calendar.includes('IDEMPOTENCY:calendar:')) failures.push('Calendar mutations must support idempotency replay')
+
+const tasks = readFileSync('packages/tasks/apps-script/TasksService.gs', 'utf8')
+if (!tasks.includes("withIdempotency('tasklistsCreate'")) failures.push('Tasks tasklist create must support idempotency replay')
+if (!tasks.includes("withIdempotency('tasksCreate'")) failures.push('Tasks task create must support idempotency replay')
+if (!tasks.includes('IDEMPOTENCY:tasks:')) failures.push('Tasks mutations must support idempotency replay')
 
 const mutationDocs = readFileSync('docs/operations/mutation-safety.md', 'utf8')
 for (const term of ['drive_move_file', 'gmail_update_draft', 'calendar_create_event', 'idempotencyKey', 'partial: true', 'Retry guidance']) {

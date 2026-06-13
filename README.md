@@ -33,7 +33,8 @@ MCP servers exposing all Google Workspace services through Apps Script web app p
 | `sheets` | 27 | ✅ | Create/read/write/append, formulas, formatting, charts, sort, freeze, merge, notes, data validation, conditional formatting, row ops |
 | `slides` | 19 | ✅ | Create, add/delete/duplicate/move slides, text, images, shapes, tables, auto-position, notes, backgrounds, lines |
 | `docs` | 17 | ✅ | Create/read, paragraphs, headings, lists, tables, images, page breaks, text formatting, headers/footers, JSON export |
-| **Total** | **140** | all 6 | |
+| `tasks` | 13 | ✅ | Task lists and tasks: list/get/create/update/delete, move tasks, clear completed |
+| **Total** | **153** | all 7 | |
 
 ## Quick Start (one-time setup)
 
@@ -62,7 +63,7 @@ chmod +x scripts/setup.sh
 
 The script will:
 1. Authenticate with clasp (opens browser once)
-2. Create 6 Apps Script projects (one per service)
+2. Create 7 Apps Script projects (one per service)
 3. Push code to all projects
 4. Guide you through web app deployment (GUI step, 6×)
 5. Collect deployment URLs and bootstrap tokens
@@ -102,6 +103,7 @@ packages/calendar/src/index.ts → Calendar Proxy → CalendarApp
 packages/sheets/src/index.ts → Sheets Proxy → SpreadsheetApp
 packages/slides/src/index.ts → Slides Proxy → SlidesApp
 packages/docs/src/index.ts   →  Docs Proxy   →  DocumentApp
+packages/tasks/src/index.ts  → Tasks Proxy   →  Tasks API
 ```
 
 All Apps Script proxies share identical auth, rate limiting, and response patterns.

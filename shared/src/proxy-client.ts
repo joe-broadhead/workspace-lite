@@ -115,6 +115,16 @@ const ACTION_TOKEN_CLASSES: Record<string, Record<string, TokenClass>> = {
     slideDelete: 'destructive',
     elementDelete: 'destructive',
   },
+  tasks: {
+    tasklistsCreate: 'write',
+    tasklistsUpdate: 'write',
+    tasksCreate: 'write',
+    tasksUpdate: 'write',
+    tasksMove: 'write',
+    tasklistsDelete: 'destructive',
+    tasksDelete: 'destructive',
+    tasksClear: 'destructive',
+  },
 }
 
 function actionTokenClass(service: string, action: string, params?: Record<string, unknown>): TokenClass {

@@ -3,7 +3,7 @@
 Verify your installation and learn the basic patterns in 5 examples.
 
 !!! tip "Prerequisites"
-    Complete the [installation](installation.md) first. All 6 MCP servers must be configured in OpenCode.
+    Complete the [installation](installation.md) first. All 7 MCP servers must be configured in OpenCode.
 
 ---
 

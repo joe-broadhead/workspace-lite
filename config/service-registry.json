@@ -90,6 +90,21 @@
         "https://www.googleapis.com/auth/documents",
         "https://www.googleapis.com/auth/script.external_request"
       ]
+    },
+    {
+      "key": "tasks",
+      "title": "Tasks",
+      "globalName": "TasksService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-tasks",
+      "toolCount": 13,
+      "advancedServices": [
+        { "userSymbol": "Tasks", "version": "v1", "serviceId": "tasks" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/tasks",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
     }
   ]
 }

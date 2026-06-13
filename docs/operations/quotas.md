@@ -102,6 +102,16 @@ The proxy rejects requests before or immediately after bounded API calls when th
 | Text returned from slide elements or notes | 200,000 characters |
 | Total response payload | 1,000,000 JSON characters |
 
+### Tasks Proxy
+
+| Limit | Value |
+|---|---:|
+| Task lists returned by `tasks_list_tasklists` | 100 |
+| Tasks returned by `tasks_list_tasks` | 100 |
+| Task or task list title | 1,024 characters |
+| Task notes | 10,000 characters |
+| Total response payload | 1,000,000 JSON characters |
+
 ## Per-Service API Quotas
 
 These are Google API quotas enforced by the underlying Workspace APIs. The proxy uses Apps Script built-in services (`DriveApp`, `GmailApp`, `CalendarApp`, etc.) which have their own undocumented internal quotas. The numbers below represent observed behavior:
@@ -165,6 +175,15 @@ These are Google API quotas enforced by the underlying Workspace APIs. The proxy
 | Paragraphs returned by proxy | 500 |
 | Tables per document | No documented hard limit |
 | Images per document | No documented limit |
+
+### Tasks
+
+| Limit | Value |
+|---|---|
+| Task lists per account | No documented hard limit |
+| Tasks returned per proxy call | 100 |
+| Task title length | 1,024 characters |
+| Task notes returned/written by proxy | 10,000 characters |
 
 ## Content Limits
 

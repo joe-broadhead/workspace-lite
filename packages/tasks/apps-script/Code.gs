@@ -1,0 +1,36 @@
+const TOKEN_ENV_NAME = 'GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN'
+
+function doGet(e) {
+  if (e && e.parameter && e.parameter.bootstrap === '1') {
+    return respond(bootstrapProxy(e, TOKEN_ENV_NAME))
+  }
+  return respond(ok({ status: 'healthy', version: '1.0.0', service: 'google-workspace-proxy-tasks' }))
+}
+
+function doPost(e) {
+  var body
+  if (e && e.postData && e.postData.contents && e.postData.contents.length > 1000000) {
+    return respond(err('LIMIT_EXCEEDED', 'request bytes limit exceeded: max 1000000'))
+  }
+  try { body = JSON.parse(e.postData.contents) } catch(_) { return respond(err('BAD_REQUEST', 'Invalid JSON body')) }
+  if (!validateRequest(body)) {
+    if (isAuthFailureRateLimited(body && body.token)) {
+      return respond(err('RATE_LIMITED', 'Too many failed authentication attempts. Try again in 60 seconds.'))
+    }
+    return respond(err('UNAUTHORIZED', 'Invalid or missing auth token'))
+  }
+
+  if (isRateLimited(100, TasksService.requestWeight(body.action, body.params || {}))) {
+    return respond(err('RATE_LIMITED', 'Too many requests. Try again in 60 seconds.'))
+  }
+
+  if (!body.action) return respond(err('BAD_REQUEST', 'Missing action field'))
+
+  try {
+    return respond(TasksService.handle(body.action, body.params || {}))
+  } catch(ex) {
+    const correlationId = Utilities.getUuid()
+    console.error('[tasks-proxy] correlationId=%s action=%s error=%s', correlationId, body.action, ex && ex.message ? ex.message : String(ex))
+    return respond(err('INTERNAL_ERROR', 'An internal error occurred. See Apps Script logs with correlationId ' + correlationId + '.', correlationId))
+  }
+}

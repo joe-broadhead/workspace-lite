@@ -317,6 +317,111 @@ export const calendarBatchSchema = {
   ])).min(1).max(20).describe('Ordered list of validated Calendar operations.'),
 }
 
+// ─── TASKS SCHEMAS ───
+
+export const tasksIdSchema = z.string().min(1).max(256).regex(/^[a-zA-Z0-9_@.-]+$/, 'Invalid Google Tasks ID')
+export const tasksTitleSchema = z.string().min(1).max(1024).describe('Title. Maximum 1024 characters.')
+export const tasksPageTokenSchema = z.string().min(1).max(500).optional().describe('Opaque page token returned by a previous list call.')
+export const tasksMaxResultsSchema = z.number().int().min(1).max(100).default(100).describe('Maximum results to return.')
+
+export const tasksListTasklistsSchema = {
+  maxResults: tasksMaxResultsSchema,
+  pageToken: tasksPageTokenSchema,
+}
+
+export const tasksGetTasklistSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+}
+
+export const tasksCreateTasklistSchema = {
+  title: tasksTitleSchema.describe('Task list title.'),
+  idempotencyKey: idempotencyKeySchema,
+}
+
+export const tasksUpdateTasklistSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  title: tasksTitleSchema.describe('New task list title.'),
+}
+
+export const tasksDeleteTasklistSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  ...confirmationSchema,
+}
+
+export const tasksListTasksSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  maxResults: tasksMaxResultsSchema,
+  pageToken: tasksPageTokenSchema,
+  showCompleted: z.boolean().optional().describe('Whether to include completed tasks.'),
+  showDeleted: z.boolean().optional().describe('Whether to include deleted tasks.'),
+  showHidden: z.boolean().optional().describe('Whether to include hidden tasks.'),
+  completedMin: isoDateTimeSchema.optional().describe('Lower bound for a task completion timestamp.'),
+  completedMax: isoDateTimeSchema.optional().describe('Upper bound for a task completion timestamp.'),
+  dueMin: isoDateTimeSchema.optional().describe('Lower bound for a task due timestamp.'),
+  dueMax: isoDateTimeSchema.optional().describe('Upper bound for a task due timestamp.'),
+  updatedMin: isoDateTimeSchema.optional().describe('Lower bound for last modification time.'),
+}
+
+export const tasksGetTaskSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  taskId: tasksIdSchema.describe('Google Tasks task ID.'),
+}
+
+export const tasksCreateTaskSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  title: tasksTitleSchema.describe('Task title.'),
+  notes: z.string().max(10000).optional().describe('Task notes.'),
+  due: isoDateTimeSchema.optional().describe('Due date/time as an ISO/RFC3339 string. Google Tasks stores due dates as dates.'),
+  status: z.enum(['needsAction', 'completed']).optional().describe('Task status.'),
+  parent: tasksIdSchema.optional().describe('Parent task ID for inserting as a subtask.'),
+  previous: tasksIdSchema.optional().describe('Previous sibling task ID for insert ordering.'),
+  idempotencyKey: idempotencyKeySchema,
+}
+
+export const tasksUpdateTaskSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  taskId: tasksIdSchema.describe('Google Tasks task ID.'),
+  title: tasksTitleSchema.optional().describe('New task title.'),
+  notes: z.string().max(10000).optional().describe('New task notes.'),
+  due: isoDateTimeSchema.optional().describe('New due date/time as an ISO/RFC3339 string. Google Tasks stores due dates as dates.'),
+  status: z.enum(['needsAction', 'completed']).optional().describe('New task status.'),
+}
+
+export const tasksDeleteTaskSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  taskId: tasksIdSchema.describe('Google Tasks task ID.'),
+  ...confirmationSchema,
+}
+
+export const tasksMoveTaskSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  taskId: tasksIdSchema.describe('Google Tasks task ID.'),
+  parent: tasksIdSchema.optional().describe('New parent task ID. Omit to move as a top-level task.'),
+  previous: tasksIdSchema.optional().describe('Previous sibling task ID. Omit to move to the first position.'),
+}
+
+export const tasksClearCompletedSchema = {
+  tasklistId: tasksIdSchema.describe('Google Tasks task list ID.'),
+  ...confirmationSchema,
+}
+
+export const tasksBatchSchema = {
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('tasklistsList', tasksListTasklistsSchema),
+    batchOperationSchema('tasklistsGet', tasksGetTasklistSchema),
+    batchOperationSchema('tasklistsCreate', tasksCreateTasklistSchema),
+    batchOperationSchema('tasklistsUpdate', tasksUpdateTasklistSchema),
+    batchOperationSchema('tasklistsDelete', tasksDeleteTasklistSchema),
+    batchOperationSchema('tasksList', tasksListTasksSchema),
+    batchOperationSchema('tasksGet', tasksGetTaskSchema),
+    batchOperationSchema('tasksCreate', tasksCreateTaskSchema),
+    batchOperationSchema('tasksUpdate', tasksUpdateTaskSchema),
+    batchOperationSchema('tasksDelete', tasksDeleteTaskSchema),
+    batchOperationSchema('tasksMove', tasksMoveTaskSchema),
+    batchOperationSchema('tasksClear', tasksClearCompletedSchema),
+  ])).min(1).max(20).describe('Ordered list of validated Google Tasks operations.'),
+}
+
 // ─── GMAIL SCHEMAS ───
 
 export const gmailMessageIdSchema = z.string().min(1).describe('Gmail message ID.')

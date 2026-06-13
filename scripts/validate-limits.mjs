@@ -9,6 +9,7 @@ const checks = [
   ['packages/sheets/apps-script/SheetsService.gs', ['readCells', 'writeCells', 'batchRanges', 'responseBytes', 'rowsMutated']],
   ['packages/docs/apps-script/DocsService.gs', ['paragraphs', 'documentChars', 'responseBytes', 'documentJsonBytes']],
   ['packages/slides/apps-script/SlidesService.gs', ['pageElements', 'textChars', 'responseBytes']],
+  ['packages/tasks/apps-script/TasksService.gs', ['tasklistsPageSize', 'tasksPageSize', 'titleChars', 'notesChars', 'responseBytes']],
 ]
 
 const codeEntrypoints = [
@@ -18,6 +19,7 @@ const codeEntrypoints = [
   'packages/sheets/apps-script/Code.gs',
   'packages/docs/apps-script/Code.gs',
   'packages/slides/apps-script/Code.gs',
+  'packages/tasks/apps-script/Code.gs',
 ]
 
 function parseLimits(file) {

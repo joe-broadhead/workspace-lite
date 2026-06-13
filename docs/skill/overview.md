@@ -4,11 +4,11 @@
 
 The `google-workspace` skill equips LLM agents with everything they need to automate Google Workspace through the Apps Script MCP servers. It's a self-contained knowledge pack with:
 
-- **Tool catalog** — exact signatures, parameter names, types, defaults, and descriptions for all 140 tools across Drive, Gmail, Calendar, Sheets, Slides, and Docs.
+- **Tool catalog** — exact signatures, parameter names, types, defaults, and descriptions for all 153 tools across Drive, Gmail, Calendar, Sheets, Slides, Docs, and Tasks.
 - **Numbered workflows** — step-by-step tool sequences for common tasks (email triage, meeting prep, scheduling, spreadsheet creation, presentation building, data analysis).
 - **Safety rules** — guardrails that prevent agents from sending email without approval, deleting files without confirmation, or creating calendar events without user consent.
 - **Search syntax** — Gmail query operators, Drive search language, Calendar ISO formatting.
-- **Service routing** — which tool prefix maps to which MCP server (`drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `slides_*`, `docs_*`).
+- **Service routing** — which tool prefix maps to which MCP server (`drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `slides_*`, `docs_*`, `tasks_*`).
 
 ## Reference Structure
 
@@ -16,7 +16,7 @@ The `google-workspace` skill equips LLM agents with everything they need to auto
 skills/google-workspace/
 ├── SKILL.md                         # Fast-start index: quick patterns, critical rules, when to load references
 └── references/
-    ├── tool-catalog.md              # Complete tool listing with parameter tables (157 lines)
+    ├── tool-catalog.md              # Complete tool listing with parameter tables
     ├── workflows.md                 # Step-by-step workflows for 12+ common scenarios
     └── rules.md                     # Full safety rules, search syntax, parameter types
 ```
@@ -33,7 +33,7 @@ Agents read this file when the skill is loaded. For complex multi-tool workflows
 
 ### references/tool-catalog.md
 
-The authoritative tool dictionary. Organized by service (Drive, Gmail, Calendar, Sheets, Slides, Docs) with every tool's parameter signature. Groups tools by category (read, write, manage, format, organize) for easier scanning. This is the reference agents consult when they need exact parameter names, enum values, or type details.
+The authoritative tool dictionary. Organized by service (Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks) with every tool's parameter signature. Groups tools by category (read, write, manage, format, organize) for easier scanning. This is the reference agents consult when they need exact parameter names, enum values, or type details.
 
 ### references/workflows.md
 

@@ -8,6 +8,7 @@ import { registerDriveTools } from '../packages/drive/src/tools/index.js'
 import { registerGmailTools } from '../packages/gmail/src/tools/index.js'
 import { registerSheetsTools } from '../packages/sheets/src/tools/index.js'
 import { registerSlidesTools } from '../packages/slides/src/tools/index.js'
+import { registerTasksTools } from '../packages/tasks/src/tools/index.js'
 
 type Handler = (args: Record<string, unknown>) => unknown
 
@@ -45,6 +46,7 @@ const services = [
     sheets: registerSheetsTools,
     slides: registerSlidesTools,
     docs: registerDocsTools,
+    tasks: registerTasksTools,
   }[service.key],
 }))
 

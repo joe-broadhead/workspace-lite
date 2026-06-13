@@ -85,6 +85,7 @@ All resource IDs passed to proxy actions are validated with regex patterns befor
 | Gmail message IDs | `z.string().min(1)` | `18a1b2c3d4e5f6g7` |
 | Gmail thread IDs | `z.string().min(1)` | `18a1b2c3d4e5f6g7` |
 | Calendar event IDs | `z.string().min(1)` | `_60q30c1g6...` |
+| Tasks IDs | `^[a-zA-Z0-9_@.-]+$` | `<tasklist-id>` / `<task-id>` |
 | Email addresses | Zod `email()` validator | `user@domain.com` |
 
 Validation happens at **both layers**: the MCP server validates with Zod schemas before sending the request, and the Apps Script proxy re-validates IDs server-side before calling Google APIs.
@@ -126,7 +127,7 @@ There is no plain HTTP fallback. The MCP servers are hardcoded to use `https://`
 6. Proxy checks weighted rate limits (CacheService, 100 units/min)
 7. Proxy enforces action policy and confirmation gates
 8. Proxy validates resource IDs and high-risk inputs
-9. Proxy executes the action using Apps Script built-in services (DriveApp, GmailApp, etc.)
+9. Proxy executes the action using Apps Script built-in or Advanced services (DriveApp, GmailApp, Tasks, etc.)
 10. Proxy returns JSON response
 11. MCP server formats response for STDIO/JSON-RPC
 ```

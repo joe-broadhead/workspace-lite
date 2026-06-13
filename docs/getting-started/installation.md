@@ -1,6 +1,6 @@
 # Installation
 
-Complete setup of all 6 Google Workspace MCP servers &mdash; one-time, roughly 10 minutes.
+Complete setup of all 7 Google Workspace MCP servers &mdash; one-time, roughly 10 minutes.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ npm install
 npm run build
 ```
 
-`npm install` triggers a `postinstall` script that builds the shared package. `npm run build` compiles all 6 service packages.
+`npm install` triggers a `postinstall` script that builds the shared package. `npm run build` compiles all 7 service packages.
 
 ---
 
@@ -45,7 +45,7 @@ The script automates:
 | Step | What happens |
 |------|--------------|
 | 1. Authenticate | Opens a browser for `clasp login` (one-time) |
-| 2. Create projects | Creates 6 Apps Script standalone projects with correct OAuth scopes |
+| 2. Create projects | Creates 7 Apps Script standalone projects with correct OAuth scopes |
 | 3. Push code | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service files to each project |
 | 4. Deploy guide | Prints instructions for deploying each project as a web app |
 | 5. Token bootstrap | Collects deployment URLs, bootstraps auth tokens, writes `.env` |
@@ -56,7 +56,7 @@ The script automates:
 
 ## Step 3: Deploy Web Apps (GUI)
 
-The setup script pauses here. For each of the 6 services, it asks you to deploy manually:
+The setup script pauses here. For each of the 7 services, it asks you to deploy manually:
 
 ```bash
 cd packages/drive/apps-script && clasp open
@@ -68,12 +68,12 @@ In the Apps Script editor that opens:
 |-------|-------|
 | Deploy type | **Web app** |
 | Execute as | **Me** (`USER_DEPLOYING`) |
-| Who has access | **Anyone** |
+| Who has access | **Anyone (anonymous)** |
 
 Copy each deployment URL (looks like `https://script.google.com/macros/s/.../exec`) and paste it back into the script prompt.
 
 !!! warning "GUI step cannot be automated"
-    Google does not provide an API for creating web app deployments. You must click through the Apps Script editor 6 times.
+    Google does not provide an API for creating web app deployments. You must click through the Apps Script editor 7 times.
 
 ---
 
@@ -102,7 +102,7 @@ The setup script prints a JSON block. Add it to your `opencode.jsonc` under `mcp
         "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"
       }
     }
-    // ... repeat for google-gmail, google-calendar, google-sheets, google-slides, google-docs
+    // ... repeat for google-gmail, google-calendar, google-sheets, google-slides, google-docs, google-tasks
   }
 }
 ```
@@ -113,7 +113,7 @@ Source the generated `.env` file (or copy exports to `.zshrc`):
 source .env
 ```
 
-Restart OpenCode. All 140 tools are now available.
+Restart OpenCode. All 153 tools are now available.
 
 ---
 
@@ -133,6 +133,7 @@ For each service, two environment variables are required:
 | Sheets | `GOOGLE_WORKSPACE_SHEETS_PROXY_URL` | `GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN` |
 | Slides | `GOOGLE_WORKSPACE_SLIDES_PROXY_URL` | `GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN` |
 | Docs | `GOOGLE_WORKSPACE_DOCS_PROXY_URL` | `GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN` |
+| Tasks | `GOOGLE_WORKSPACE_TASKS_PROXY_URL` | `GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN` |
 
 ### Deploying Manually
 
@@ -198,6 +199,14 @@ curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&se
       "environment": {
         "GOOGLE_WORKSPACE_DOCS_PROXY_URL": "{env:GOOGLE_WORKSPACE_DOCS_PROXY_URL}",
         "GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN}"
+      }
+    },
+    "google-tasks": {
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/packages/tasks/src/index.ts"],
+      "environment": {
+        "GOOGLE_WORKSPACE_TASKS_PROXY_URL": "{env:GOOGLE_WORKSPACE_TASKS_PROXY_URL}",
+        "GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN}"
       }
     }
   }
