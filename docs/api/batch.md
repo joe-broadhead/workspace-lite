@@ -239,6 +239,7 @@ The `action` field in each operation uses the **same names as the individual too
 | `slides_insert_shape` | `shapeInsert` |
 | `slides_insert_table` | `tableInsert` |
 | `slides_get_slide_elements` | `slideElementsList` |
+| `slides_get_element_text` | `elementGetText` |
 | `slides_delete_element` | `elementDelete` |
 | `slides_format_text` | `elementFormatText` |
 | `slides_get_slide_notes` | `slideNotes` |

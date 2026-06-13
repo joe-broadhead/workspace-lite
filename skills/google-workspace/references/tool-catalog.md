@@ -148,7 +148,7 @@
 | `sheets_set_note` | `spreadsheetId`, `range`, `note` (empty string clears), `sheetName?` |
 | **Batch** | `sheets_batch` | `operations` — array of `{action, params}`, up to 20. Same action names as individual tools. Executes sequentially; errors collected per-operation. |
 
-## Slides — 18 tools
+## Slides — 19 tools
 
 **Manage:**
 | Tool | Params |
@@ -174,6 +174,7 @@
 | Tool | Params |
 |---|---|
 | `slides_get_slide_elements` | `presentationId`, `slideIndex` — returns all elements with types, IDs, positions, dimensions, full text |
+| `slides_get_element_text` | `presentationId`, `slideIndex`, `objectId` — read text from one shape/text element |
 | `slides_get_slide_notes` | `presentationId`, `slideIndex`, `notes?` (provide to set, omit to get) |
 
 **Operations:**

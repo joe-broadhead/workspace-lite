@@ -17,6 +17,7 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 | `slides_insert_shape` | Insert a shape (rectangle, ellipse, arrow, star, cloud, flowchart, etc.). |
 | `slides_insert_table` | Insert a table from a 2D array of values. |
 | `slides_get_slide_elements` | List all elements on a slide with types, IDs, positions, dimensions, and full text. |
+| `slides_get_element_text` | Read text from a specific shape or text element by object ID. |
 | `slides_delete_element` | Delete a page element from a slide by its object ID. |
 | `slides_format_text` | Format text within an element — bold, italic, underline, font, size, color, and links. |
 | `slides_get_slide_notes` | Get or set speaker notes for a slide. |
@@ -28,9 +29,9 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 ## Key Features
 
 - **Auto-positioning** — `insert_text_box`, `insert_image`, `insert_shape`, and `insert_table` all support `autoPosition: true` (the default). Elements stack automatically below existing content without manual coordinate calculation. Override with explicit `left`, `top`, `width`, `height` when needed.
-- **Rich element model** — `get_slide_elements` returns every element on a slide with its type, object ID, bounding box, and full text content. Use object IDs to target specific elements for formatting or deletion.
+- **Rich element model** — `slides_get_slide_elements` returns every element on a slide with its type, object ID, bounding box, and full text content. Use `slides_get_element_text` to read one text element directly.
 - **15 shape types** — RECTANGLE, ROUND_RECTANGLE, ELLIPSE, TRIANGLE, ARROW_RIGHT, ARROW_LEFT, STAR_5, HEXAGON, CLOUD, FLOW_CHART_PROCESS, FLOW_CHART_DECISION, WAVE, CHEVRON, PENTAGON, TRAPEZOID.
-- **Text formatting on find** — `format_text` searches within an element for specific text and applies formatting only to matches — no need to know character indices.
+- **Text formatting on find** — `slides_format_text` searches within an element for specific text and applies formatting only to matches — no need to know character indices.
 - **Slide reordering** — `duplicate_slide`, `move_slide`, and `delete_slide` enable full programmatic slide deck manipulation.
 - **Batch operations** — Use `slides_batch` to chain up to 20 slides operations in a single round-trip.
 
@@ -74,6 +75,13 @@ slides_insert_text_box({
 # Get element IDs
 slides_get_slide_elements({ presentationId: "<id>", slideIndex: 0 })
 
+# Read text from a single element if needed
+slides_get_element_text({
+  presentationId: "<id>",
+  slideIndex: 0,
+  objectId: "<element-id>"
+})
+
 # Bold the word "Revenue" everywhere in that element
 slides_format_text({
   presentationId: "<id>",
@@ -100,6 +108,6 @@ slides_replace_all_text({
 
 - Auto-positioning stacks elements vertically below existing content. It does not handle complex multi-column layouts — use explicit coordinates for those.
 - Images must be publicly accessible URLs; local file uploads are not supported directly.
-- `format_text` finds and formats all occurrences of the search text within a single element. For cross-element formatting, call it once per element or use `replace_all_text`.
+- `slides_format_text` finds and formats all occurrences of the search text within a single element. For cross-element formatting, call it once per element or use `slides_replace_all_text`.
 - Slide indices are 0-based and reflect the current order. After `delete_slide` or `move_slide`, indices shift.
-- Element object IDs are stable within a presentation session but should always be obtained from `get_slide_elements` rather than hardcoded.
+- Element object IDs are stable within a presentation session but should always be obtained from `slides_get_slide_elements` rather than hardcoded.

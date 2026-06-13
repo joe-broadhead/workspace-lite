@@ -1,4 +1,3 @@
-import { formatResponse } from '@workspace-lite/shared'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { gmailAttachmentGetSchema, gmailGetMessageSchema, gmailGetThreadSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'

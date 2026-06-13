@@ -1,5 +1,4 @@
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
-import type { ProxyClient } from '@workspace-lite/shared/proxy-client'
 import { registerTool } from '@workspace-lite/shared/tool-helpers'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {

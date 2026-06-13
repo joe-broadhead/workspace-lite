@@ -2,6 +2,7 @@
   "name": "workspace-lite",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "MCP servers for Google Workspace via Apps Script proxy",
   "workspaces": [
     "shared",
@@ -12,8 +13,11 @@
     "build:shared": "cd shared && npm run build",
     "build:packages": "tsc -b packages/*",
     "build:drive": "cd packages/drive && npm run build",
-    "typecheck": "npm run build:shared && tsc -b packages/* --noEmit",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
+    "lint": "npm run typecheck",
+    "test": "tsx --test tests/*.test.ts",
     "test:responses": "tsx --test tests/response-contracts.test.ts",
+    "audit": "npm audit --audit-level=moderate",
     "validate:manifests": "node scripts/validate-manifests.mjs",
     "validate:limits": "node scripts/validate-limits.mjs",
     "validate:responses": "node scripts/validate-responses.mjs",
@@ -27,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.5.0"
   }
 }

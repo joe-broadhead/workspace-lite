@@ -113,7 +113,7 @@ Source the generated `.env` file (or copy exports to `.zshrc`):
 source .env
 ```
 
-Restart OpenCode. All 139 tools are now available.
+Restart OpenCode. All 140 tools are now available.
 
 ---
 

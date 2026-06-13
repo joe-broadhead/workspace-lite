@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'bun:test'
+import assert from 'node:assert/strict'
+import { describe, it } from 'node:test'
 import { TestProxyClient } from '../shared/src/test-proxy-client.js'
 
 describe('drive_about', () => {
@@ -8,12 +9,12 @@ describe('drive_about', () => {
 
     const result = await client.callProxy('about')
 
-    expect(result.success).toBe(true)
-    expect(client.getCallLog()[0].action).toBe('about')
-    expect(client.getCallLog()[0].params).toBeUndefined()
-    expect((result.data as Record<string, unknown>).storageUsed).toBe(100)
-    expect((result.data as Record<string, unknown>).storageLimit).toBe(1000)
-    expect((result.data as Record<string, unknown>).rootFolderId).toBe('root')
+    assert.equal(result.success, true)
+    assert.equal(client.getCallLog()[0].action, 'about')
+    assert.equal(client.getCallLog()[0].params, undefined)
+    assert.equal((result.data as Record<string, unknown>).storageUsed, 100)
+    assert.equal((result.data as Record<string, unknown>).storageLimit, 1000)
+    assert.equal((result.data as Record<string, unknown>).rootFolderId, 'root')
   })
 })
 
@@ -27,13 +28,13 @@ describe('drive_get_file', () => {
 
     const result = await client.callProxy('fileGet', { fileId: 'abc123' })
 
-    expect(result.success).toBe(true)
-    expect(client.getCallLog()[0].action).toBe('fileGet')
-    expect(client.getCallLog()[0].params).toEqual({ fileId: 'abc123' })
+    assert.equal(result.success, true)
+    assert.equal(client.getCallLog()[0].action, 'fileGet')
+    assert.deepEqual(client.getCallLog()[0].params, { fileId: 'abc123' })
     const data = result.data as Record<string, unknown>
-    expect(data.id).toBe('abc123')
-    expect(data.name).toBe('report.pdf')
-    expect(data.mimeType).toBe('application/pdf')
+    assert.equal(data.id, 'abc123')
+    assert.equal(data.name, 'report.pdf')
+    assert.equal(data.mimeType, 'application/pdf')
   })
 })
 
@@ -51,12 +52,12 @@ describe('drive_list_files', () => {
 
     const result = await client.callProxy('fileList', { folderId: 'folderX' })
 
-    expect(result.success).toBe(true)
-    expect(client.getCallLog()[0].action).toBe('fileList')
-    expect(client.getCallLog()[0].params).toEqual({ folderId: 'folderX' })
+    assert.equal(result.success, true)
+    assert.equal(client.getCallLog()[0].action, 'fileList')
+    assert.deepEqual(client.getCallLog()[0].params, { folderId: 'folderX' })
     const items = result.data as unknown[]
-    expect(items).toHaveLength(2)
-    expect(result.pagination?.hasMore).toBe(false)
+    assert.equal(items.length, 2)
+    assert.equal(result.pagination?.hasMore, false)
   })
 
   it('returns empty list when no files', async () => {
@@ -65,8 +66,8 @@ describe('drive_list_files', () => {
 
     const result = await client.callProxy('fileList', { folderId: 'empty' })
 
-    expect(result.success).toBe(true)
-    expect(result.data).toEqual([])
+    assert.equal(result.success, true)
+    assert.deepEqual(result.data, [])
   })
 })
 
@@ -88,15 +89,15 @@ describe('drive_batch', () => {
       ]
     })
 
-    expect(result.success).toBe(true)
+    assert.equal(result.success, true)
     const log = client.getCallLog()
-    expect(log).toHaveLength(1)
-    expect(log[0].action).toBe('batch')
-    expect(log[0].params).toHaveProperty('operations')
+    assert.equal(log.length, 1)
+    assert.equal(log[0].action, 'batch')
+    assert.ok(log[0].params && 'operations' in log[0].params)
     const results = result.data as Record<string, unknown>[]
-    expect(results).toHaveLength(2)
-    expect(results[0].action).toBe('about')
-    expect(results[1].action).toBe('fileGet')
+    assert.equal(results.length, 2)
+    assert.equal(results[0].action, 'about')
+    assert.equal(results[1].action, 'fileGet')
   })
 })
 
@@ -105,8 +106,8 @@ describe('error handling', () => {
     const client = new TestProxyClient()
     const result = await client.callProxy('fileGet', { fileId: 'missing' })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe('NOT_FOUND')
+    assert.equal(result.success, false)
+    assert.equal(result.error?.code, 'NOT_FOUND')
   })
 
   it('returns queued error response', async () => {
@@ -115,8 +116,8 @@ describe('error handling', () => {
 
     const result = await client.callProxy('fileDelete', { fileId: 'root' })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe('PERMISSION_DENIED')
-    expect(result.error?.message).toBe('Cannot delete root folder')
+    assert.equal(result.success, false)
+    assert.equal(result.error?.code, 'PERMISSION_DENIED')
+    assert.equal(result.error?.message, 'Cannot delete root folder')
   })
 })

@@ -31,9 +31,9 @@ MCP servers exposing all Google Workspace services through Apps Script web app p
 | `gmail` | 33 | ✅ | Search, read, send (draft-first), reply, forward, drafts, labels, threads, trash, attachments, batch modify |
 | `calendar` | 15 | ✅ | List events, search, create/update/delete, free/busy, multi-calendar, quick add, event series, color, respond |
 | `sheets` | 27 | ✅ | Create/read/write/append, formulas, formatting, charts, sort, freeze, merge, notes, data validation, conditional formatting, row ops |
-| `slides` | 18 | ✅ | Create, add/delete/duplicate/move slides, text, images, shapes, tables, auto-position, notes, backgrounds, lines |
+| `slides` | 19 | ✅ | Create, add/delete/duplicate/move slides, text, images, shapes, tables, auto-position, notes, backgrounds, lines |
 | `docs` | 17 | ✅ | Create/read, paragraphs, headings, lists, tables, images, page breaks, text formatting, headers/footers, JSON export |
-| **Total** | **139** | all 6 | |
+| **Total** | **140** | all 6 | |
 
 ## Quick Start (one-time setup)
 
@@ -136,6 +136,9 @@ mkdocs serve            # Preview at http://localhost:8000
 ```bash
 npm run build        # Build all packages
 npm run typecheck    # Type-check all packages
+npm run lint         # Strict unused/type gate
+npm test             # Run repository tests
+npm run audit        # Fail on moderate+ npm advisories
 ```
 
 ### Adding a new service

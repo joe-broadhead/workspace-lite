@@ -1,6 +1,12 @@
 # Test Seam Pattern
 
-Tests in this directory use a **test seam at the proxy boundary** to verify tool behavior without network calls.
+Tests in this directory use Node's built-in test runner through `tsx --test` and a **test seam at the proxy boundary** to verify tool behavior without network calls.
+
+Run the full suite with:
+
+```bash
+npm test
+```
 
 ## Pattern
 

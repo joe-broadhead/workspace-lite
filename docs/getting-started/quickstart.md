@@ -294,7 +294,7 @@ Q2 Budget Report (1AbCdEfGhIjKlMnOpQrStUv) — application/vnd.google-apps.sprea
 
 ```json
 {
-  "tool": "drive_file_get",
+  "tool": "drive_get_file",
   "args": {
     "fileId": "1AbCdEfGhIjKlMnOpQrStUv"
   }

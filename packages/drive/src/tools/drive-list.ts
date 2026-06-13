@@ -33,7 +33,7 @@ export function registerDriveListTools(server: ToolServer) {
           const file = f as Record<string, unknown>
           return `${file.name} (${file.id}) — ${file.mimeType} — ${formatBytes(file.size as number)}`
         },
-        hint: 'Use drive_file_get to fetch metadata or drive_read_file to read content.',
+        hint: 'Use drive_get_file to fetch metadata or drive_read_file to read content.',
       })
     },
   )
@@ -51,7 +51,7 @@ export function registerDriveListTools(server: ToolServer) {
           const file = f as Record<string, unknown>
           return `${file.name} (${file.id}) — ${file.mimeType} — ${file.owner || 'unknown'}`
         },
-        hint: 'Use drive_file_get to fetch full details or drive_read_file to read content.',
+        hint: 'Use drive_get_file to fetch full details or drive_read_file to read content.',
       })
     },
   )

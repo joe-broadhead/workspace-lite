@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 139 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 140 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
