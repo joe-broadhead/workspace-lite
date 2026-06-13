@@ -42,6 +42,7 @@ const SheetsService = (() => {
 
   function runBatch(handle) {
     return function batch(params) {
+      const spreadsheetId = requireParam(params, 'spreadsheetId')
       const operations = params.operations;
       if (!Array.isArray(operations) || operations.length === 0) {
         return err('BAD_REQUEST', 'operations must be a non-empty array');
@@ -55,8 +56,10 @@ const SheetsService = (() => {
           results.push({ index: i, success: false, error: { code: 'BAD_REQUEST', message: `Missing action at index ${i}` }});
           continue;
         }
+        const opParams = op.params || {}
+        if (!opParams.spreadsheetId) opParams.spreadsheetId = spreadsheetId
         try {
-          const result = handle(op.action, op.params || {});
+          const result = handle(op.action, opParams);
           results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });
         } catch(ex) {
           results.push({ index: i, action: op.action, success: false, error: { code: 'INTERNAL_ERROR', message: ex.message || String(ex) }});
