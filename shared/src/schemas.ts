@@ -379,3 +379,94 @@ export const sheetsBatchSchema = {
     params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas for parameter details.'),
   })).min(1).max(20).describe('Ordered list of operations to execute.'),
 }
+
+// ─── SLIDES SCHEMAS ───
+
+export const slidesPresentationIdSchema = z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid presentation ID.')
+
+export const slidesPresentationGetSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+}
+
+export const slidesCreatePresentationSchema = {
+  name: z.string().min(1).describe('Presentation name.'),
+}
+
+export const slidesAddSlideSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  titleText: z.string().optional().describe('Optional title text for the new slide. Sets the top text box if a layout with a title placeholder exists.'),
+  bodyText: z.string().optional().describe('Optional body text for the new slide.'),
+}
+
+export const slidesSlideIndexSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+}
+
+export const slidesMoveSlideSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index to move (0-based).'),
+  newIndex: z.number().int().min(0).describe('Destination index (0-based).'),
+}
+
+export const slidesInsertTextBoxSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  text: z.string().describe('Text content for the text box.'),
+  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
+  top: z.number().default(72).optional().describe('Top position in points (default: 72).'),
+  width: z.number().default(576).optional().describe('Width in points (default: 576, fits standard slide).'),
+  height: z.number().default(72).optional().describe('Height in points (default: 72).'),
+}
+
+export const slidesInsertImageSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  imageUrl: z.string().url().describe('Public URL of the image to insert.'),
+  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
+  top: z.number().default(72).optional().describe('Top position in points (default: 72).'),
+  width: z.number().default(300).optional().describe('Width in points (default: 300).'),
+  height: z.number().default(200).optional().describe('Height in points (default: 200).'),
+}
+
+export const slidesInsertShapeSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  shapeType: z.enum(['RECTANGLE', 'ROUND_RECTANGLE', 'ELLIPSE', 'TRIANGLE', 'ARROW_RIGHT', 'ARROW_LEFT', 'STAR_5', 'HEXAGON', 'CLOUD', 'FLOW_CHART_PROCESS', 'FLOW_CHART_DECISION', 'WAVE', 'CHEVRON', 'PENTAGON', 'TRAPEZOID']).describe('Shape type.'),
+  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
+  top: z.number().default(200).optional().describe('Top position in points (default: 200).'),
+  width: z.number().default(300).optional().describe('Width in points (default: 300).'),
+  height: z.number().default(200).optional().describe('Height in points (default: 200).'),
+}
+
+export const slidesInsertTableSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  values: z.array(z.array(z.string())).describe('2D array of cell values.'),
+  rows: z.number().int().min(1).max(20).optional().describe('Number of rows (default: values.length).'),
+  cols: z.number().int().min(1).max(10).optional().describe('Number of columns (default: values[0].length).'),
+  left: z.number().default(72).optional().describe('Left position in points (default: 72).'),
+  top: z.number().default(100).optional().describe('Top position in points (default: 100).'),
+  width: z.number().default(576).optional().describe('Width in points (default: 576).'),
+  height: z.number().default(200).optional().describe('Height in points (default: 200).'),
+}
+
+export const slidesReplaceAllTextSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  findText: z.string().min(1).describe('Text to find.'),
+  replaceText: z.string().describe('Replacement text.'),
+}
+
+export const slidesSlideNotesSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  notes: z.string().optional().describe('Speaker notes text. If provided, sets notes. If omitted, returns current notes.'),
+}
+
+export const slidesBatchSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  operations: z.array(z.object({
+    action: z.string().describe('Action to perform (same names as individual tools: presentationGet, slideAdd, slideDelete, slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert, tableInsert, slideElementsList, slideNotes, textReplaceAll).'),
+    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+  })).min(1).max(20).describe('Ordered list of operations.'),
+}
