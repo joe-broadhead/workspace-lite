@@ -25,28 +25,8 @@ const SlidesService = (() => {
   };
 
   function handle(action, params) {
-    switch (action) {
-      case 'presentationCreate':  return presentationCreate(params);
-      case 'presentationGet':     return presentationGet(params);
-      case 'slideAdd':            return slideAdd(params);
-      case 'slideDelete':         return slideDelete(params);
-      case 'slideDuplicate':      return slideDuplicate(params);
-      case 'slideMove':           return slideMove(params);
-      case 'textBoxInsert':       return textBoxInsert(params);
-      case 'imageInsert':         return imageInsert(params);
-      case 'shapeInsert':         return shapeInsert(params);
-      case 'tableInsert':         return tableInsert(params);
-      case 'slideElementsList':   return slideElementsList(params);
-      case 'slideNotes':          return slideNotes(params);
-      case 'textReplaceAll':      return textReplaceAll(params);
-      case 'elementDelete':       return elementDelete(params);
-      case 'elementGetText':      return elementGetText(params);
-      case 'elementFormatText':   return elementFormatText(params);
-      case 'slideBackground':     return slideBackground(params);
-      case 'lineInsert':          return lineInsert(params);
-      case 'batch':               return runBatch(handle)(params);
-      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
-    }
+    const fn = ACTIONS[action]
+    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
   }
 
   function ok(data) { return { success: true, data }; }
@@ -763,6 +743,15 @@ const SlidesService = (() => {
       'INSERT_FAILED',
       (e) => `Could not insert line: ${e.message}`
     );
+  }
+
+  const ACTIONS = {
+    presentationCreate, presentationGet, slideAdd, slideDelete,
+    slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert,
+    tableInsert, slideElementsList, slideNotes, textReplaceAll,
+    elementDelete, elementGetText, elementFormatText, slideBackground,
+    lineInsert,
+    batch: function(params) { return runBatch(handle)(params); },
   }
 
   return { handle };

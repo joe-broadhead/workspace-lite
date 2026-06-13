@@ -1,33 +1,7 @@
 const CalendarService = (() => {
   function handle(action, params) {
-    switch (action) {
-      // READ
-      case 'listCalendars':    return listCalendars();
-      case 'getCalendar':      return calendarGet(params);
-      case 'listEvents':       return listEvents(params);
-      case 'searchEvents':     return searchEvents(params);
-      case 'getEvent':         return getEvent(params);
-      case 'eventInstances':   return eventInstances(params);
-
-      // WRITE
-      case 'quickAdd':         return quickAdd(params);
-      case 'createEvent':      return createEvent(params);
-      case 'updateEvent':      return updateEvent(params);
-      case 'respondToEvent':   return respondToEvent(params);
-      case 'createEventSeries':return createEventSeries(params);
-      case 'setEventColor':    return setEventColor(params);
-
-      // DESTRUCTIVE
-      case 'deleteEvent':      return deleteEvent(params);
-
-      // AVAILABILITY
-      case 'findFreeBusy':     return findFreeBusy(params);
-
-      // BATCH
-      case 'batch':            return batch(params);
-
-      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
-    }
+    const fn = ACTIONS[action]
+    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
   }
 
   function ok(data) {
@@ -532,6 +506,13 @@ const CalendarService = (() => {
 
   function batch(params) {
     return runBatch(params, handle);
+  }
+
+  const ACTIONS = {
+    listCalendars, getCalendar: calendarGet, listEvents, searchEvents,
+    getEvent, eventInstances, quickAdd, createEvent, updateEvent,
+    respondToEvent, createEventSeries, setEventColor, deleteEvent,
+    findFreeBusy, batch,
   }
 
   return { handle: handle };

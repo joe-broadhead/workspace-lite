@@ -1,27 +1,7 @@
 const DocsService = (() => {
   function handle(action, params) {
-    switch (action) {
-      case 'documentCreate':       return documentCreate(params);
-      case 'documentGet':          return documentGet(params);
-      case 'documentGetJson':     return documentGetJson(params);
-      case 'paragraphInsert':      return paragraphInsert(params);
-      case 'paragraphUpdate':      return paragraphUpdate(params);
-      case 'paragraphDelete':      return paragraphDelete(params);
-      case 'setText':              return setText(params);
-      case 'replaceText':          return replaceText(params);
-      case 'listInsert':           return listInsert(params);
-      case 'tableInsert':          return tableInsert(params);
-      case 'imageInsert':          return imageInsert(params);
-      case 'pageBreakInsert':      return pageBreakInsert(params);
-      case 'horizontalRuleInsert': return horizontalRuleInsert(params);
-      case 'formatText':           return formatText(params);
-      case 'headerSet':            return headerSet(params);
-      case 'footerSet':            return footerSet(params);
-      case 'tocInsert':            return tocInsert(params);
-      case 'footnoteInsert':       return footnoteInsert(params);
-      case 'batch':                return runBatch(handle)(params);
-      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
-    }
+    const fn = ACTIONS[action]
+    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
   }
 
   function ok(data) { return { success: true, data }; }
@@ -567,6 +547,14 @@ const DocsService = (() => {
       'INSERT_FAILED',
       (e) => `Could not insert footnote: ${e.message}`
     );
+  }
+
+  const ACTIONS = {
+    documentCreate, documentGet, documentGetJson, paragraphInsert,
+    paragraphUpdate, paragraphDelete, setText, replaceText, listInsert,
+    tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert,
+    formatText, headerSet, footerSet, tocInsert, footnoteInsert,
+    batch: function(params) { return runBatch(handle)(params); },
   }
 
   return { handle };

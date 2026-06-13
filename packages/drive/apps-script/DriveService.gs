@@ -26,39 +26,8 @@ var DriveService = (() => {
   }
 
   function handle(action, params) {
-    switch (action) {
-      case 'about':              return about();
-      case 'fileGet':            return fileGet(params);
-      case 'fileList':           return fileList(params);
-      case 'fileSearch':         return fileSearch(params);
-      case 'fileExport':         return fileExport(params);
-      case 'folderGet':          return folderGet(params);
-      case 'folderList':         return folderList(params);
-      case 'folderListRoot':     return folderListRoot();
-      case 'folderCreate':       return folderCreate(params);
-      case 'fileCreate':         return fileCreate(params);
-      case 'fileCopy':           return fileCopy(params);
-      case 'fileMove':           return fileMove(params);
-      case 'fileUpdateMeta':     return fileUpdateMeta(params);
-      case 'fileUpdateContent':  return fileUpdateContent(params);
-      case 'fileGetPermissions': return fileGetPermissions(params);
-      case 'fileSetSharing':     return fileSetSharing(params);
-      case 'fileAddEditor':      return fileAddEditor(params);
-      case 'fileAddViewer':      return fileAddViewer(params);
-      case 'fileRemoveEditor':   return fileRemoveEditor(params);
-      case 'fileRemoveViewer':   return fileRemoveViewer(params);
-      case 'fileAddParent':      return fileAddParent(params);
-      case 'fileRemoveParent':   return fileRemoveParent(params);
-      case 'folderPath':         return folderPath(params);
-      case 'fileTrash':          return fileTrash(params);
-      case 'fileUntrash':        return fileUntrash(params);
-      case 'fileDelete':         return fileDelete(params);
-      case 'fileExportAs':       return fileExportAs(params);
-      case 'commentsList':       return commentsList(params);
-      case 'commentCreate':      return commentCreate(params);
-      case 'batch':              return batch(params);
-      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
-    }
+    const fn = ACTIONS[action]
+    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
   }
 
   function requireParam(params, name) {
@@ -589,6 +558,16 @@ var DriveService = (() => {
 
   function batch(params) {
     return runBatch(params, handle);
+  }
+
+  const ACTIONS = {
+    about, fileGet, fileList, fileSearch, fileExport, folderGet,
+    folderList, folderListRoot, folderCreate, fileCreate, fileCopy,
+    fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions,
+    fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor,
+    fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath,
+    fileTrash, fileUntrash, fileDelete, fileExportAs, commentsList,
+    commentCreate, batch,
   }
 
   return { handle: handle };

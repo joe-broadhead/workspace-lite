@@ -9,7 +9,9 @@
     ".": "./dist/index.js",
     "./schemas": "./dist/schemas.js",
     "./annotations": "./dist/annotations.js",
-    "./response": "./dist/response.js"
+    "./response": "./dist/response.js",
+    "./proxy-client": "./dist/proxy-client.js",
+    "./tool-helpers": "./dist/tool-helpers.js"
   },
   "scripts": {
     "build": "tsc",

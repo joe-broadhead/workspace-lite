@@ -1,54 +1,7 @@
 const GmailService = (() => {
   function handle(action, params) {
-    switch (action) {
-      // READ
-      case 'profile':              return profile();
-      case 'searchMessages':       return searchMessages(params);
-      case 'getMessage':           return getMessage(params);
-      case 'listThreads':          return listThreads(params);
-      case 'getThread':            return getThread(params);
-      case 'listLabels':           return listLabels();
-      case 'attachmentGet':        return attachmentGet(params);
-
-      // WRITE
-      case 'send':                 return send(params);
-      case 'markRead':             return markRead(params);
-      case 'markUnread':           return markUnread(params);
-      case 'archive':              return archive(params);
-      case 'star':                 return star(params);
-      case 'unstar':               return unstar(params);
-      case 'addLabel':             return addLabel(params);
-      case 'removeLabel':          return removeLabel(params);
-
-      // DRAFTS
-      case 'listDrafts':           return listDrafts(params);
-      case 'getDraft':             return getDraft(params);
-      case 'createDraft':          return createDraft(params);
-      case 'updateDraft':          return updateDraft(params);
-      case 'deleteDraft':          return deleteDraft(params);
-      case 'sendDraft':            return sendDraft(params);
-
-      // REPLY & FORWARD
-      case 'reply':                return reply(params);
-      case 'replyAll':             return replyAll(params);
-      case 'forward':              return forwardMsg(params);
-      case 'createDraftReply':     return createDraftReply(params);
-      case 'createDraftReplyAll':  return createDraftReplyAll(params);
-
-      // DESTRUCTIVE
-      case 'trashMessage':         return trashMessage(params);
-      case 'untrashMessage':       return untrashMessage(params);
-      case 'trashThread':          return trashThread(params);
-      case 'untrashThread':        return untrashThread(params);
-      case 'deleteMessage':        return deleteMessage(params);
-
-      case 'batchModify':          return batchModify(params);
-
-      // BATCH
-      case 'batch':                return batch(params);
-
-      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
-    }
+    const fn = ACTIONS[action]
+    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
   }
 
   function validateMessageId(id) {
@@ -695,6 +648,16 @@ const GmailService = (() => {
 
   function batch(params) {
     return runBatch(params, handle);
+  }
+
+  const ACTIONS = {
+    profile, searchMessages, getMessage, listThreads, getThread,
+    listLabels, attachmentGet, send, markRead, markUnread, archive,
+    star, unstar, addLabel, removeLabel, listDrafts, getDraft,
+    createDraft, updateDraft, deleteDraft, sendDraft, reply, replyAll,
+    forward: forwardMsg, createDraftReply, createDraftReplyAll,
+    trashMessage, untrashMessage, trashThread, untrashThread,
+    deleteMessage, batchModify, batch,
   }
 
   return { handle: handle };

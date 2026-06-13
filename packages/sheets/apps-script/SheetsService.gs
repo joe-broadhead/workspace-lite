@@ -67,36 +67,8 @@ const SheetsService = (() => {
   }
 
   function handle(action, params) {
-    switch (action) {
-      case 'spreadsheetCreate': return spreadsheetCreate(params);
-      case 'spreadsheetGet':    return spreadsheetGet(params);
-      case 'sheetAdd':          return sheetAdd(params);
-      case 'sheetDelete':       return sheetDelete(params);
-      case 'sheetRename':       return sheetRename(params);
-      case 'sheetCopy':         return sheetCopy(params);
-      case 'rangeRead':         return rangeRead(params);
-      case 'rangeWrite':        return rangeWrite(params);
-      case 'rowsAppend':        return rowsAppend(params);
-      case 'rangeClear':        return rangeClear(params);
-      case 'rangeFormat':       return rangeFormat(params);
-      case 'rangeMerge':        return rangeMerge(params);
-      case 'rangeUnmerge':      return rangeUnmerge(params);
-      case 'columnWidth':       return columnWidth(params);
-      case 'freezeRows':        return freezeRows(params);
-      case 'rangeSort':         return rangeSort(params);
-      case 'formulaSet':        return formulaSet(params);
-      case 'chartCreate':       return chartCreate(params);
-      case 'noteSet':           return noteSet(params);
-      case 'rangeGetFormulas':  return rangeGetFormulas(params);
-      case 'rangeGetNotes':     return rangeGetNotes(params);
-      case 'valuesBatchGet':    return valuesBatchGet(params);
-      case 'conditionalFormatGet': return conditionalFormatGet(params);
-      case 'dataValidationSet': return dataValidationSet(params);
-      case 'rowsInsert':        return rowsInsert(params);
-      case 'rowsDelete':        return rowsDelete(params);
-      case 'batch':             return runBatch(handle)(params);
-      default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
-    }
+    const fn = ACTIONS[action]
+    return fn ? fn(params) : err('UNKNOWN_ACTION', `Unknown action: ${action}`)
   }
 
   function requireParam(params, name) {
@@ -974,6 +946,16 @@ const SheetsService = (() => {
       'UPDATE_FAILED',
       (e) => `Could not delete rows: ${e.message}`
     );
+  }
+
+  const ACTIONS = {
+    spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete,
+    sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend,
+    rangeClear, rangeFormat, rangeMerge, rangeUnmerge, columnWidth,
+    freezeRows, rangeSort, formulaSet, chartCreate, noteSet,
+    rangeGetFormulas, rangeGetNotes, valuesBatchGet,
+    conditionalFormatGet, dataValidationSet, rowsInsert, rowsDelete,
+    batch: function(params) { return runBatch(handle)(params); },
   }
 
   return { handle: handle };
