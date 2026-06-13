@@ -2,26 +2,16 @@ const SCRIPT_PROPERTY_KEY = 'PROXY_AUTH_TOKEN'
 const BOOTSTRAPPED_KEY = 'PROXY_BOOTSTRAPPED'
 
 function generateToken() {
-  try {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let token = ''
-    for (let i = 0; i < 48; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return token
-  } catch(e) {
-    let fallback = ''
-    for (let j = 0; j < 48; j++) {
-      fallback += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 62))
-    }
-    return fallback
-  }
+  return Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '')
 }
 
 function getOrCreateToken() {
   const props = PropertiesService.getScriptProperties()
   let token = props.getProperty(SCRIPT_PROPERTY_KEY)
-  if (!token) { token = generateToken(); props.setProperty(SCRIPT_PROPERTY_KEY, token) }
+  if (!token) {
+    token = generateToken()
+    props.setProperty(SCRIPT_PROPERTY_KEY, token)
+  }
   return token
 }
 
@@ -54,9 +44,15 @@ function validateRequest(e) {
 
 function isRateLimited(token, maxRequests) {
   const cache = CacheService.getScriptCache()
+  const lock = LockService.getScriptLock()
   const key = 'rate_' + (token || 'anon')
-  const count = parseInt(cache.get(key) || '0', 10)
-  if (count >= (maxRequests || 100)) return true
-  cache.put(key, String(count + 1), 60)
-  return false
+  try {
+    lock.tryLock(1000)
+    const count = parseInt(cache.get(key) || '0', 10)
+    if (count >= (maxRequests || 100)) return true
+    cache.put(key, String(count + 1), 60)
+    return false
+  } finally {
+    lock.releaseLock()
+  }
 }

@@ -15,8 +15,8 @@ export function createProxyClient(service: string): ProxyClient {
       if (!proxyToken) throw new Error(`${envPrefix}_PROXY_TOKEN not set`)
       const res = await fetch(proxyUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: proxyToken, action, params }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${proxyToken}` },
+        body: JSON.stringify({ action, params }),
         signal: AbortSignal.timeout(30000),
       })
       if (!res.ok) throw new Error(`Proxy returned ${res.status} ${res.statusText}`)

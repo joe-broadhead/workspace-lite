@@ -589,6 +589,7 @@ const GmailService = (() => {
     validateMessageId(messageId);
     return trap(function() {
       const attachment = Gmail.Users.Messages.attachments.get('me', messageId, attachmentId);
+      if (attachment.size > 10000000) return err('ATTACHMENT_TOO_LARGE', `Attachment exceeds 10MB limit`)
       const size = attachment.size || 0;
       const base64 = attachment.data || '';
       let text = null;

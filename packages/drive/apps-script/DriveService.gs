@@ -198,6 +198,8 @@ var DriveService = (() => {
     validateDriveId(id);
     return trap(function() {
       const file = DriveApp.getFileById(id);
+      const size = file.getSize()
+      if (size > 5000000) return err('CONTENT_TOO_LARGE', `File exceeds 5MB read limit (${Math.round(size/1024/1024)}MB)`)
       const text = file.getBlob().getDataAsString();
       return {
         id: file.getId(),

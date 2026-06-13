@@ -3,8 +3,9 @@ function doGet(e) {
     if (isBootstrapped()) {
       return respond(err('FORBIDDEN', 'Bootstrap has already been completed. Use the token saved during initial setup.'))
     }
+    const token = getOrCreateToken()
     markBootstrapped()
-    return respond(ok({ status: 'bootstrapped', token: getOrCreateToken(), note: 'Save this token as GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN. This endpoint will not return the token again.' }))
+    return respond(ok({ status: 'bootstrapped', token: token, note: 'Save this token as GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN. This endpoint will not return the token again.' }))
   }
   return respond(ok({ status: 'healthy', version: '1.0.0', service: 'google-workspace-proxy-sheets' }))
 }
