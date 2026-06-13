@@ -7,8 +7,10 @@ const CalendarService = (() => {
       case 'listEvents':       return listEvents(params);
       case 'searchEvents':     return searchEvents(params);
       case 'getEvent':         return getEvent(params);
+      case 'eventInstances':   return eventInstances(params);
 
       // WRITE
+      case 'quickAdd':         return quickAdd(params);
       case 'createEvent':      return createEvent(params);
       case 'updateEvent':      return updateEvent(params);
       case 'respondToEvent':   return respondToEvent(params);
@@ -243,6 +245,39 @@ const CalendarService = (() => {
       return ok({ event: e });
     } catch (e) {
       return err('NOT_FOUND', e.message || `Event not found: ${id}`);
+    }
+  }
+
+  // ─── EVENT INSTANCES (Advanced Service) ───
+
+  function eventInstances(params) {
+    const eventId = requireParam(params, 'eventId');
+    const calendarId = optionalString(params, 'calendarId', 'primary');
+    const timeMin = optionalString(params, 'timeMin', null);
+    const timeMax = optionalString(params, 'timeMax', null);
+
+    try {
+      const options = {};
+      if (timeMin) options.timeMin = timeMin;
+      if (timeMax) options.timeMax = timeMax;
+      const result = Calendar.Events.instances(calendarId, eventId, options);
+      return ok({ eventId, calendarId, instances: result.items || [] });
+    } catch (e) {
+      return err('LIST_FAILED', e.message || 'Could not get event instances');
+    }
+  }
+
+  // ─── QUICK ADD (Advanced Service) ───
+
+  function quickAdd(params) {
+    const text = requireParam(params, 'text');
+    const calendarId = optionalString(params, 'calendarId', 'primary');
+
+    try {
+      const event = Calendar.Events.quickAdd(calendarId, text);
+      return ok({ event });
+    } catch (e) {
+      return err('CREATE_FAILED', e.message || 'Could not quick-add event');
     }
   }
 

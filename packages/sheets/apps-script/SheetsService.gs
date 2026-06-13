@@ -58,6 +58,7 @@ const SheetsService = (() => {
       case 'noteSet':           return noteSet(params);
       case 'rangeGetFormulas':  return rangeGetFormulas(params);
       case 'rangeGetNotes':     return rangeGetNotes(params);
+      case 'valuesBatchGet':    return valuesBatchGet(params);
       case 'conditionalFormatGet': return conditionalFormatGet(params);
       case 'dataValidationSet': return dataValidationSet(params);
       case 'rowsInsert':        return rowsInsert(params);
@@ -296,6 +297,24 @@ const SheetsService = (() => {
       numRows: range.getNumRows(),
       numCols: range.getNumColumns()
     });
+  }
+
+  // ── Batch Get (Advanced Service) ──
+
+  function valuesBatchGet(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const ranges = params.ranges;
+
+    if (!Array.isArray(ranges) || ranges.length === 0) {
+      return err('BAD_REQUEST', 'ranges must be a non-empty array of A1 notation strings');
+    }
+
+    try {
+      const result = Sheets.Spreadsheets.Values.batchGet(id, { ranges });
+      return ok({ spreadsheetId: id, valueRanges: result.valueRanges || [] });
+    } catch (e) {
+      return err('READ_FAILED', e.message || 'Could not batch-get values');
+    }
   }
 
   // ── Writing ──

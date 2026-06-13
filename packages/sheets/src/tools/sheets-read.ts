@@ -1,4 +1,4 @@
-import { sheetsRangeReadSchema, sheetsGetFormulasSchema, sheetsGetNotesSchema } from '@workspace-lite/shared/schemas'
+import { sheetsRangeReadSchema, sheetsGetFormulasSchema, sheetsGetNotesSchema, sheetsBatchGetSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerSheetsReadTools(server: { tool: Function }) {
@@ -74,6 +74,24 @@ export function registerSheetsReadTools(server: { tool: Function }) {
           type: 'text' as const,
           text: `Sheet: ${data.sheetName || '(default)'}\nRange: ${data.range || '(all data)'}\nRows: ${data.numRows}, Cols: ${data.numCols}\n\nNotes:\n${rows.join('\n')}`,
         }],
+      }
+    },
+  )
+
+  server.tool(
+    'sheets_batch_get',
+    'Read multiple ranges from a spreadsheet in a single API call via the Sheets Advanced Service. Returns a valueRanges array, each with range, majorDimension, and values. Params: spreadsheetId, ranges (array of A1 notation strings).',
+    sheetsBatchGetSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('valuesBatchGet', args)
+      const data = result.data as Record<string, unknown>
+      const valueRanges = (data.valueRanges as Array<Record<string, unknown>>) || []
+      const summary = valueRanges.map((vr: Record<string, unknown>) => {
+        const vals = vr.values as unknown[][] | undefined
+        return `${vr.range}: ${vals ? vals.length + ' rows' : 'empty'}`
+      }).join(', ')
+      return {
+        content: [{ type: 'text' as const, text: `Batch get: ${summary}\n\n${JSON.stringify(valueRanges, null, 2)}` }],
       }
     },
   )

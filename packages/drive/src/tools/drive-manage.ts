@@ -2,6 +2,7 @@ import { formatResponse } from '@workspace-lite/shared'
 import {
   fileSetSharingSchema, fileAddEditorSchema, fileAddViewerSchema,
   fileRemoveEditorSchema, fileRemoveViewerSchema, fileGetSchema,
+  driveCommentCreateSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -100,6 +101,19 @@ export function registerDriveManageTools(server: { tool: Function }) {
       return formatResponse(result, {
         summary: 'File deleted (moved to trash).',
         hint: 'For permanent deletion, empty trash in drive.google.com.',
+      })
+    },
+  )
+
+  server.tool(
+    'drive_add_comment',
+    'Add a comment to a Drive file. The comment is head-anchored (appears at the top of the file).',
+    driveCommentCreateSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('commentCreate', args)
+      return formatResponse(result, {
+        summary: 'Comment added successfully.',
+        hint: 'Use drive_get_comments to list all comments.',
       })
     },
   )

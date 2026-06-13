@@ -4,6 +4,7 @@ import {
   docsInsertParagraphSchema, docsUpdateParagraphSchema,
   docsDeleteParagraphSchema, docsSetTextSchema,
   docsReplaceTextSchema, docsHeaderFooterSchema,
+  docsGetAsJsonSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -31,6 +32,16 @@ export function registerDocsManageTools(server: { tool: Function }) {
         summary: 'Document retrieved.',
         hint: 'Use docs_insert_paragraph to add content, docs_format_text to style.',
       })
+    },
+  )
+
+  server.tool(
+    'docs_get_as_json',
+    'Get the full document as structured JSON via the Docs Advanced Service. Returns the complete document tree with all content, formatting, and structure. This is an alternative to the paragraph-based docs_get_document.',
+    docsGetAsJsonSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('documentGetJson', args)
+      return formatResponse(result, { summary: 'Document JSON retrieved.' })
     },
   )
 

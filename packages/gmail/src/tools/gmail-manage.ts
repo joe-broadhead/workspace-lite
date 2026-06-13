@@ -1,4 +1,5 @@
 import { formatResponse } from '@workspace-lite/shared'
+import { gmailBatchModifySchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerGmailManageTools(server: { tool: Function }) {
@@ -12,4 +13,10 @@ export function registerGmailManageTools(server: { tool: Function }) {
     async (args: Record<string, unknown>) => { return formatResponse(await callProxy('untrashThread', args), { summary: 'Thread restored.' }) })
   server.tool('gmail_delete_message', 'Permanently delete a message.', {},
     async (args: Record<string, unknown>) => { return formatResponse(await callProxy('deleteMessage', args), { summary: 'Deleted.' }) })
+  server.tool('gmail_batch_modify', 'Bulk label changes on multiple messages. Use messageIds, addLabels (optional), and removeLabels (optional). Labels can be names (INBOX, UNREAD, STARRED) or IDs.',
+    gmailBatchModifySchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('batchModify', args)
+      return formatResponse(result, { summary: 'Batch modify executed.' })
+    })
 }

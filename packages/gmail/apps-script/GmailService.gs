@@ -8,6 +8,7 @@ const GmailService = (() => {
       case 'listThreads':          return listThreads(params);
       case 'getThread':            return getThread(params);
       case 'listLabels':           return listLabels();
+      case 'attachmentGet':        return attachmentGet(params);
 
       // WRITE
       case 'send':                 return send(params);
@@ -40,6 +41,8 @@ const GmailService = (() => {
       case 'trashThread':          return trashThread(params);
       case 'untrashThread':        return untrashThread(params);
       case 'deleteMessage':        return deleteMessage(params);
+
+      case 'batchModify':          return batchModify(params);
 
       // BATCH
       case 'batch':                return batch(params);
@@ -697,6 +700,55 @@ const GmailService = (() => {
       return ok({ deleted: true, messageId: id, note: 'Message moved to trash. Emptied after 30 days.' });
     } catch (e) {
       return err('DELETE_FAILED', `Could not delete message: ${id}`);
+    }
+  }
+
+  // ─── ATTACHMENT ───
+
+  function attachmentGet(params) {
+    const messageId = requireParam(params, 'messageId');
+    const attachmentId = requireParam(params, 'attachmentId');
+    validateMessageId(messageId);
+    try {
+      const attachment = Gmail.Users.Messages.attachments.get('me', messageId, attachmentId);
+      const size = attachment.size || 0;
+      const base64 = attachment.data || '';
+      let text = null;
+      try {
+        text = Utilities.newBlob(Utilities.base64Decode(base64)).getDataAsString();
+      } catch (_) { /* binary — return base64 */ }
+      return ok({
+        messageId: messageId,
+        attachmentId: attachmentId,
+        size: size,
+        base64: text ? undefined : base64,
+        text: text || undefined,
+      });
+    } catch (e) {
+      return err('NOT_FOUND', `Attachment not found: ${attachmentId} for message ${messageId}`);
+    }
+  }
+
+  // ─── BATCH MODIFY ───
+
+  function batchModify(params) {
+    const messageIds = params.messageIds;
+    if (!Array.isArray(messageIds) || messageIds.length === 0)
+      return err('BAD_REQUEST', 'messageIds must be a non-empty array');
+    const addLabelIds = Array.isArray(params.addLabels) ? params.addLabels : [];
+    const removeLabelIds = Array.isArray(params.removeLabels) ? params.removeLabels : [];
+    if (addLabelIds.length === 0 && removeLabelIds.length === 0)
+      return err('BAD_REQUEST', 'At least one of addLabels or removeLabels must be provided');
+    try {
+      Gmail.Users.Messages.batchModify({ ids: messageIds, addLabelIds: addLabelIds, removeLabelIds: removeLabelIds }, 'me');
+      return ok({
+        modified: messageIds.length,
+        messageIds: messageIds,
+        addedLabels: addLabelIds,
+        removedLabels: removeLabelIds,
+      });
+    } catch (e) {
+      return err('BATCH_MODIFY_FAILED', e.message || 'Batch modify failed');
     }
   }
 

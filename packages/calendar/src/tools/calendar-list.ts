@@ -1,5 +1,5 @@
-import { formatList } from '@workspace-lite/shared'
-import { calendarListEventsSchema, calendarSearchEventsSchema, calendarFreeBusySchema } from '@workspace-lite/shared/schemas'
+import { formatList, formatResponse } from '@workspace-lite/shared'
+import { calendarListEventsSchema, calendarSearchEventsSchema, calendarFreeBusySchema, calendarEventInstancesSchema, calendarQuickAddSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerCalendarListTools(server: { tool: Function }) {
@@ -35,4 +35,26 @@ export function registerCalendarListTools(server: { tool: Function }) {
       const range = data.range as Record<string,string>
       return { content: [{ type: 'text' as const, text: [`Busy: ${data.totalBusy} (${range?.from} to ${range?.to})`, '', ...lines].join('\n') }] }
     })
+
+  server.tool(
+    'calendar_get_event_instances',
+    'Expand recurring events into concrete instances within a time window. Uses the Calendar Advanced Service. Returns an array of event instances.',
+    calendarEventInstancesSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('eventInstances', args)
+      return formatList(result, { itemsKey: 'items', noun: 'instance',
+        itemSummary: (e: unknown) => { const ev = e as Record<string, unknown>; return `${ev.start || ev.originalStartTime} — ${ev.summary || ev.title}` },
+        hint: 'Use calendar_get_event for full details on individual instances.' })
+    },
+  )
+
+  server.tool(
+    'calendar_quick_add_event',
+    'Create an event from a natural language description using the Calendar Advanced Service (e.g. "Lunch with Sarah tomorrow at noon"). Returns the created event.',
+    calendarQuickAddSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('quickAdd', args)
+      return formatResponse(result, { summary: 'Event created from natural language.' })
+    },
+  )
 }

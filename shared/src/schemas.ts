@@ -104,9 +104,23 @@ export const driveFolderPathSchema = {
   fileId: driveIdSchema.describe('File ID to get the full folder path for.'),
 }
 
+export const driveExportAsSchema = {
+  fileId: driveIdSchema.describe('File ID to export.'),
+  mimeType: z.string().describe('Target MIME type for export (e.g. application/pdf, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet).'),
+}
+
+export const driveCommentsListSchema = {
+  fileId: driveIdSchema.describe('Drive file ID to get comments for.'),
+}
+
+export const driveCommentCreateSchema = {
+  fileId: driveIdSchema.describe('Drive file ID to comment on.'),
+  content: z.string().min(1).describe('Comment text content.'),
+}
+
 export const driveBatchSchema = {
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: about, fileGet, fileList, fileSearch, fileExport, folderGet, folderList, folderListRoot, folderCreate, fileCreate, fileCopy, fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions, fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor, fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath, fileTrash, fileUntrash, fileDelete).'),
+    action: z.string().describe('Action to perform (same names as individual tools: about, fileGet, fileList, fileSearch, fileExport, folderGet, folderList, folderListRoot, folderCreate, fileCreate, fileCopy, fileMove, fileUpdateMeta, fileUpdateContent, fileGetPermissions, fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor, fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath, fileTrash, fileUntrash, fileDelete, fileExportAs, commentsList, commentCreate).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
@@ -187,9 +201,21 @@ export const calendarSetEventColorSchema = {
   calendarId: z.string().optional().describe('Calendar ID.'),
 }
 
+export const calendarEventInstancesSchema = {
+  eventId: calendarEventIdSchema,
+  calendarId: z.string().optional().describe('Calendar ID. Defaults to "primary".'),
+  timeMin: z.string().optional().describe('Start time ISO string.'),
+  timeMax: z.string().optional().describe('End time ISO string.'),
+}
+
+export const calendarQuickAddSchema = {
+  text: z.string().min(1).describe('Natural language event description (e.g. "Lunch with Sarah tomorrow at noon").'),
+  calendarId: z.string().optional().describe('Calendar ID. Defaults to "primary".'),
+}
+
 export const calendarBatchSchema = {
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: listCalendars, getCalendar, listEvents, searchEvents, findFreeBusy, getEvent, createEvent, updateEvent, deleteEvent, respondToEvent, createEventSeries, setEventColor).'),
+    action: z.string().describe('Action to perform (same names as individual tools: listCalendars, getCalendar, listEvents, searchEvents, findFreeBusy, getEvent, eventInstances, quickAdd, createEvent, updateEvent, deleteEvent, respondToEvent, createEventSeries, setEventColor).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
@@ -283,9 +309,20 @@ export const gmailForwardSchema = {
   htmlBody: z.string().max(200000).optional(),
 }
 
+export const gmailAttachmentGetSchema = {
+  messageId: gmailMessageIdSchema,
+  attachmentId: z.string().min(1).describe('Attachment ID from the message.'),
+}
+
+export const gmailBatchModifySchema = {
+  messageIds: z.array(z.string().min(1)).min(1).describe('Array of message IDs to modify.'),
+  addLabels: z.array(z.string()).optional().describe('Label names or IDs to add.'),
+  removeLabels: z.array(z.string()).optional().describe('Label names or IDs to remove.'),
+}
+
 export const gmailBatchSchema = {
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: profile, searchMessages, listThreads, getMessage, getThread, listLabels, send, createDraft, createDraftReply, createDraftReplyAll, listDrafts, getDraft, updateDraft, deleteDraft, sendDraft, markRead, markUnread, archive, star, unstar, addLabel, removeLabel, trashMessage, untrashMessage, deleteMessage, trashThread, untrashThread, reply, replyAll, forward).'),
+    action: z.string().describe('Action to perform (same names as individual tools: profile, searchMessages, listThreads, getMessage, getThread, listLabels, send, createDraft, createDraftReply, createDraftReplyAll, listDrafts, getDraft, updateDraft, deleteDraft, sendDraft, markRead, markUnread, archive, star, unstar, addLabel, removeLabel, trashMessage, untrashMessage, deleteMessage, trashThread, untrashThread, reply, replyAll, forward, attachmentGet, batchModify).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
@@ -445,7 +482,7 @@ export const sheetsSetNoteSchema = {
 export const sheetsBatchSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeGetFormulas, rangeGetNotes, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet, conditionalFormatGet, dataValidationSet, rowsInsert, rowsDelete).'),
+    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeGetFormulas, rangeGetNotes, valuesBatchGet, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet, conditionalFormatGet, dataValidationSet, rowsInsert, rowsDelete).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas for parameter details.'),
   })).min(1).max(20).describe('Ordered list of operations to execute.'),
 }
@@ -477,6 +514,11 @@ export const sheetsDataValidationSchema = {
   formula: z.string().optional().describe('Custom formula string for CUSTOM_FORMULA.'),
   helpText: z.string().optional().describe('Help text shown when the cell is selected.'),
   strict: z.boolean().default(false).optional().describe('If true, reject invalid input instead of showing a warning.'),
+}
+
+export const sheetsBatchGetSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  ranges: z.array(z.string()).describe('Array of range strings in A1 notation (e.g. ["Sheet1!A1:B10", "Sheet2!C1:D20"]).'),
 }
 
 export const sheetsInsertRowsSchema = {
@@ -734,10 +776,14 @@ export const docsFormatTextSchema = {
   linkUrl: z.string().optional().describe('Set hyperlink URL.'),
 }
 
+export const docsGetAsJsonSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+}
+
 export const docsBatchSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
   operations: z.array(z.object({
-    action: z.string().describe('Action to perform (same names as individual tools: documentGet, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet, tocInsert, footnoteInsert).'),
+    action: z.string().describe('Action to perform (same names as individual tools: documentGet, documentGetJson, paragraphInsert, paragraphUpdate, paragraphDelete, setText, replaceText, listInsert, tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert, formatText, headerSet, footerSet, tocInsert, footnoteInsert).'),
     params: z.record(z.string(), z.unknown()).default({}).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }

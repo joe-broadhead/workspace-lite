@@ -1,5 +1,5 @@
 import { formatResponse, formatPermissions } from '@workspace-lite/shared'
-import { fileGetSchema, fileExportSchema, folderGetSchema, driveFolderPathSchema } from '@workspace-lite/shared/schemas'
+import { fileGetSchema, fileExportSchema, folderGetSchema, driveFolderPathSchema, driveCommentsListSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerDriveReadTools(server: { tool: Function }) {
@@ -73,6 +73,22 @@ export function registerDriveReadTools(server: { tool: Function }) {
       const pathStr = (data.pathString as string) || ''
       const path = (data.path as Array<Record<string, unknown>>) || []
       const text = `Path: ${pathStr || 'Root'}\n\n` + path.map((p: Record<string, unknown>) => `${p.name} (${p.id})`).join('\n')
+      return { content: [{ type: 'text' as const, text }] }
+    },
+  )
+
+  server.tool(
+    'drive_get_comments',
+    'List comments on a Drive file. Returns comment id, content, author, createdTime, modifiedTime, resolved status, and replies count.',
+    driveCommentsListSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('commentsList', args)
+      const data = result.data as Record<string, unknown>
+      const comments = (data.comments as Array<Record<string, unknown>>) || []
+      const text = `Comments on ${data.fileId} (${comments.length}):\n\n` +
+        comments.map((c: Record<string, unknown>) =>
+          `${c.resolved ? '[RESOLVED] ' : ''}${c.author || 'Unknown'} — ${c.createdTime}\n${c.content || ''}${c.repliesCount ? `\n  (${c.repliesCount} replies)` : ''}`
+        ).join('\n\n')
       return { content: [{ type: 'text' as const, text }] }
     },
   )

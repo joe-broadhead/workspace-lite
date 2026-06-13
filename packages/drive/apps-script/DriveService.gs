@@ -53,6 +53,9 @@ var DriveService = (() => {
       case 'fileTrash':          return fileTrash(params);
       case 'fileUntrash':        return fileUntrash(params);
       case 'fileDelete':         return fileDelete(params);
+      case 'fileExportAs':       return fileExportAs(params);
+      case 'commentsList':       return commentsList(params);
+      case 'commentCreate':      return commentCreate(params);
       case 'batch':              return batch(params);
       default: return err('UNKNOWN_ACTION', `Unknown action: ${action}`);
     }
@@ -566,6 +569,71 @@ var DriveService = (() => {
       return ok({ deleted: true, fileId: id, note: 'File moved to trash. Permanent deletion requires Drive API advanced service.' });
     } catch(e) {
       return err('DELETE_FAILED', `Could not delete file: ${id}`);
+    }
+  }
+
+  // ── Advanced Services ──
+
+  function fileExportAs(params) {
+    const id = requireParam(params, 'fileId');
+    const mimeType = requireParam(params, 'mimeType');
+    validateDriveId(id);
+    try {
+      const blob = Drive.Files.export(id, mimeType);
+      const bytes = blob.getBytes();
+      const base64 = Utilities.base64Encode(bytes);
+      return ok({
+        fileId: id,
+        mimeType: mimeType,
+        size: bytes.length,
+        base64: base64,
+      });
+    } catch(e) {
+      return err('EXPORT_FAILED', e.message || `Could not export file: ${id}`);
+    }
+  }
+
+  function commentsList(params) {
+    const id = requireParam(params, 'fileId');
+    validateDriveId(id);
+    try {
+      const result = Drive.Comments.list(id, { fields: 'comments', pageSize: 100 });
+      const comments = (result.comments || []).map(function(c) {
+        return {
+          id: c.commentId,
+          content: c.content,
+          author: c.author ? (c.author.displayName || c.author.emailAddress || null) : null,
+          createdTime: c.createdTime || null,
+          modifiedTime: c.modifiedTime || null,
+          resolved: c.resolved || false,
+          anchor: c.anchor ? String(c.anchor) : null,
+          repliesCount: c.replies ? (Array.isArray(c.replies) ? c.replies.length : 0) : 0,
+        };
+      });
+      return ok({ fileId: id, comments: comments });
+    } catch(e) {
+      return err('COMMENTS_FAILED', e.message || `Could not list comments for file: ${id}`);
+    }
+  }
+
+  function commentCreate(params) {
+    const id = requireParam(params, 'fileId');
+    const content = requireParam(params, 'content');
+    validateDriveId(id);
+    try {
+      const comment = Drive.Comments.create({ content: content, anchor: JSON.stringify({ r: 'head' }) }, id);
+      return ok({
+        fileId: id,
+        comment: {
+          id: comment.commentId,
+          content: comment.content,
+          author: comment.author ? (comment.author.displayName || comment.author.emailAddress || null) : null,
+          createdTime: comment.createdTime || null,
+          anchor: comment.anchor ? String(comment.anchor) : null,
+        },
+      });
+    } catch(e) {
+      return err('COMMENT_FAILED', e.message || `Could not add comment to file: ${id}`);
     }
   }
 

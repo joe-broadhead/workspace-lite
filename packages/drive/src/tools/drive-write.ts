@@ -2,7 +2,7 @@ import { formatResponse } from '@workspace-lite/shared'
 import {
   folderCreateSchema, fileCreateSchema, fileCopySchema, fileMoveSchema,
   fileUpdateMetaSchema, fileUpdateContentSchema,
-  driveAddParentSchema, driveRemoveParentSchema,
+  driveAddParentSchema, driveRemoveParentSchema, driveExportAsSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -101,6 +101,22 @@ export function registerDriveWriteTools(server: { tool: Function }) {
       return formatResponse(result, {
         summary: 'File removed from folder.',
       })
+    },
+  )
+
+  server.tool(
+    'drive_export_as',
+    'Export a Google Workspace file (Docs, Sheets, Slides) in a format like PDF, DOCX, XLSX, CSV. Returns a base64-encoded blob. Use drive_read_file for plain text export.',
+    driveExportAsSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('fileExportAs', args)
+      const data = result.data as Record<string, unknown>
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `Exported: ${data.fileId} as ${data.mimeType}\nSize: ${data.size} bytes\nBase64 length: ${(data.base64 as string || '').length}`,
+        }],
+      }
     },
   )
 }

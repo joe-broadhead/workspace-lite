@@ -3,6 +3,7 @@ const DocsService = (() => {
     switch (action) {
       case 'documentCreate':       return documentCreate(params);
       case 'documentGet':          return documentGet(params);
+      case 'documentGetJson':     return documentGetJson(params);
       case 'paragraphInsert':      return paragraphInsert(params);
       case 'paragraphUpdate':      return paragraphUpdate(params);
       case 'paragraphDelete':      return paragraphDelete(params);
@@ -110,6 +111,15 @@ const DocsService = (() => {
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
     return ok({ document: documentToJSON(doc) });
+  }
+
+  function documentGetJson(params) {
+    const id = requireParam(params, 'documentId');
+    validateDocumentId(id);
+    try {
+      const doc = Docs.Documents.get(id);
+      return ok({ document: doc });
+    } catch (e) { return err('NOT_FOUND', `Document not found: ${id}`); }
   }
 
   // ── Paragraph insert / update / delete ──
