@@ -139,10 +139,10 @@ For each service, two environment variables are required:
 1. Create each Apps Script project with `clasp create --type standalone`
 2. Push code with `clasp push`
 3. Deploy as web app manually (GUI) and copy the deployment URL
-4. Bootstrap the token:
+4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and bootstrap the token:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?bootstrap=1" | jq -r '.data.token'
+curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>" | jq -r '.data.token'
 ```
 
 5. Set the environment variables in `.zshrc` or a `.env` file

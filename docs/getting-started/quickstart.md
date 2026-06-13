@@ -95,7 +95,7 @@ Create a spreadsheet, add headers, populate data, apply formatting, and insert a
 }
 ```
 
-Returns the `spreadsheetId`. Let's say it's `1AbCdEfGhIjKlMnOpQrStUv`.
+Returns the `spreadsheetId`. The examples below use `<spreadsheet-id>` as a placeholder.
 
 **Step 2** &mdash; Use batch to set up everything at once:
 
@@ -103,7 +103,7 @@ Returns the `spreadsheetId`. Let's say it's `1AbCdEfGhIjKlMnOpQrStUv`.
 {
   "tool": "sheets_batch",
   "args": {
-    "spreadsheetId": "1AbCdEfGhIjKlMnOpQrStUv",
+    "spreadsheetId": "<spreadsheet-id>",
     "sheetName": "Sheet1",
     "operations": [
       {
@@ -275,7 +275,7 @@ Find a document by name and read its contents.
 ```
 Found 1 result
 
-Q2 Budget Report (1AbCdEfGhIjKlMnOpQrStUv) — application/vnd.google-apps.spreadsheet — you
+Q2 Budget Report (<spreadsheet-id>) — application/vnd.google-apps.spreadsheet — you
 ```
 
 **Step 2** &mdash; For a text/markdown file, read contents directly:
@@ -284,7 +284,7 @@ Q2 Budget Report (1AbCdEfGhIjKlMnOpQrStUv) — application/vnd.google-apps.sprea
 {
   "tool": "drive_read_file",
   "args": {
-    "fileId": "1AbCdEfGhIjKlMnOpQrStUv",
+    "fileId": "<spreadsheet-id>",
     "mimeType": "text/plain"
   }
 }
@@ -296,7 +296,7 @@ Q2 Budget Report (1AbCdEfGhIjKlMnOpQrStUv) — application/vnd.google-apps.sprea
 {
   "tool": "drive_get_file",
   "args": {
-    "fileId": "1AbCdEfGhIjKlMnOpQrStUv"
+    "fileId": "<spreadsheet-id>"
   }
 }
 ```
@@ -305,7 +305,7 @@ Q2 Budget Report (1AbCdEfGhIjKlMnOpQrStUv) — application/vnd.google-apps.sprea
 
 ```json
 {
-  "id": "1AbCdEfGhIjKlMnOpQrStUv",
+  "id": "<spreadsheet-id>",
   "name": "Q2 Budget Report",
   "mimeType": "application/vnd.google-apps.spreadsheet",
   "size": 24576,
@@ -313,7 +313,7 @@ Q2 Budget Report (1AbCdEfGhIjKlMnOpQrStUv) — application/vnd.google-apps.sprea
   "modifiedTime": "2026-06-13T14:30:00Z",
   "owners": ["you@gmail.com"],
   "shared": false,
-  "webViewLink": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUv/edit"
+  "webViewLink": "https://docs.google.com/spreadsheets/d/<spreadsheet-id>/edit"
 }
 ```
 
@@ -340,7 +340,7 @@ Build a 3-slide deck with titles, body text, and a table &mdash; elements auto-p
 {
   "tool": "slides_batch",
   "args": {
-    "presentationId": "1XyZaBcDeFgHiJkLmNoPqR",
+    "presentationId": "<presentation-id>",
     "operations": [
       {
         "action": "slideAdd",

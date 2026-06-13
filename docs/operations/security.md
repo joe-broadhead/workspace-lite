@@ -42,8 +42,8 @@ Tokens must be stored in environment variables. The recommended approach:
 
 ```bash
 # .env file (included in .gitignore)
-GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN=aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789aBcDeFgH
-GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN=xYzAbCdEfGhIjKlMnOpQrStUvWxYz0123456789xYzAbCdE
+GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN=<drive-proxy-token>
+GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN=<gmail-proxy-token>
 # ... one token per service
 ```
 
@@ -101,17 +101,19 @@ clasp open
 
 4. Delete the property `PROXY_AUTH_TOKEN`.
 
-5. **Deploy a new version** of the web app (if the deployment URL changes, update it in `.env`).
+5. If you use class-scoped tokens, also delete any affected `PROXY_READ_TOKEN`, `PROXY_WRITE_TOKEN`, `PROXY_SEND_TOKEN`, `PROXY_SHARE_TOKEN`, `PROXY_DESTRUCTIVE_TOKEN`, or `PROXY_ADMIN_TOKEN` properties.
 
-6. Bootstrap the new token:
+6. **Deploy a new version** of the web app if the deployment URL changes, then update `.env`.
+
+7. Bootstrap the new token with the setup key from the untracked `BootstrapSecret.gs` file:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?bootstrap=1" | jq -r '.data.token'
+curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>" | jq -r '.data.token'
 ```
 
-7. Copy the token output to `GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN` in your `.env` file.
+8. Copy the token output to `GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN` in your `.env` file.
 
-8. Re-source your environment and restart OpenCode:
+9. Re-source your environment and restart OpenCode:
 
 ```bash
 source ~/.zshrc
@@ -194,16 +196,17 @@ There is no additional infrastructure to secure.
 
 ### What an attacker can do with a compromised token
 
-A token gives full access to the corresponding Google service **as the deploying user**:
+Token impact depends on the token's authorization classes. The setup-generated primary token defaults to `read,draft`; broader classes require `PROXY_AUTH_TOKEN_CLASSES` or class-scoped token properties in Apps Script Script Properties.
 
-| Token | Access |
+| Token class | Access |
 |---|---|
-| Drive token | Read, write, share, and delete all Drive files accessible to you |
-| Gmail token | Read, send, and delete email as you |
-| Calendar token | Read, create, and delete calendar events as you |
-| Sheets token | Read, write, and delete spreadsheets you can access |
-| Slides token | Read, write, and delete presentations you can access |
-| Docs token | Read, write, and delete documents you can access |
+| `read` | Read/list/search actions allowed by service policies |
+| `draft` | Draft-safe Gmail actions plus read |
+| `write` | Create/update/archive/non-destructive mutations plus draft/read |
+| `send` | Email send/reply/forward plus write/draft/read |
+| `share` | Drive sharing plus write/draft/read |
+| `destructive` | Trash/delete/clear destructive actions plus write/draft/read |
+| `admin` | All action classes |
 
 **Rotate immediately if a token is compromised.**
 
@@ -217,4 +220,4 @@ A token gives full access to the corresponding Google service **as the deploying
 
 ### Rate limiting as defense-in-depth
 
-Even with a valid token, an attacker is limited to 100 requests per minute per proxy. This is not a security boundary (a patient attacker can work within it), but it limits blast radius.
+Even with a valid token, an attacker is limited to 100 weighted request units per minute per proxy. This is not a security boundary (a patient attacker can work within it), but it limits blast radius and makes destructive/send/share batches more expensive than reads.

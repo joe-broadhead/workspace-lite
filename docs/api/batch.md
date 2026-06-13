@@ -29,7 +29,7 @@ Request:
 ```json
 {
   "action": "batch",
-  "token": "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789aBcDeFgH",
+  "token": "<proxy-token>",
   "params": {
     "operations": [
       {

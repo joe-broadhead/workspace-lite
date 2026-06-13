@@ -17,7 +17,7 @@
 
 ```bash
 # Verify the deployment is accessible
-curl -sL "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+curl -sL "https://script.google.com/macros/s/<deployment-id>/exec"
 
 # Expected output (healthy check):
 # {"success":true,"data":{"status":"healthy","version":"1.0.0","service":"google-workspace-proxy-drive"}}
@@ -76,10 +76,10 @@ In the Apps Script editor, go to **Project Settings → Script Properties** (gea
 1. Delete the property `PROXY_BOOTSTRAPPED`.
 2. Delete the property `PROXY_AUTH_TOKEN`.
 3. Re-deploy the web app (new deployment required if the URL changed).
-4. Hit the bootstrap endpoint again:
+4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and hit the bootstrap endpoint again:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?bootstrap=1" | jq -r '.data.token'
+curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>" | jq -r '.data.token'
 ```
 
 5. Update the token in your `.env` file.
@@ -222,7 +222,7 @@ Shows `console.log` and `console.error` output (limited to recent executions).
 Every proxy responds to a GET request with a health check:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec" | jq .
+curl -sL "https://script.google.com/macros/s/<deployment-id>/exec" | jq .
 ```
 
 Expected response (without token):
@@ -246,7 +246,7 @@ Verify your local token matches the proxy's token:
 
 ```bash
 # Check local
-echo $GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN
+printf '%s\n' "$GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN"
 
 # Check proxy (requires access to Apps Script editor)
 # In the editor: Project Settings → Script Properties → PROXY_AUTH_TOKEN
