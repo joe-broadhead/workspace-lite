@@ -22,7 +22,7 @@ MCP servers that expose Google Workspace services through Apps Script web app pr
 | `packages/drive` | ✅ Live | 14 | Full Drive CRUD: list, search, read, create, update, copy, move, share, trash |
 | `packages/gmail` | ✅ Live | 30 | Search, read, send, reply, forward, drafts, labels, trash |
 | `packages/calendar` | ✅ Live | 9 | List events, search, create, update, delete, free/busy |
-| `packages/sheets` | 🔲 Planned | TBD | Read/write ranges, create sheets, formatting |
+| `packages/sheets` | ✅ Live | 19 | Full Sheets: create, read/write/append, format, charts, sort, freeze, merge, notes, batch |
 
 ## Quick Start
 
@@ -87,6 +87,22 @@ npm run build          # Build all packages
 npm run typecheck      # Type-check all packages
 npm run dev:drive      # Run Drive MCP in dev mode
 ```
+
+## OpenCode Skills
+
+An agent skill is included to help LLMs use these tools effectively. The skill covers all 80+ tools with workflows for email triage, meeting prep, scheduling, spreadsheet creation, data analysis, and dashboards.
+
+### Install
+
+```bash
+# Symlink into your OpenCode skills directory
+ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
+
+# Or copy
+cp -r skills/google-workspace ~/.config/opencode/skills/
+```
+
+The skill will be auto-discovered on next OpenCode restart. Agents load it with `skill({ name: "google-workspace" })`. SKILL.md is the fast-start index; `references/` contains the full tool catalog, workflows, and safety rules.
 
 ## Adding a New Service
 
