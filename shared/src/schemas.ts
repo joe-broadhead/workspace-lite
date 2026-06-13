@@ -232,3 +232,150 @@ export const gmailForwardSchema = {
   to: gmailEmailSchema.describe('Recipient email.'),
   htmlBody: z.string().max(200000).optional(),
 }
+
+// ─── SHEETS SCHEMAS ───
+
+export const sheetsSpreadsheetIdSchema = z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid spreadsheet ID.')
+
+export const sheetsSpreadsheetGetSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+}
+
+export const sheetsSpreadsheetCreateSchema = {
+  name: z.string().min(1).describe('Spreadsheet name.'),
+}
+
+export const sheetsRangeReadSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().optional().describe('Range in A1 notation (e.g. "A1:C10"). Defaults to all data.'),
+}
+
+export const sheetsRangeWriteSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().describe('Starting cell or range in A1 notation (e.g. "A1" or "A1:C3").'),
+  values: z.array(z.array(z.string())).describe('2D array of values to write.'),
+}
+
+export const sheetsAppendRowsSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  values: z.array(z.array(z.string())).describe('2D array of rows to append.'),
+}
+
+export const sheetsClearRangeSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
+}
+
+export const sheetsAddSheetSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().min(1).describe('Name for the new sheet/tab.'),
+}
+
+export const sheetsDeleteSheetSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().min(1).describe('Name of the sheet/tab to delete.'),
+}
+
+export const sheetsRenameSheetSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  oldName: z.string().min(1).describe('Current sheet/tab name.'),
+  newName: z.string().min(1).describe('New sheet/tab name.'),
+}
+
+export const sheetsCopySheetSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Source spreadsheet ID.'),
+  sheetName: z.string().min(1).describe('Name of the sheet to copy.'),
+  destSpreadsheetId: z.string().optional().describe('Destination spreadsheet ID. Omit to copy within same spreadsheet.'),
+  newName: z.string().optional().describe('Name for the copied sheet.'),
+}
+
+export const sheetsFormatRangeSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().describe('Range in A1 notation (e.g. "A1:C10").'),
+  background: z.string().optional().describe('Background color (CSS: "#FFFF00" or "yellow").'),
+  fontColor: z.string().optional().describe('Font color (CSS).'),
+  fontFamily: z.string().optional().describe('Font family (e.g. "Arial", "Roboto").'),
+  fontSize: z.number().int().min(1).max(400).optional().describe('Font size in points.'),
+  bold: z.boolean().optional().describe('Set bold.'),
+  italic: z.boolean().optional().describe('Set italic.'),
+  underline: z.boolean().optional().describe('Set underline.'),
+  strikethrough: z.boolean().optional().describe('Set strikethrough.'),
+  horizontalAlignment: z.enum(['left', 'center', 'right', 'general']).optional().describe('Horizontal alignment.'),
+  verticalAlignment: z.enum(['top', 'middle', 'bottom']).optional().describe('Vertical alignment.'),
+  numberFormat: z.string().optional().describe('Format pattern (#,##0.00, 0.00%, $#,##0.00, yyyy-mm-dd, @ for text).'),
+  textWrap: z.boolean().optional().describe('Enable text wrapping.'),
+  borderTop: z.boolean().optional().describe('Add top border.'),
+  borderBottom: z.boolean().optional().describe('Add bottom border.'),
+  borderLeft: z.boolean().optional().describe('Add left border.'),
+  borderRight: z.boolean().optional().describe('Add right border.'),
+  borderStyle: z.enum(['SOLID', 'DOTTED', 'DASHED', 'DOUBLE']).default('SOLID').optional().describe('Border line style.'),
+  borderColor: z.string().optional().describe('Border color (CSS, default: black).'),
+}
+
+export const sheetsMergeCellsSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().describe('Range in A1 notation (e.g. "A1:C1").'),
+}
+
+export const sheetsSetColumnWidthSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  column: z.number().int().min(1).describe('Column number (1-based, A=1).'),
+  width: z.number().int().min(10).max(1024).describe('Width in pixels.'),
+}
+
+export const sheetsFreezeRowsSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  numRows: z.number().int().min(0).describe('Number of rows to freeze. 0 to unfreeze.'),
+}
+
+export const sheetsSortRangeSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().describe('Range in A1 notation (e.g. "A2:C50").'),
+  sortColumn: z.number().int().min(1).describe('Column number within the range to sort by (1-based, relative to range start).'),
+  ascending: z.boolean().default(true).describe('Sort ascending if true, descending if false.'),
+}
+
+export const sheetsSetFormulaSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().describe('Cell or range in A1 notation (e.g. "D1" or "D1:D10").'),
+  formula: z.string().describe('Formula string (e.g. "=SUM(A1:A10)").'),
+}
+
+export const sheetsCreateChartSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().describe('Data range in A1 notation (e.g. "A1:B10"). First row used as headers.'),
+  chartType: z.enum(['AREA', 'BAR', 'COLUMN', 'COMBO', 'HISTOGRAM', 'LINE', 'PIE', 'SCATTER', 'TABLE', 'TIMELINE', 'WATERFALL']).describe('Chart type.'),
+  title: z.string().optional().describe('Chart title.'),
+  xAxisTitle: z.string().optional().describe('X-axis title.'),
+  yAxisTitle: z.string().optional().describe('Y-axis title.'),
+  position: z.string().default('A1').optional().describe('Anchor cell for chart position (e.g. "D1").'),
+  width: z.number().int().min(100).max(1200).default(600).optional().describe('Chart width in pixels.'),
+  height: z.number().int().min(100).max(1200).default(400).optional().describe('Chart height in pixels.'),
+  legendPosition: z.enum(['BOTTOM', 'TOP', 'LEFT', 'RIGHT', 'NONE', 'LABELED']).default('RIGHT').optional().describe('Legend position.'),
+  stacked: z.boolean().optional().describe('Use stacked chart (BAR, COLUMN, AREA only).'),
+}
+
+export const sheetsSetNoteSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  range: z.string().describe('Cell or range in A1 notation.'),
+  note: z.string().describe('Note text. Use empty string to clear notes.'),
+}
+
+export const sheetsBatchSchema = {
+  operations: z.array(z.object({
+    action: z.string().describe('Action to perform (same action names used by individual tools: spreadsheetCreate, spreadsheetGet, sheetAdd, sheetDelete, sheetRename, sheetCopy, rangeRead, rangeWrite, rowsAppend, rangeClear, rangeFormat, rangeMerge, rangeUnmerge, columnWidth, freezeRows, rangeSort, formulaSet, chartCreate, noteSet).'),
+    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas for parameter details.'),
+  })).min(1).max(20).describe('Ordered list of operations to execute.'),
+}

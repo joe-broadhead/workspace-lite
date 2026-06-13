@@ -1,0 +1,17 @@
+import { formatResponse } from '@google-apps-script-mcp/shared'
+import { sheetsCreateChartSchema } from '@google-apps-script-mcp/shared/schemas'
+import { callProxy } from '../proxy.js'
+
+export function registerSheetsChartTools(server: { tool: Function }) {
+  server.tool(
+    'sheets_create_chart',
+    'Create a chart in a sheet from a data range. Supports AREA, BAR, COLUMN, COMBO, HISTOGRAM, LINE, PIE, SCATTER, TABLE, TIMELINE, and WATERFALL chart types.',
+    sheetsCreateChartSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('chartCreate', args)
+      return formatResponse(result, {
+        summary: `Chart created at position ${(result.data as Record<string, unknown>)?.position || args.position}.`,
+      })
+    },
+  )
+}
