@@ -474,3 +474,86 @@ export const slidesBatchSchema = {
     params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
   })).min(1).max(20).describe('Ordered list of operations.'),
 }
+
+// ─── DOCS SCHEMAS ───
+
+export const docsDocumentIdSchema = z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid document ID.')
+
+export const docsDocumentGetSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+}
+
+export const docsCreateDocumentSchema = {
+  name: z.string().min(1).describe('Document name.'),
+}
+
+export const docsInsertParagraphSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  text: z.string().optional().describe('Paragraph text content.'),
+  heading: z.enum(['NORMAL', 'HEADING1', 'HEADING2', 'HEADING3', 'HEADING4', 'HEADING5', 'HEADING6']).default('NORMAL').optional().describe('Heading level. NORMAL is body text.'),
+  append: z.boolean().default(true).describe('If true, appends to end of document. If false, inserts at the beginning.'),
+}
+
+export const docsSetTextSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  text: z.string().describe('New text content for the entire document.'),
+}
+
+export const docsReplaceTextSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  findText: z.string().min(1).describe('Text to find.'),
+  replaceText: z.string().describe('Replacement text.'),
+}
+
+export const docsInsertListSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  items: z.array(z.string()).describe('Array of list item texts.'),
+  listType: z.enum(['BULLET', 'NUMBER']).default('BULLET').describe('List type: bullet points or numbered.'),
+  append: z.boolean().default(true).describe('If true, appends to end of document.'),
+}
+
+export const docsInsertTableSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  values: z.array(z.array(z.string())).describe('2D array of cell values. First row is header.'),
+  rows: z.number().int().min(1).max(50).optional().describe('Number of rows (default: values.length).'),
+  cols: z.number().int().min(1).max(20).optional().describe('Number of columns (default: values[0].length).'),
+  append: z.boolean().default(true).describe('If true, appends to end of document.'),
+}
+
+export const docsInsertImageSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  imageUrl: z.string().url().describe('Public URL of the image to insert.'),
+  append: z.boolean().default(true).describe('If true, appends to end of document.'),
+}
+
+export const docsInsertPageBreakSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  append: z.boolean().default(true).describe('If true, appends to end of document.'),
+}
+
+export const docsInsertHorizontalRuleSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  append: z.boolean().default(true).describe('If true, appends to end of document.'),
+}
+
+export const docsFormatTextSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  findText: z.string().min(1).describe('Text to find and format.'),
+  bold: z.boolean().optional().describe('Set bold.'),
+  italic: z.boolean().optional().describe('Set italic.'),
+  underline: z.boolean().optional().describe('Set underline.'),
+  strikethrough: z.boolean().optional().describe('Set strikethrough.'),
+  fontFamily: z.string().optional().describe('Font family (e.g. "Arial", "Roboto").'),
+  fontSize: z.number().int().min(1).max(400).optional().describe('Font size in points.'),
+  foregroundColor: z.string().optional().describe('Text color (CSS, e.g. "#FF0000").'),
+  backgroundColor: z.string().optional().describe('Background color (CSS).'),
+  linkUrl: z.string().optional().describe('Set hyperlink URL.'),
+}
+
+export const docsBatchSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  operations: z.array(z.object({
+    action: z.string().describe('Action to perform (same names as individual tools: documentGet, insertParagraph, setText, replaceText, insertList, insertTable, insertImage, insertPageBreak, insertHorizontalRule, formatText).'),
+    params: z.record(z.string(), z.unknown()).describe('Parameters for the action. See individual tool schemas.'),
+  })).min(1).max(20).describe('Ordered list of operations.'),
+}
