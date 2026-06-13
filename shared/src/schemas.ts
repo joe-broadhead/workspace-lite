@@ -5,6 +5,13 @@ export const driveIdSchema = googleIdSchema.describe('Drive file or folder ID.')
 export const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO datetime')
 export const gmailSearchDateSchema = z.string().regex(/^\d{4}\/\d{1,2}\/\d{1,2}$/, 'Use Gmail date format YYYY/MM/DD')
 export const emailListSchema = z.string().max(1000).refine((value) => value.split(',').map((email) => email.trim()).filter(Boolean).every((email) => z.string().email().safeParse(email).success), 'Use comma-separated email addresses')
+export const httpsUrlSchema = z.string().url().refine((value) => {
+  try { return new URL(value).protocol === 'https:' }
+  catch { return false }
+}, 'URL must use https')
+export const a1RangeSchema = z.string().max(200).regex(/^(?:(?:'[^']+'|[A-Za-z0-9_ .-]+)!)?(?:\$?[A-Z]{1,3}\$?\d{1,7}(?::\$?[A-Z]{1,3}\$?\d{1,7})?|\$?[A-Z]{1,3}:\$?[A-Z]{1,3}|\d{1,7}:\d{1,7})$/, 'Use A1 notation')
+export const cssColorSchema = z.string().regex(/^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{1,32})$/, 'Use a named color or hex color')
+export const formulaSchema = z.string().refine((value) => value.trim().startsWith('='), 'Formula must start with =')
 export const idempotencyKeySchema = z.string()
   .min(1)
   .max(128)
@@ -469,13 +476,13 @@ export const sheetsSpreadsheetCreateSchema = {
 export const sheetsRangeReadSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().optional().describe('Range in A1 notation (e.g. "A1:C10"). Defaults to all data.'),
+  range: a1RangeSchema.optional().describe('Range in A1 notation (e.g. "A1:C10"). Defaults to all data.'),
 }
 
 export const sheetsRangeWriteSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().describe('Starting cell or range in A1 notation (e.g. "A1" or "A1:C3").'),
+  range: a1RangeSchema.describe('Starting cell or range in A1 notation (e.g. "A1" or "A1:C3").'),
   values: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))).describe('2D array of values to write.'),
 }
 
@@ -488,20 +495,20 @@ export const sheetsAppendRowsSchema = {
 export const sheetsClearRangeSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
+  range: a1RangeSchema.optional().describe('Range in A1 notation. Defaults to all data.'),
   ...confirmationSchema,
 }
 
 export const sheetsGetFormulasSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
+  range: a1RangeSchema.optional().describe('Range in A1 notation. Defaults to all data.'),
 }
 
 export const sheetsGetNotesSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().optional().describe('Range in A1 notation. Defaults to all data.'),
+  range: a1RangeSchema.optional().describe('Range in A1 notation. Defaults to all data.'),
 }
 
 export const sheetsAddSheetSchema = {
@@ -531,9 +538,9 @@ export const sheetsCopySheetSchema = {
 export const sheetsFormatRangeSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().describe('Range in A1 notation (e.g. "A1:C10").'),
-  background: z.string().optional().describe('Background color (CSS: "#FFFF00" or "yellow").'),
-  fontColor: z.string().optional().describe('Font color (CSS).'),
+  range: a1RangeSchema.describe('Range in A1 notation (e.g. "A1:C10").'),
+  background: cssColorSchema.optional().describe('Background color (CSS: "#FFFF00" or "yellow").'),
+  fontColor: cssColorSchema.optional().describe('Font color (CSS).'),
   fontFamily: z.string().optional().describe('Font family (e.g. "Arial", "Roboto").'),
   fontSize: z.number().int().min(1).max(400).optional().describe('Font size in points.'),
   bold: z.boolean().optional().describe('Set bold.'),
@@ -549,13 +556,13 @@ export const sheetsFormatRangeSchema = {
   borderLeft: z.boolean().optional().describe('Add left border.'),
   borderRight: z.boolean().optional().describe('Add right border.'),
   borderStyle: z.enum(['SOLID', 'DOTTED', 'DASHED', 'DOUBLE']).default('SOLID').optional().describe('Border line style.'),
-  borderColor: z.string().optional().describe('Border color (CSS, default: black).'),
+  borderColor: cssColorSchema.optional().describe('Border color (CSS, default: black).'),
 }
 
 export const sheetsMergeCellsSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().describe('Range in A1 notation (e.g. "A1:C1").'),
+  range: a1RangeSchema.describe('Range in A1 notation (e.g. "A1:C1").'),
 }
 
 export const sheetsSetColumnWidthSchema = {
@@ -574,7 +581,7 @@ export const sheetsFreezeRowsSchema = {
 export const sheetsSortRangeSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().describe('Range in A1 notation (e.g. "A2:C50").'),
+  range: a1RangeSchema.describe('Range in A1 notation (e.g. "A2:C50").'),
   sortColumn: z.number().int().min(1).describe('Column number within the range to sort by (1-based, relative to range start).'),
   ascending: z.boolean().default(true).describe('Sort ascending if true, descending if false.'),
 }
@@ -582,19 +589,19 @@ export const sheetsSortRangeSchema = {
 export const sheetsSetFormulaSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().describe('Cell or range in A1 notation (e.g. "D1" or "D1:D10").'),
-  formula: z.string().describe('Formula string (e.g. "=SUM(A1:A10)").'),
+  range: a1RangeSchema.describe('Cell or range in A1 notation (e.g. "D1" or "D1:D10").'),
+  formula: formulaSchema.describe('Formula string (e.g. "=SUM(A1:A10)").'),
 }
 
 export const sheetsCreateChartSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().describe('Data range in A1 notation (e.g. "A1:B10"). First row used as headers.'),
+  range: a1RangeSchema.describe('Data range in A1 notation (e.g. "A1:B10"). First row used as headers.'),
   chartType: z.enum(['AREA', 'BAR', 'COLUMN', 'COMBO', 'HISTOGRAM', 'LINE', 'PIE', 'SCATTER', 'TABLE', 'TIMELINE', 'WATERFALL']).describe('Chart type.'),
   title: z.string().optional().describe('Chart title.'),
   xAxisTitle: z.string().optional().describe('X-axis title.'),
   yAxisTitle: z.string().optional().describe('Y-axis title.'),
-  position: z.string().default('A1').optional().describe('Anchor cell for chart position (e.g. "D1").'),
+  position: a1RangeSchema.default('A1').optional().describe('Anchor cell for chart position (e.g. "D1").'),
   width: z.number().int().min(100).max(1200).default(600).optional().describe('Chart width in pixels.'),
   height: z.number().int().min(100).max(1200).default(400).optional().describe('Chart height in pixels.'),
   legendPosition: z.enum(['BOTTOM', 'TOP', 'LEFT', 'RIGHT', 'NONE', 'LABELED']).default('RIGHT').optional().describe('Legend position.'),
@@ -604,7 +611,7 @@ export const sheetsCreateChartSchema = {
 export const sheetsSetNoteSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
-  range: z.string().describe('Cell or range in A1 notation.'),
+  range: a1RangeSchema.describe('Cell or range in A1 notation.'),
   note: z.string().describe('Note text. Use empty string to clear notes.'),
 }
 
@@ -615,7 +622,7 @@ export const sheetsConditionalFormatSchema = {
 
 export const sheetsDataValidationSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
-  range: z.string().describe('Range in A1 notation to apply validation to.'),
+  range: a1RangeSchema.describe('Range in A1 notation to apply validation to.'),
   validationType: z.enum([
     'VALUE_IN_LIST', 'NUMBER_BETWEEN', 'NUMBER_GREATER_THAN',
     'NUMBER_GREATER_THAN_OR_EQUAL_TO', 'NUMBER_LESS_THAN',
@@ -734,7 +741,7 @@ export const slidesInsertTextBoxSchema = {
 export const slidesInsertImageSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
-  imageUrl: z.string().url().describe('Public URL of the image to insert.'),
+  imageUrl: httpsUrlSchema.describe('Public HTTPS URL of the image to insert.'),
   autoPosition: z.boolean().default(true).describe('Auto-place below existing elements. When true and no coordinates given, auto-places.'),
   left: z.number().optional().describe('Left position in points.'),
   top: z.number().optional().describe('Top position in points.'),
@@ -801,15 +808,15 @@ export const slidesFormatTextSchema = {
   underline: z.boolean().optional().describe('Set underline.'),
   fontFamily: z.string().optional().describe('Font family (e.g. "Arial").'),
   fontSize: z.number().int().min(1).max(400).optional().describe('Font size in points.'),
-  foregroundColor: z.string().optional().describe('Text color (CSS).'),
-  backgroundColor: z.string().optional().describe('Background color (CSS).'),
+  foregroundColor: cssColorSchema.optional().describe('Text color (CSS).'),
+  backgroundColor: cssColorSchema.optional().describe('Background color (CSS).'),
   linkUrl: z.string().optional().describe('Set hyperlink URL.'),
 }
 
 export const slidesBackgroundSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
-  color: z.string().describe('Hex color string (e.g. "#FF0000").'),
+  color: cssColorSchema.describe('Hex or named color string (e.g. "#FF0000").'),
 }
 
 export const slidesInsertLineSchema = {
@@ -914,7 +921,7 @@ export const docsInsertTableSchema = {
 
 export const docsInsertImageSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
-  imageUrl: z.string().url().describe('Public URL of the image to insert.'),
+  imageUrl: httpsUrlSchema.describe('Public HTTPS URL of the image to insert.'),
   append: z.boolean().default(true).describe('If true, appends to end of document.'),
 }
 
@@ -937,8 +944,8 @@ export const docsFormatTextSchema = {
   strikethrough: z.boolean().optional().describe('Set strikethrough.'),
   fontFamily: z.string().optional().describe('Font family (e.g. "Arial", "Roboto").'),
   fontSize: z.number().int().min(1).max(400).optional().describe('Font size in points.'),
-  foregroundColor: z.string().optional().describe('Text color (CSS, e.g. "#FF0000").'),
-  backgroundColor: z.string().optional().describe('Background color (CSS).'),
+  foregroundColor: cssColorSchema.optional().describe('Text color (CSS, e.g. "#FF0000").'),
+  backgroundColor: cssColorSchema.optional().describe('Background color (CSS).'),
   linkUrl: z.string().optional().describe('Set hyperlink URL.'),
 }
 

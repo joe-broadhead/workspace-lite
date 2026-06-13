@@ -35,6 +35,7 @@ const SlidesService = (() => {
     pageElements: 200,
     textChars: 200000,
     responseBytes: 1000000,
+    imageBytes: 10000000,
   }
 
   const SHAPE_TYPE_MAP = {
@@ -91,6 +92,40 @@ const SlidesService = (() => {
 
   function limitExceeded(name, requested, max) {
     return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
+  }
+
+  function getPolicyList(propertyName) {
+    const raw = PropertiesService.getScriptProperties().getProperty(propertyName);
+    return raw ? raw.split(',').map(function(value) { return value.trim().toLowerCase(); }).filter(Boolean) : [];
+  }
+
+  function isAllowedHost(host, propertyNames) {
+    let allowlist = [];
+    for (let i = 0; i < propertyNames.length; i++) allowlist = allowlist.concat(getPolicyList(propertyNames[i]));
+    if (allowlist.length === 0) return true;
+    const normalized = String(host || '').toLowerCase();
+    for (let i = 0; i < allowlist.length; i++) {
+      const allowed = allowlist[i].replace(/^\*\./, '');
+      if (normalized === allowed || normalized.endsWith('.' + allowed)) return true;
+    }
+    return false;
+  }
+
+  function fetchImageBlob(imageUrl, hostProperties) {
+    let parsed;
+    try { parsed = new URL(imageUrl); } catch (_) { return { error: err('BAD_REQUEST', 'imageUrl must be a valid URL') }; }
+    if (parsed.protocol !== 'https:') return { error: err('BAD_REQUEST', 'imageUrl must use https') };
+    if (!isAllowedHost(parsed.hostname, hostProperties)) return { error: err('ACTION_NOT_ALLOWED', 'imageUrl host is outside the configured allowlist') };
+
+    const response = UrlFetchApp.fetch(parsed.toString(), { muteHttpExceptions: true, followRedirects: true });
+    const status = response.getResponseCode();
+    if (status < 200 || status >= 300) return { error: err('BAD_REQUEST', 'imageUrl fetch failed with HTTP ' + status) };
+    const headers = response.getHeaders ? response.getHeaders() : {};
+    const contentType = String(headers['Content-Type'] || headers['content-type'] || response.getBlob().getContentType() || '').toLowerCase();
+    if (contentType.indexOf('image/') !== 0) return { error: err('BAD_REQUEST', 'imageUrl must return an image content type') };
+    const bytes = response.getContent().length;
+    if (bytes > LIMITS.imageBytes) return { error: limitExceeded('image bytes', bytes, LIMITS.imageBytes) };
+    return { blob: response.getBlob() };
   }
 
   function truncateText(value, maxChars) {
@@ -509,6 +544,8 @@ const SlidesService = (() => {
     const slideIndex = requireParam(params, 'slideIndex');
     const imageUrl = requireParam(params, 'imageUrl');
     const autoPosition = optionalBool(params, 'autoPosition', true);
+    const fetched = fetchImageBlob(imageUrl, ['ALLOWED_IMAGE_HOSTS', 'ALLOWED_SLIDES_IMAGE_HOSTS']);
+    if (fetched.error) return fetched.error;
 
     const r = resolveSlide(id, slideIndex);
     if (r.err) return err(r.err, r.msg);
@@ -517,7 +554,7 @@ const SlidesService = (() => {
 
     return trap(
       () => {
-        const img = r.slide.insertImage(imageUrl, pos.left, pos.top, pos.width, pos.height);
+        const img = r.slide.insertImage(fetched.blob, pos.left, pos.top, pos.width, pos.height);
         return {
           objectId: img.getObjectId(),
           left: img.getLeft(),

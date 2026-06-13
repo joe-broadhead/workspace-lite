@@ -172,6 +172,7 @@ const CalendarService = (() => {
       return result && typeof result.success === 'boolean' ? result : ok(result);
     }
     catch (e) {
+      if (e && e.proxyError) return e.proxyError;
       const correlationId = Utilities.getUuid();
       console.error('[calendar-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
       const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
@@ -181,8 +182,14 @@ const CalendarService = (() => {
 
   // ─── Calendar helpers ───
 
+  function proxyError(code, message) {
+    const error = new Error(message);
+    error.proxyError = err(code, message);
+    return error;
+  }
+
   function validateCalendarId(id) {
-    if (!/^[a-zA-Z0-9_\-@.]+$/.test(id)) throw new Error(`Invalid calendar ID: ${id}`);
+    if (!/^[a-zA-Z0-9_\-@.]+$/.test(id)) throw proxyError('BAD_REQUEST', `Invalid calendarId: ${id}`);
   }
 
   function getCalendar(id) {
@@ -191,11 +198,18 @@ const CalendarService = (() => {
   }
 
   function resolveCalendar(calendarId) {
-    if (calendarId) {
-      const cal = getCalendar(calendarId);
-      if (cal) return cal;
-    }
-    return CalendarApp.getDefaultCalendar();
+    if (!calendarId) return CalendarApp.getDefaultCalendar();
+    const cal = getCalendar(calendarId);
+    if (cal) return cal;
+    throw proxyError('NOT_FOUND', `Calendar not found: ${calendarId}`);
+  }
+
+  function parseDateTimeRange(startTime, endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return { error: err('BAD_REQUEST', 'startTime and endTime must be valid ISO datetime strings') };
+    if (end.getTime() <= start.getTime()) return { error: err('BAD_REQUEST', 'endTime must be after startTime') };
+    return { start: start, end: end };
   }
 
   // ─── Value helpers ───
@@ -390,11 +404,13 @@ const CalendarService = (() => {
     const guests = optionalString(params, 'guests', '');
     const guestList = parseGuestEmails(guests);
     if (guestList.error) return guestList.error;
+    const dateRange = parseDateTimeRange(startTime, endTime);
+    if (dateRange.error) return dateRange.error;
 
     return withIdempotency('createEvent', params, function() { return trap(function() {
       const cal = resolveCalendar(calendarId);
 
-      const event = cal.createEvent(title, new Date(startTime), new Date(endTime), {
+      const event = cal.createEvent(title, dateRange.start, dateRange.end, {
         description: description,
         location: location,
       });
@@ -444,8 +460,13 @@ const CalendarService = (() => {
       if (params.title !== undefined) event.setTitle(String(params.title));
       if (params.description !== undefined) event.setDescription(String(params.description));
       if (params.location !== undefined) event.setLocation(String(params.location));
-      if (params.startTime) event.setTime(new Date(requireParam(params, 'startTime')), event.getEndTime());
-      if (params.endTime) event.setTime(event.getStartTime(), new Date(requireParam(params, 'endTime')));
+      const nextStart = params.startTime ? new Date(requireParam(params, 'startTime')) : event.getStartTime();
+      const nextEnd = params.endTime ? new Date(requireParam(params, 'endTime')) : event.getEndTime();
+      if (params.startTime || params.endTime) {
+        if (Number.isNaN(nextStart.getTime()) || Number.isNaN(nextEnd.getTime())) return err('BAD_REQUEST', 'startTime and endTime must be valid ISO datetime strings');
+        if (nextEnd.getTime() <= nextStart.getTime()) return err('BAD_REQUEST', 'endTime must be after startTime');
+        event.setTime(nextStart, nextEnd);
+      }
 
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
@@ -538,6 +559,8 @@ const CalendarService = (() => {
     const calendarId = optionalString(params, 'calendarId');
     const description = optionalString(params, 'description', '');
     const location = optionalString(params, 'location', '');
+    const dateRange = parseDateTimeRange(startTime, endTime);
+    if (dateRange.error) return dateRange.error;
 
     return withIdempotency('createEventSeries', params, function() { return trap(function() {
       const cal = resolveCalendar(calendarId);
@@ -577,7 +600,7 @@ const CalendarService = (() => {
         recBuilder.addWeeklyRule().until(until);
       }
 
-      const eventSeries = cal.createEventSeries(title, new Date(startTime), new Date(endTime), recBuilder);
+      const eventSeries = cal.createEventSeries(title, dateRange.start, dateRange.end, recBuilder);
 
       return {
         seriesId: eventSeries.getId(),

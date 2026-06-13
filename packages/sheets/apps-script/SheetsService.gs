@@ -91,6 +91,47 @@ const SheetsService = (() => {
     return err('LIMIT_EXCEEDED', `${name} limit exceeded: requested ${requested}, max ${max}`);
   }
 
+  function validateA1Range(rangeStr, name) {
+    const text = String(rangeStr || '').trim();
+    if (!text) return err('BAD_REQUEST', `${name} must be a non-empty A1 range`);
+    if (text.length > 200) return err('BAD_REQUEST', `${name} is too long`);
+    const sheetPrefix = "(?:'[^']+'|[A-Za-z0-9_ .-]+)!";
+    const cell = '\\$?[A-Z]{1,3}\\$?\\d{1,7}';
+    const row = '\\d{1,7}';
+    const col = '\\$?[A-Z]{1,3}';
+    const pattern = new RegExp('^(?:' + sheetPrefix + ')?(?:' + cell + '(?::' + cell + ')?|' + col + ':' + col + '|' + row + ':' + row + ')$');
+    if (!pattern.test(text)) return err('BAD_REQUEST', `${name} must be valid A1 notation`);
+    return null;
+  }
+
+  function validateFiniteNumber(value, name, min, max) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return { error: err('BAD_REQUEST', `${name} must be a finite number`) };
+    if (min !== undefined && number < min) return { error: err('BAD_REQUEST', `${name} must be at least ${min}`) };
+    if (max !== undefined && number > max) return { error: err('BAD_REQUEST', `${name} must be at most ${max}`) };
+    return { value: number };
+  }
+
+  function validateCssColor(value, name) {
+    if (value === undefined || value === null) return null;
+    const text = String(value).trim();
+    if (/^#[0-9a-fA-F]{3,8}$/.test(text)) return null;
+    if (/^[a-zA-Z]{1,32}$/.test(text)) return null;
+    return err('BAD_REQUEST', `${name} must be a named color or hex color`);
+  }
+
+  function formulaInjectionError(values, action) {
+    for (let i = 0; i < values.length; i++) {
+      const row = Array.isArray(values[i]) ? values[i] : [];
+      for (let j = 0; j < row.length; j++) {
+        if (typeof row[j] === 'string' && /^[=+\-@]/.test(row[j].trim())) {
+          return err('BAD_REQUEST', `${action} values cannot start with formula metacharacters. Use sheets_set_formula for formulas.`);
+        }
+      }
+    }
+    return null;
+  }
+
   function trap(fn, errorCode, errorMsg) {
     try {
       const result = fn();
@@ -429,6 +470,10 @@ const SheetsService = (() => {
     if (!Array.isArray(ranges) || ranges.length === 0) {
       return err('BAD_REQUEST', 'ranges must be a non-empty array of A1 notation strings');
     }
+    for (let i = 0; i < ranges.length; i++) {
+      const rangeError = validateA1Range(ranges[i], 'ranges[' + i + ']');
+      if (rangeError) return rangeError;
+    }
     if (ranges.length > LIMITS.batchRanges) return limitExceeded('valuesBatchGet ranges', ranges.length, LIMITS.batchRanges);
 
     return trap(
@@ -453,6 +498,10 @@ const SheetsService = (() => {
     const sheetName = optionalString(params, 'sheetName', null);
     const values = params.values;
     if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array');
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
+    const formulaError = formulaInjectionError(values, 'rangeWrite');
+    if (formulaError) return formulaError;
     const requestedCells = valueCellCount(values);
     if (requestedCells > LIMITS.writeCells) return limitExceeded('rangeWrite cells', requestedCells, LIMITS.writeCells);
 
@@ -490,6 +539,8 @@ const SheetsService = (() => {
     const sheetName = optionalString(params, 'sheetName', null);
     const values = params.values;
     if (!Array.isArray(values) || values.length === 0) return err('BAD_REQUEST', 'values must be a non-empty 2D array');
+    const formulaError = formulaInjectionError(values, 'rowsAppend');
+    if (formulaError) return formulaError;
     const requestedCells = valueCellCount(values);
     if (requestedCells > LIMITS.writeCells) return limitExceeded('rowsAppend cells', requestedCells, LIMITS.writeCells);
 
@@ -517,6 +568,10 @@ const SheetsService = (() => {
     const id = requireParam(params, 'spreadsheetId');
     const sheetName = optionalString(params, 'sheetName', null);
     const rangeStr = optionalString(params, 'range', null);
+    if (rangeStr) {
+      const rangeError = validateA1Range(rangeStr, 'range');
+      if (rangeError) return rangeError;
+    }
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -546,6 +601,9 @@ const SheetsService = (() => {
     const rangeStr = requireParam(params, 'range');
     const formula = requireParam(params, 'formula');
     const sheetName = optionalString(params, 'sheetName', null);
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
+    if (String(formula).trim().charAt(0) !== '=') return err('BAD_REQUEST', 'formula must start with = and must be set through sheets_set_formula');
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -580,6 +638,14 @@ const SheetsService = (() => {
     const id = requireParam(params, 'spreadsheetId');
     const rangeStr = requireParam(params, 'range');
     const sheetName = optionalString(params, 'sheetName', null);
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
+    const backgroundError = validateCssColor(params.background, 'background');
+    if (backgroundError) return backgroundError;
+    const fontColorError = validateCssColor(params.fontColor, 'fontColor');
+    if (fontColorError) return fontColorError;
+    const fontSizeLimit = params.fontSize !== undefined ? validateFiniteNumber(params.fontSize, 'fontSize', 1, 400) : null;
+    if (fontSizeLimit && fontSizeLimit.error) return fontSizeLimit.error;
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -594,7 +660,7 @@ const SheetsService = (() => {
         if (params.background !== undefined) { range.setBackground(String(params.background)); applied.push('background'); }
         if (params.fontColor !== undefined) { range.setFontColor(String(params.fontColor)); applied.push('fontColor'); }
         if (params.fontFamily !== undefined) { range.setFontFamily(String(params.fontFamily)); applied.push('fontFamily'); }
-        if (params.fontSize !== undefined) { range.setFontSize(Number(params.fontSize)); applied.push('fontSize'); }
+        if (params.fontSize !== undefined) { range.setFontSize(fontSizeLimit.value); applied.push('fontSize'); }
         if (params.bold !== undefined) { const b = optionalBool(params, 'bold', false); range.setFontWeight(b ? 'bold' : 'normal'); applied.push(`bold=${b}`); }
         if (params.italic !== undefined) { const it = optionalBool(params, 'italic', false); range.setFontStyle(it ? 'italic' : 'normal'); applied.push(`italic=${it}`); }
 
@@ -658,6 +724,8 @@ const SheetsService = (() => {
     const id = requireParam(params, 'spreadsheetId');
     const rangeStr = requireParam(params, 'range');
     const sheetName = optionalString(params, 'sheetName', null);
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -679,6 +747,8 @@ const SheetsService = (() => {
     const id = requireParam(params, 'spreadsheetId');
     const rangeStr = requireParam(params, 'range');
     const sheetName = optionalString(params, 'sheetName', null);
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
 
     const r = resolveSheet(id, sheetName);
     if (r.err) return err(r.err, r.msg);
@@ -698,8 +768,12 @@ const SheetsService = (() => {
 
   function columnWidth(params) {
     const id = requireParam(params, 'spreadsheetId');
-    const col = Number(requireParam(params, 'column'));
-    const width = Number(requireParam(params, 'width'));
+    const colLimit = validateFiniteNumber(requireParam(params, 'column'), 'column', 1, 18278);
+    if (colLimit.error) return colLimit.error;
+    const widthLimit = validateFiniteNumber(requireParam(params, 'width'), 'width', 10, 1024);
+    if (widthLimit.error) return widthLimit.error;
+    const col = colLimit.value;
+    const width = widthLimit.value;
     const sheetName = optionalString(params, 'sheetName', null);
 
     const r = resolveSheet(id, sheetName);
@@ -714,7 +788,9 @@ const SheetsService = (() => {
 
   function freezeRows(params) {
     const id = requireParam(params, 'spreadsheetId');
-    const numRows = Number(requireParam(params, 'numRows'));
+    const rowLimit = validateFiniteNumber(requireParam(params, 'numRows'), 'numRows', 0, 10000);
+    if (rowLimit.error) return rowLimit.error;
+    const numRows = rowLimit.value;
     const sheetName = optionalString(params, 'sheetName', null);
 
     const r = resolveSheet(id, sheetName);
@@ -732,7 +808,11 @@ const SheetsService = (() => {
   function rangeSort(params) {
     const id = requireParam(params, 'spreadsheetId');
     const rangeStr = requireParam(params, 'range');
-    const sortCol = Number(requireParam(params, 'sortColumn'));
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
+    const sortLimit = validateFiniteNumber(requireParam(params, 'sortColumn'), 'sortColumn', 1, 18278);
+    if (sortLimit.error) return sortLimit.error;
+    const sortCol = sortLimit.value;
     const asc = optionalBool(params, 'ascending', true);
     const sheetName = optionalString(params, 'sheetName', null);
 
@@ -763,8 +843,16 @@ const SheetsService = (() => {
     const xTitle = optionalString(params, 'xAxisTitle', null);
     const yTitle = optionalString(params, 'yAxisTitle', null);
     const position = optionalString(params, 'position', 'A1');
-    const width = optionalNumber(params, 'width', 600);
-    const height = optionalNumber(params, 'height', 400);
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
+    const positionError = validateA1Range(position, 'position');
+    if (positionError) return positionError;
+    const widthLimit = validateFiniteNumber(optionalNumber(params, 'width', 600), 'width', 100, 1200);
+    if (widthLimit.error) return widthLimit.error;
+    const heightLimit = validateFiniteNumber(optionalNumber(params, 'height', 400), 'height', 100, 1200);
+    if (heightLimit.error) return heightLimit.error;
+    const width = widthLimit.value;
+    const height = heightLimit.value;
     const legendPos = optionalString(params, 'legendPosition', 'RIGHT');
     const stacked = optionalBool(params, 'stacked', false);
 

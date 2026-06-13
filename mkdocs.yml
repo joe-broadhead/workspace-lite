@@ -111,6 +111,7 @@ nav:
   - Operations:
       - Quotas & Limits: operations/quotas.md
       - Mutation Safety: operations/mutation-safety.md
+      - Input Policies: operations/input-policies.md
       - Troubleshooting: operations/troubleshooting.md
       - Security: operations/security.md
 
