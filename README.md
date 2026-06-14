@@ -1,28 +1,49 @@
 # workspace-lite
 
-MCP servers for Google Workspace, backed by per-service Google Apps Script web app proxies.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node 20+](https://img.shields.io/badge/node-20%2B-brightgreen.svg?logo=nodedotjs&logoColor=white)](package.json)
+[![Docs](https://img.shields.io/badge/docs-mkdocs%20material-blue.svg?logo=materialformkdocs&logoColor=white)](https://joe-broadhead.github.io/workspace-lite/)
+[![CI](https://github.com/joe-broadhead/workspace-lite/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/joe-broadhead/workspace-lite/actions/workflows/ci.yml)
 
-`workspace-lite` lets OpenCode-compatible agents work with Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms through local TypeScript MCP servers. The remote Google calls run inside Apps Script as the deploying user, so there is no OAuth dance per tool call.
+```text
+                    _                                   _ _ _
+__      _____  _ __| | _____ _ __   __ _  ___ ___      | (_) |_ ___
+\ \ /\ / / _ \| '__| |/ / __| '_ \ / _` |/ __/ _ \_____| | | __/ _ \
+ \ V  V / (_) | |  |   <\__ \ |_) | (_| | (_|  __/_____| | | ||  __/
+  \_/\_/ \___/|_|  |_|\_\___/ .__/ \__,_|\___\___|     |_|_|\__\___|
+                            |_|
+        Google Workspace MCP servers
+        through Apps Script proxies.
+```
 
-## Status
+`workspace-lite` gives OpenCode-compatible agents local MCP servers for Google
+Workspace: Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms. Each
+service runs through a small Apps Script web app deployed as you, so agents can
+use your Workspace data without service accounts or per-tool OAuth loops.
 
-Public-source release candidate. The source, docs, CI, release workflow, and safety validators are in place. A production deployment still requires the documented manual Apps Script web app deployment step for each service.
+## What It Does
 
-## What You Get
+- **Exposes 218 MCP tools** across 8 Google Workspace services.
+- **Keeps Google calls inside Apps Script** with one web app proxy per service.
+- **Uses bearer-token auth** with one-time bootstrap and optional class-scoped tokens.
+- **Classifies risky actions** as `send`, `share`, or `destructive` so agents can ask before crossing user-review boundaries.
+- **Supports batch tools for every service** with up to 20 same-service operations and per-operation results.
+- **Ships agent skills** for safe Workspace usage and guided installation/deployment refreshes.
+
+## Service Surface
 
 | Service | Tools | Batch | Highlights |
 |---|---:|---|---|
 | `drive` | 44 | Yes | Files, folders, permissions, sharing, comments, replies, revisions, shared drives, changes |
 | `gmail` | 39 | Yes | Search, read, drafts, send, replies, forwarding, labels, filters, vacation responder |
 | `calendar` | 22 | Yes | Events, free/busy, calendars, settings, Meet links, RSVP, colors, event moves |
-| `sheets` | 33 | Yes | Values, formulas, formatting, charts, sorting, validations, protections, row ops |
+| `sheets` | 33 | Yes | Values, formulas, formatting, charts, sorting, validations, protections, row operations |
 | `slides` | 25 | Yes | Slides, text, images, shapes, tables, notes, backgrounds, geometry, links, z-order |
 | `docs` | 26 | Yes | Documents, paragraphs, headings, lists, tables, images, formatting, bookmarks, named ranges |
 | `tasks` | 13 | Yes | Task lists and tasks with create, update, move, delete, and clear-completed operations |
 | `forms` | 16 | Yes | Forms, settings, items, destinations, responses, and response deletion |
-| Total | 218 | All 8 | Dedicated MCP server and Apps Script proxy per service |
 
-## Architecture
+## 30-Second Shape
 
 ```text
 OpenCode or MCP client
@@ -31,53 +52,65 @@ OpenCode or MCP client
   <-> Google Workspace APIs as USER_DEPLOYING
 ```
 
-Key properties:
+Every service has the same deployment shape:
 
-- No service account required.
-- One Apps Script project per Google Workspace service.
-- One primary bearer token per service, with optional class-scoped tokens.
-- Risky actions are classified as `send`, `share`, or `destructive` and require explicit confirmation where appropriate.
-- Batch tools execute up to 20 same-service operations sequentially with per-operation results.
+1. A local TypeScript MCP package registers tools and validates inputs.
+2. An Apps Script web app receives signed proxy requests.
+3. Apps Script calls Google APIs with the deploying user's permissions.
+4. Responses return through a normalized success/error envelope.
 
 ## Quick Start
-
-### Prerequisites
-
-| Requirement | Version |
-|---|---|
-| Node.js | 20 or newer |
-| Google account | Access to the Workspace services you plan to use |
-| clasp | Latest `@google/clasp` CLI |
-
-Run the setup assistant:
 
 ```bash
 git clone https://github.com/joe-broadhead/workspace-lite.git
 cd workspace-lite
+./scripts/setup.sh --dry-run
 ./scripts/setup.sh
 ```
 
-The setup script installs dependencies, builds the packages, creates or reuses Apps Script projects, pushes proxy code, prints Apps Script editor URLs, guides the manual Apps Script web app deployment step, bootstraps tokens, and prints OpenCode MCP config. Use `./scripts/setup.sh --dry-run` first if you want to preview the flow without creating projects, bootstrap secrets, or `.env` entries.
+The setup script installs dependencies, builds packages, creates or reuses Apps
+Script projects, pushes proxy code, prints Apps Script editor URLs, guides the
+manual web app deployment step, bootstraps tokens, and prints MCP config.
 
-The Apps Script web app deployment step is manual: open each printed editor URL, choose **Deploy → New deployment → Web app**, set **Execute as: Me**, set **Who has access: Anyone**, authorize scopes if prompted, and paste the `/exec` URL back into setup.
+The Google deployment step stays intentionally manual: for each service, open
+the printed Apps Script editor URL, choose **Deploy -> New deployment -> Web app**,
+set **Execute as: Me**, set **Who has access: Anyone**, authorize scopes if
+prompted, and paste the `/exec` URL back into setup.
 
-Agent-assisted setup is supported. Install the repo's `workspace-lite-installer` skill to teach OpenCode agents how to run setup, `clasp push`, and deployment refresh commands while still routing Google OAuth scope review and initial web app deployment verification through the Apps Script GUI.
+## Agent-Assisted Setup
 
-Full setup documentation: <https://joe-broadhead.github.io/workspace-lite/getting-started/installation/>
+Install the included installer skill when you want an agent to help run setup,
+push proxies, verify deployments, or refresh existing services:
+
+```bash
+mkdir -p ~/.config/opencode/skills
+ln -sf "$(pwd)/skills/workspace-lite-installer" ~/.config/opencode/skills/workspace-lite-installer
+ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
+```
+
+Agents can handle local commands, but the user must review Google OAuth scopes
+and the first Apps Script web app deployment settings in the Apps Script GUI.
 
 ## Documentation
 
-| Resource | Link |
-|---|---|
-| Docs site | <https://joe-broadhead.github.io/workspace-lite/> |
-| Installation | <https://joe-broadhead.github.io/workspace-lite/getting-started/installation/> |
-| Quickstart | <https://joe-broadhead.github.io/workspace-lite/getting-started/quickstart/> |
-| Architecture | <https://joe-broadhead.github.io/workspace-lite/architecture/overview/> |
-| Service guides | <https://joe-broadhead.github.io/workspace-lite/services/drive/> |
-| Security model | <https://joe-broadhead.github.io/workspace-lite/operations/security/> |
-| Release process | <https://joe-broadhead.github.io/workspace-lite/project/release-process/> |
+- Docs site: <https://joe-broadhead.github.io/workspace-lite/>
+- Installation: <https://joe-broadhead.github.io/workspace-lite/getting-started/installation/>
+- Quickstart: <https://joe-broadhead.github.io/workspace-lite/getting-started/quickstart/>
+- Service guides: <https://joe-broadhead.github.io/workspace-lite/services/drive/>
+- Batch operations: <https://joe-broadhead.github.io/workspace-lite/api/batch/>
+- Security model: <https://joe-broadhead.github.io/workspace-lite/operations/security/>
+- Contributing: <https://joe-broadhead.github.io/workspace-lite/project/contributing/>
+- Changelog: <https://joe-broadhead.github.io/workspace-lite/project/changelog/>
 
-Build docs locally:
+## Development
+
+```bash
+npm ci
+npm run validate
+npm run audit
+```
+
+Docs:
 
 ```bash
 python -m venv .venv
@@ -87,54 +120,42 @@ mkdocs build --strict
 mkdocs serve
 ```
 
-## Development
-
-Run the full local gate:
-
-```bash
-npm run validate
-npm run audit
-mkdocs build --strict
-git diff --check
-```
-
 Useful scripts:
 
 | Script | Purpose |
 |---|---|
 | `npm run build` | Build shared package and all service packages |
 | `npm run typecheck` | Type-check the repository |
-| `npm test` | Run Node test suite |
+| `npm test` | Run the Node test suite |
 | `npm run validate` | Run deterministic release gates |
 | `npm run generate:proxy-shell` | Regenerate service `Code.gs` shells from registry metadata |
 | `npm run docs:build` | Build MkDocs strictly |
 | `npm run docs:serve` | Preview docs locally |
 
-## CI and Releases
+## Public Release
 
-GitHub Actions workflows:
+This repository is a public-source release candidate. CI, strict docs builds,
+release workflow automation, contributor guidance, security policy, changelog,
+and deterministic safety validators are in place. Production use still requires
+deploying the Apps Script web apps into the target Google account.
 
-| Workflow | Trigger | Purpose |
-|---|---|---|
-| `CI` | Pull requests and pushes to `main` | TypeScript, build, tests, validators, audit, docs strict build |
-| `Docs Deploy` | Docs changes on `main` or manual dispatch | Build and deploy MkDocs to GitHub Pages |
-| `Release` | Tags matching `v*.*.*` or manual dispatch | Validate release candidate and create a GitHub release archive |
+See:
 
-The first release target is `v0.0.0`. We will iterate `v0.0.x` until the project is ready for `v0.1.0`. See `docs/project/release-process.md` and `CHANGELOG.md`.
+- `docs/project/public-release.md`
+- `docs/project/release-process.md`
+- `CHANGELOG.md`
+- `SECURITY.md`
 
 ## Security
 
-Never commit or paste `.env`, `.clasp.json`, `.clasprc.json`, `BootstrapSecret.gs`, bearer tokens, or private deployment details.
+Never commit `.env`, `.clasp.json`, `.clasprc.json`, `BootstrapSecret.gs`,
+bearer tokens, deployment URLs with secrets, or private deployment details.
 
 Security docs:
 
 - `SECURITY.md`
 - `docs/operations/security.md`
 - `docs/operations/input-policies.md`
-
-## Contributing
-
-Read `CONTRIBUTING.md` before opening issues or pull requests. Public behavior changes should update docs and `CHANGELOG.md`.
 
 ## License
 

@@ -6,121 +6,165 @@ hide:
 
 # workspace-lite
 
-<div class="subtitle" markdown>
-MCP servers for Google Workspace
+<p class="subtitle">Google Workspace MCP servers through per-service Apps Script proxies. Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms in one agent-ready local toolkit.</p>
+
+[Get started :material-arrow-right:](getting-started/installation.md){ .md-button .md-button--primary }
+[Review the architecture :material-arrow-right:](architecture/overview.md){ .md-button }
+
+<div class="workspace-stats" markdown>
+
+<div class="stat" markdown>
+  <div class="stat-value">218</div>
+  <div class="stat-label">MCP tools</div>
 </div>
 
----
+<div class="stat" markdown>
+  <div class="stat-value">8</div>
+  <div class="stat-label">Workspace services</div>
+</div>
+
+<div class="stat" markdown>
+  <div class="stat-value">20 ops</div>
+  <div class="stat-label">Per batch call</div>
+</div>
+
+<div class="stat" markdown>
+  <div class="stat-value">Apps Script</div>
+  <div class="stat-label">User-owned proxy runtime</div>
+</div>
+
+</div>
+
+## What It Is
+
+`workspace-lite` lets agents work with Google Workspace through local
+TypeScript MCP servers. The MCP servers validate tool input and send signed
+requests to small Apps Script web apps. Apps Script then calls Google APIs as
+the deploying user.
+
+That split keeps the local agent experience simple while preserving the
+permission model users already understand in Google Workspace.
+
+```mermaid
+flowchart LR
+  A[MCP client] --> B[Local TypeScript MCP server]
+  B --> C[Apps Script web app proxy]
+  C --> D[Google Workspace APIs]
+  D --> C --> B --> A
+```
+
+## Core Capabilities
 
 <div class="grid cards" markdown>
 
--   :material-rocket-launch:{ .lg .middle } __Getting Started__
+-   :material-google-drive:{ .lg } **Drive**
 
     ---
 
-    Install, deploy through Apps Script, and run your first tool.
+    Files, folders, permissions, comments, replies, revisions, shared drives,
+    changes, and batch file workflows.
 
-    [:octicons-arrow-right-24: Installation](getting-started/installation.md)
-    [:octicons-arrow-right-24: Quickstart](getting-started/quickstart.md)
-    [:octicons-arrow-right-24: Setup Script](getting-started/setup-script.md)
+    [:octicons-arrow-right-24: Drive guide](services/drive.md)
 
--   :material-graph:{ .lg .middle } __Architecture__
-
-    ---
-
-    Mermaid diagrams, package layout, Zod validation, auth flow, rate limiting, and batch internals.
-
-    [:octicons-arrow-right-24: Architecture Overview](architecture/overview.md)
-    [:octicons-arrow-right-24: Security Model](architecture/security.md)
-
--   :material-package-variant-closed:{ .lg .middle } __Services__
+-   :material-gmail:{ .lg } **Gmail**
 
     ---
 
-    Deep dives into each of the 8 Google Workspace services.
+    Search, read, labels, drafts, replies, forwarding, filters, vacation
+    responder, and explicit send review.
 
-    [:octicons-arrow-right-24: Drive](services/drive.md)
-    [:octicons-arrow-right-24: Gmail](services/gmail.md)
-    [:octicons-arrow-right-24: Calendar](services/calendar.md)
-    [:octicons-arrow-right-24: Sheets](services/sheets.md)
-    [:octicons-arrow-right-24: Slides](services/slides.md)
-    [:octicons-arrow-right-24: Docs](services/docs.md)
-    [:octicons-arrow-right-24: Tasks](services/tasks.md)
-    [:octicons-arrow-right-24: Forms](services/forms.md)
+    [:octicons-arrow-right-24: Gmail guide](services/gmail.md)
 
--   :material-robot:{ .lg .middle } __Agent Skill__
+-   :material-calendar:{ .lg } **Calendar**
 
     ---
 
-    OpenCode skills for using Workspace tools and guiding agent-assisted installation.
+    Events, free/busy checks, calendar lists, settings, Meet links, RSVP,
+    colors, moves, and batch scheduling.
 
-    [:octicons-arrow-right-24: Skill Overview](skill/overview.md)
-    [:octicons-arrow-right-24: Workflows](skill/workflows.md)
+    [:octicons-arrow-right-24: Calendar guide](services/calendar.md)
 
--   :material-code-json:{ .lg .middle } __API Reference__
-
-    ---
-
-    Service tool listings, usage notes, examples, and batch action mappings.
-
-    [:octicons-arrow-right-24: Drive](services/drive.md)
-    [:octicons-arrow-right-24: Gmail](services/gmail.md)
-    [:octicons-arrow-right-24: Calendar](services/calendar.md)
-    [:octicons-arrow-right-24: Sheets](services/sheets.md)
-    [:octicons-arrow-right-24: Slides](services/slides.md)
-    [:octicons-arrow-right-24: Docs](services/docs.md)
-    [:octicons-arrow-right-24: Tasks](services/tasks.md)
-    [:octicons-arrow-right-24: Forms](services/forms.md)
-    [:octicons-arrow-right-24: Batch Operations](api/batch.md)
-
--   :material-check-decagram:{ .lg .middle } __Project__
+-   :material-table:{ .lg } **Sheets**
 
     ---
 
-    Public release readiness, release process, contributing, changelog, and security policy.
+    Values, formulas, formatting, charts, sorting, validations, protections,
+    row operations, and spreadsheet setup batches.
 
-    [:octicons-arrow-right-24: Release Readiness](project/public-release.md)
-    [:octicons-arrow-right-24: Release Process](project/release-process.md)
-    [:octicons-arrow-right-24: Contributing](project/contributing.md)
+    [:octicons-arrow-right-24: Sheets guide](services/sheets.md)
+
+-   :material-presentation:{ .lg } **Slides & Docs**
+
+    ---
+
+    Presentations, slide content, notes, images, tables, document structure,
+    formatting, bookmarks, and named ranges.
+
+    [:octicons-arrow-right-24: Slides guide](services/slides.md)
+    [:octicons-arrow-right-24: Docs guide](services/docs.md)
+
+-   :material-format-list-checks:{ .lg } **Tasks & Forms**
+
+    ---
+
+    Task lists, tasks, moves, completed-task cleanup, form settings, items,
+    destinations, responses, and response deletion.
+
+    [:octicons-arrow-right-24: Tasks guide](services/tasks.md)
+    [:octicons-arrow-right-24: Forms guide](services/forms.md)
 
 </div>
 
----
+## Find Your Path
 
-## Key Features
+| Role | Goal | Start here |
+|---|---|---|
+| **User** | Install and run the first tool | [Installation](getting-started/installation.md) -> [Quickstart](getting-started/quickstart.md) |
+| **Agent author** | Use tools safely in repeatable workflows | [Agent Skill Overview](skill/overview.md) -> [Agent Skill Workflows](skill/workflows.md) |
+| **Operator** | Deploy, refresh, and troubleshoot Apps Script proxies | [Setup Script](getting-started/setup-script.md) -> [Troubleshooting](operations/troubleshooting.md) |
+| **Security reviewer** | Understand auth, input policy, risky actions, and response contracts | [Security Model](architecture/security.md) -> [Input Policies](operations/input-policies.md) |
+| **Contributor** | Change code, docs, validators, or release automation | [Contributing](project/contributing.md) -> [Release Process](project/release-process.md) |
 
-| Feature | Detail |
-|---------|--------|
-| :material-shield-key:{ .middle } **Bearer token auth** | One-time bootstrap per service. Token stored in Apps Script properties. No OAuth refresh loops, no service accounts. |
-| :material-package-variant-closed:{ .middle } **8 services** | Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, Forms &mdash; every service has a dedicated MCP server and Apps Script proxy. |
-| :material-counter:{ .middle } **218 tools** | Drive&nbsp;(44), Gmail&nbsp;(39), Calendar&nbsp;(22), Sheets&nbsp;(33), Slides&nbsp;(25), Docs&nbsp;(26), Tasks&nbsp;(13), Forms&nbsp;(16). |
-| :material-layers-triple:{ .middle } **Batch on all 8** | `{service}_batch` tools combine up to 20 operations in one round-trip. Sequential execution with per-op error collection. |
-| :material-arrange-bring-forward:{ .middle } **Auto-positioning** | Slides text boxes, images, shapes, and tables auto-position below existing elements. Override with explicit coordinates. |
-| :material-email-fast:{ .middle } **Draft-first email** | `gmail_create_draft`, `gmail_create_draft_reply`, `gmail_create_draft_reply_all` &mdash; review before sending. Never sends without explicit approval. |
-| :material-clock-fast:{ .middle } **Rate limiting** | 100 weighted units/minute per proxy via Apps Script `CacheService`. Shared across all instances of a deployment. |
+## Install
 
----
+=== "Preview"
 
-## Quick Install
+    ```bash
+    git clone https://github.com/joe-broadhead/workspace-lite.git
+    cd workspace-lite
+    ./scripts/setup.sh --dry-run
+    ```
 
-```bash
-git clone https://github.com/joe-broadhead/workspace-lite.git
-cd workspace-lite
-./scripts/setup.sh
-```
+=== "Deploy"
 
-The setup script installs dependencies, builds the packages, creates or reuses 8 Apps Script projects, pushes code, guides the manual Apps Script web app deployments, bootstraps auth tokens, and prints OpenCode config. Use `./scripts/setup.sh --dry-run` first to preview without creating projects, bootstrap secrets, or `.env` entries.
+    ```bash
+    git clone https://github.com/joe-broadhead/workspace-lite.git
+    cd workspace-lite
+    ./scripts/setup.sh
+    ```
 
-For each service, open the printed Apps Script editor URL and use **Deploy → New deployment → Web app** with **Execute as: Me** and **Who has access: Anyone**, then paste the `/exec` URL back into setup.
+=== "Agent skills"
 
-Agents can help run setup, `clasp push`, and refresh existing deployments with the `workspace-lite-installer` skill, but the user must review Google OAuth scopes and initial web app settings in the Apps Script GUI.
+    ```bash
+    mkdir -p ~/.config/opencode/skills
+    ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
+    ln -sf "$(pwd)/skills/workspace-lite-installer" ~/.config/opencode/skills/workspace-lite-installer
+    ```
 
-[:material-arrow-right: Full installation guide](getting-started/installation.md)
+The setup script creates or reuses one Apps Script project per service, pushes
+proxy code, guides the manual web app deployment step, bootstraps tokens, and
+prints MCP config.
 
----
+!!! important "Google review step"
+    The first Apps Script web app deployment and OAuth scope review happen in
+    Google's UI. Agents can help with local commands, but the user should review
+    scopes and deployment settings directly.
 
-## Release Readiness
+## Public Release Readiness
 
-This repository includes CI, strict docs builds, release workflow automation, contributor guidance, security policy, changelog, and deterministic safety validators.
+This repository includes CI, strict docs builds, release workflow automation,
+contributor guidance, security policy, changelog, and deterministic validators
+for manifests, response contracts, mutation safety, input policy, and registry
+architecture.
 
-[:material-arrow-right: Public release checklist](project/public-release.md)
+[:octicons-arrow-right-24: Public release checklist](project/public-release.md)

@@ -51,7 +51,7 @@ The `Release` GitHub Actions workflow validates the tag, builds docs, creates a 
 
 ## Docs Deployment
 
-Docs deploy from `main` through the `Docs Deploy` workflow. Releases should not be considered complete until the docs workflow has passed on the release commit.
+Docs deploy from `main` through the `Docs` workflow. Releases should not be considered complete until the docs workflow has passed on the release commit.
 
 ## Post-Release
 

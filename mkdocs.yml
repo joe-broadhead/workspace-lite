@@ -1,22 +1,25 @@
 site_name: workspace-lite
-site_description: MCP servers for Google Workspace via Apps Script proxy — Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, Forms
+site_description: MCP servers for Google Workspace via Apps Script proxies.
+site_url: https://joe-broadhead.github.io/workspace-lite/
 repo_url: https://github.com/joe-broadhead/workspace-lite
+repo_name: workspace-lite
 edit_uri: edit/main/docs/
+strict: true
 
 theme:
   name: material
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: amber
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: amber
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -37,6 +40,7 @@ theme:
     - search.highlight
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
 
 plugins:
   - search
@@ -44,6 +48,7 @@ plugins:
       minify_html: true
 
 markdown_extensions:
+  - abbr
   - admonition
   - attr_list
   - def_list
@@ -83,8 +88,8 @@ extra_css:
   - stylesheets/extra.css
 
 extra_javascript:
-  - javascripts/mermaid-init.js
   - https://unpkg.com/mermaid@10.9.0/dist/mermaid.min.js
+  - javascripts/mermaid-init.js
 
 nav:
   - Home: index.md
@@ -120,7 +125,11 @@ nav:
   - Project:
       - Public Release Readiness: project/public-release.md
       - Release Process: project/release-process.md
+      - Changelog: project/changelog.md
       - Contributing: project/contributing.md
 
 extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/joe-broadhead/workspace-lite
   generator: false
