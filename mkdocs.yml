@@ -108,6 +108,9 @@ nav:
   - API Reference:
       - Batch Operations: api/batch.md
       - Error Codes: api/error-codes.md
+  - Agent Skill:
+      - Overview: skill/overview.md
+      - Workflows: skill/workflows.md
   - Operations:
       - Quotas & Limits: operations/quotas.md
       - Mutation Safety: operations/mutation-safety.md
@@ -117,6 +120,7 @@ nav:
   - Project:
       - Public Release Readiness: project/public-release.md
       - Release Process: project/release-process.md
+      - Contributing: project/contributing.md
 
 extra:
   generator: false

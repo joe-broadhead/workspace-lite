@@ -10,7 +10,7 @@ function doGet(e) {
 
 function clientInputErrorMessage_(ex) {
   const message = ex && ex.message ? String(ex.message) : ''
-  if (/^(Missing required parameter:|Invalid [A-Za-z0-9 _@.-]+:|Invalid [A-Za-z0-9 ]+ ID:|Invalid access or permission:|No changes specified)/.test(message)) return message
+  if (/^(Missing required parameter:|Invalid [A-Za-z0-9 _@.-]+:|Invalid [A-Za-z0-9 ]+ ID:|Invalid access or permission:|No changes specified|width must be positive|height must be positive|targetSlideIndex out of range)/.test(message)) return message
   if (/^[A-Za-z0-9_ .-]+ must be a finite number$/.test(message)) return message
   return null
 }
