@@ -343,6 +343,38 @@ export const calendarGetCalendarSchema = {
   calendarId: z.string().optional().describe('Calendar ID. Omit for default.'),
 }
 
+export const calendarColorsSchema = {}
+
+export const calendarSettingSchema = {
+  setting: z.string().min(1).max(200).describe('Calendar setting ID, e.g. timezone.'),
+}
+
+export const calendarSettingsListSchema = {
+  maxResults: z.number().int().min(1).max(100).default(100).optional().describe('Max settings.'),
+  pageToken: z.string().optional().describe('Next page token from a previous response.'),
+}
+
+export const calendarCreateCalendarSchema = {
+  summary: z.string().min(1).max(1000).describe('Calendar title.'),
+  description: z.string().max(10000).optional().describe('Calendar description.'),
+  location: z.string().max(500).optional().describe('Calendar location.'),
+  timeZone: z.string().min(1).max(200).optional().describe('IANA timezone, e.g. America/Chicago.'),
+  idempotencyKey: idempotencyKeySchema,
+}
+
+export const calendarUpdateCalendarSchema = {
+  calendarId: z.string().min(1).describe('Secondary calendar ID.'),
+  summary: z.string().min(1).max(1000).optional().describe('New calendar title.'),
+  description: z.string().max(10000).optional().describe('New calendar description.'),
+  location: z.string().max(500).optional().describe('New calendar location.'),
+  timeZone: z.string().min(1).max(200).optional().describe('New IANA timezone.'),
+}
+
+export const calendarDeleteCalendarSchema = {
+  calendarId: z.string().min(1).describe('Secondary calendar ID. Primary/default calendars are rejected server-side.'),
+  ...confirmationSchema,
+}
+
 export const calendarGetEventSchema = {
   eventId: calendarEventIdSchema,
   calendarId: z.string().optional().describe('Calendar ID.'),
@@ -356,6 +388,7 @@ export const calendarCreateEventSchema = {
   description: z.string().max(10000).optional().describe('Description.'),
   location: z.string().max(500).optional().describe('Location.'),
   guests: emailListSchema.optional().describe('Comma-separated emails.'),
+  createMeetLink: z.boolean().optional().describe('Create Google Meet conference data on the event through Calendar API conferenceData.'),
   idempotencyKey: idempotencyKeySchema,
 }
 
@@ -367,6 +400,14 @@ export const calendarUpdateEventSchema = {
   location: z.string().max(500).optional().describe('New location.'),
   startTime: isoDateTimeSchema.optional().describe('New start time ISO.'),
   endTime: isoDateTimeSchema.optional().describe('New end time ISO.'),
+  createMeetLink: z.boolean().optional().describe('Add Google Meet conference data through Calendar API conferenceData.'),
+}
+
+export const calendarMoveEventSchema = {
+  eventId: calendarEventIdSchema,
+  calendarId: z.string().min(1).describe('Source calendar ID.'),
+  destinationCalendarId: z.string().min(1).describe('Destination calendar ID.'),
+  sendUpdates: z.enum(['all', 'externalOnly', 'none']).optional().describe('Calendar API sendUpdates option.'),
 }
 
 export const calendarDeleteEventSchema = {
@@ -414,6 +455,9 @@ export const calendarQuickAddSchema = {
 export const calendarBatchSchema = {
   operations: z.array(z.discriminatedUnion('action', [
     batchOperationSchema('listCalendars'),
+    batchOperationSchema('getColors'),
+    batchOperationSchema('settingsList', calendarSettingsListSchema),
+    batchOperationSchema('settingsGet', calendarSettingSchema),
     batchOperationSchema('getCalendar', calendarGetCalendarSchema),
     batchOperationSchema('listEvents', calendarListEventsSchema),
     batchOperationSchema('searchEvents', calendarSearchEventsSchema),
@@ -421,8 +465,12 @@ export const calendarBatchSchema = {
     batchOperationSchema('getEvent', calendarGetEventSchema),
     batchOperationSchema('eventInstances', calendarEventInstancesSchema),
     batchOperationSchema('quickAdd', calendarQuickAddSchema),
+    batchOperationSchema('createCalendar', calendarCreateCalendarSchema),
+    batchOperationSchema('updateCalendar', calendarUpdateCalendarSchema),
+    batchOperationSchema('deleteCalendar', calendarDeleteCalendarSchema),
     batchOperationSchema('createEvent', calendarCreateEventSchema),
     batchOperationSchema('updateEvent', calendarUpdateEventSchema),
+    batchOperationSchema('moveEvent', calendarMoveEventSchema),
     batchOperationSchema('deleteEvent', calendarDeleteEventSchema),
     batchOperationSchema('respondToEvent', calendarRespondEventSchema),
     batchOperationSchema('createEventSeries', calendarCreateEventSeriesSchema),

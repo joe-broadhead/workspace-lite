@@ -1,6 +1,9 @@
 const CalendarService = (() => {
   const ACTION_POLICIES = {
     listCalendars: { class: 'read' },
+    getColors: { class: 'read' },
+    settingsList: { class: 'read' },
+    settingsGet: { class: 'read' },
     getCalendar: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     listEvents: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     searchEvents: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
@@ -8,21 +11,27 @@ const CalendarService = (() => {
     getEvent: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     eventInstances: { class: 'read', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'primary' }] },
     quickAdd: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'primary' }] },
+    createCalendar: { class: 'write' },
+    updateCalendar: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'] }] },
     createEvent: { class: 'write', recipientParams: ['guests'], allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     updateEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    moveEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'] }, { property: 'ALLOWED_CALENDAR_IDS', params: ['destinationCalendarId'] }] },
     respondToEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     createEventSeries: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     setEventColor: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     deleteEvent: { class: 'destructive', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    deleteCalendar: { class: 'destructive', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'] }] },
     batch: { class: 'read' },
   }
 
   const BATCH_ACTIONS = {
-    listCalendars: true, getCalendar: true, listEvents: true,
+    listCalendars: true, getColors: true, settingsList: true,
+    settingsGet: true, getCalendar: true, listEvents: true,
     searchEvents: true, getEvent: true, eventInstances: true,
-    quickAdd: true, createEvent: true, updateEvent: true,
-    respondToEvent: true, createEventSeries: true, setEventColor: true,
-    deleteEvent: true, findFreeBusy: true,
+    quickAdd: true, createCalendar: true, updateCalendar: true,
+    deleteCalendar: true, createEvent: true, updateEvent: true,
+    moveEvent: true, respondToEvent: true, createEventSeries: true,
+    setEventColor: true, deleteEvent: true, findFreeBusy: true,
   }
 
   const LIMITS = {
@@ -263,6 +272,87 @@ const CalendarService = (() => {
     };
   }
 
+  function calendarResourceToJSON(cal) {
+    if (!cal) return null;
+    return {
+      id: cal.id || null,
+      summary: cal.summary || null,
+      description: cal.description || null,
+      location: cal.location || null,
+      timeZone: cal.timeZone || null,
+      conferenceProperties: cal.conferenceProperties || undefined,
+    };
+  }
+
+  function eventResourceToJSON(event) {
+    if (!event) return null;
+    return {
+      id: event.id || null,
+      title: event.summary || null,
+      description: event.description || null,
+      location: event.location || null,
+      start: event.start ? (event.start.dateTime || event.start.date || null) : null,
+      end: event.end ? (event.end.dateTime || event.end.date || null) : null,
+      htmlLink: event.htmlLink || null,
+      hangoutLink: event.hangoutLink || null,
+      conferenceData: event.conferenceData || undefined,
+      guests: event.attendees || [],
+      status: event.status || null,
+      created: event.created || null,
+      updated: event.updated || null,
+      calendarId: event.organizer ? (event.organizer.email || null) : null,
+    };
+  }
+
+  function eventIdForApi(id) {
+    return String(id).replace(/@.*/, '');
+  }
+
+  function advancedEventGet(calendarId, id) {
+    try {
+      return Calendar.Events.get(calendarId || 'primary', eventIdForApi(id), { conferenceDataVersion: 1 });
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function buildAdvancedEventResource(params, dateRange, guestList) {
+    const resource = {};
+    if (params.title !== undefined) resource.summary = String(params.title);
+    if (params.description !== undefined) resource.description = String(params.description);
+    if (params.location !== undefined) resource.location = String(params.location);
+    if (dateRange) {
+      resource.start = { dateTime: dateRange.start.toISOString() };
+      resource.end = { dateTime: dateRange.end.toISOString() };
+    }
+    if (guestList && guestList.emails && guestList.emails.length > 0) {
+      resource.attendees = guestList.emails.map(function(email) { return { email: email }; });
+    }
+    if (optionalBool(params, 'createMeetLink', false)) {
+      resource.conferenceData = {
+        createRequest: {
+          requestId: optionalString(params, 'idempotencyKey', Utilities.getUuid()).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 64),
+          conferenceSolutionKey: { type: 'hangoutsMeet' },
+        },
+      };
+    }
+    return resource;
+  }
+
+  function advancedEventOptionalArgs(params, guestList) {
+    return {
+      conferenceDataVersion: optionalBool(params, 'createMeetLink', false) ? 1 : 0,
+      sendUpdates: guestList && guestList.emails && guestList.emails.length > 0 ? 'all' : 'none',
+    };
+  }
+
+  function ensureNotPrimaryCalendar(calendarId) {
+    if (!calendarId || calendarId === 'primary') return err('BAD_REQUEST', 'Refusing to delete the primary/default calendar. Provide a secondary calendarId.');
+    const def = CalendarApp.getDefaultCalendar();
+    if (def && def.getId && def.getId() === calendarId) return err('BAD_REQUEST', 'Refusing to delete the primary/default calendar. Provide a secondary calendarId.');
+    return null;
+  }
+
   // ─── READ ───
 
   function listCalendars() {
@@ -274,6 +364,28 @@ const CalendarService = (() => {
       }
       return result;
     }, 'LIST_FAILED', function(e) { return e.message || 'Could not list calendars'; });
+  }
+
+  function getColors() {
+    return trap(function() {
+      return { colors: Calendar.Colors.get() };
+    }, 'COLORS_FAILED', function(e) { return e.message || 'Could not get calendar colors'; });
+  }
+
+  function settingsList(params) {
+    return trap(function() {
+      const pageSizeLimit = boundedPageSize(params, 'maxResults', 100);
+      if (pageSizeLimit.error) return pageSizeLimit.error;
+      const result = Calendar.Settings.list({ maxResults: pageSizeLimit.value, pageToken: optionalString(params, 'pageToken') });
+      return ok({ items: result.items || [] }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
+    }, 'SETTINGS_FAILED', function(e) { return e.message || 'Could not list Calendar settings'; });
+  }
+
+  function settingsGet(params) {
+    const setting = requireParam(params, 'setting');
+    return trap(function() {
+      return { setting: Calendar.Settings.get(setting) };
+    }, 'SETTING_FAILED', function(e) { return e.message || `Could not get Calendar setting: ${setting}`; });
   }
 
   function calendarGet(params) {
@@ -356,6 +468,12 @@ const CalendarService = (() => {
       if (!event) throw new Error(`Event not found: ${id}`);
       const e = eventToJSON(event);
       e.calendarName = cal.getName();
+      const advanced = advancedEventGet(calendarId || 'primary', id);
+      if (advanced) {
+        e.htmlLink = advanced.htmlLink || null;
+        e.hangoutLink = advanced.hangoutLink || null;
+        e.conferenceData = advanced.conferenceData || undefined;
+      }
       return { event: e };
     }, 'NOT_FOUND', function(e) { return e.message || `Event not found: ${id}`; });
   }
@@ -394,6 +512,44 @@ const CalendarService = (() => {
 
   // ─── WRITE ───
 
+  function createCalendar(params) {
+    const summary = requireParam(params, 'summary');
+    return withIdempotency('createCalendar', params, function() { return trap(function() {
+      const resource = { summary: summary };
+      if (params.description !== undefined) resource.description = String(params.description);
+      if (params.location !== undefined) resource.location = String(params.location);
+      if (params.timeZone !== undefined) resource.timeZone = String(params.timeZone);
+      const calendar = Calendar.Calendars.insert(resource);
+      return { calendar: calendarResourceToJSON(calendar) };
+    }, 'CREATE_FAILED', function(e) { return e.message || 'Could not create calendar'; }); });
+  }
+
+  function updateCalendar(params) {
+    const calendarId = requireParam(params, 'calendarId');
+    validateCalendarId(calendarId);
+    return trap(function() {
+      const patch = {};
+      if (params.summary !== undefined) patch.summary = String(params.summary);
+      if (params.description !== undefined) patch.description = String(params.description);
+      if (params.location !== undefined) patch.location = String(params.location);
+      if (params.timeZone !== undefined) patch.timeZone = String(params.timeZone);
+      if (Object.keys(patch).length === 0) return err('BAD_REQUEST', 'Provide summary, description, location, or timeZone to update a calendar.');
+      const calendar = Calendar.Calendars.patch(patch, calendarId);
+      return { calendar: calendarResourceToJSON(calendar) };
+    }, 'UPDATE_FAILED', function(e) { return e.message || `Could not update calendar: ${calendarId}`; });
+  }
+
+  function deleteCalendar(params) {
+    const calendarId = requireParam(params, 'calendarId');
+    validateCalendarId(calendarId);
+    const primaryError = ensureNotPrimaryCalendar(calendarId);
+    if (primaryError) return primaryError;
+    return trap(function() {
+      Calendar.Calendars.remove(calendarId);
+      return { deleted: true, calendarId: calendarId };
+    }, 'DELETE_FAILED', function(e) { return e.message || `Could not delete calendar: ${calendarId}`; });
+  }
+
   function createEvent(params) {
     const title = requireParam(params, 'title');
     const startTime = requireParam(params, 'startTime');
@@ -408,6 +564,13 @@ const CalendarService = (() => {
     if (dateRange.error) return dateRange.error;
 
     return withIdempotency('createEvent', params, function() { return trap(function() {
+      if (optionalBool(params, 'createMeetLink', false)) {
+        const targetCalendarId = calendarId || 'primary';
+        const resource = buildAdvancedEventResource({ ...params, title: title, description: description, location: location }, dateRange, guestList);
+        const event = Calendar.Events.insert(resource, targetCalendarId, advancedEventOptionalArgs(params, guestList));
+        return { event: eventResourceToJSON(event), addedGuests: guestList.emails, failedGuests: [] };
+      }
+
       const cal = resolveCalendar(calendarId);
 
       const event = cal.createEvent(title, dateRange.start, dateRange.end, {
@@ -452,6 +615,21 @@ const CalendarService = (() => {
     const calendarId = optionalString(params, 'calendarId');
 
     return trap(function() {
+      if (optionalBool(params, 'createMeetLink', false)) {
+        const targetCalendarId = calendarId || 'primary';
+        let dateRange = null;
+        if (params.startTime || params.endTime) {
+          const existing = Calendar.Events.get(targetCalendarId, eventIdForApi(id));
+          const nextStart = params.startTime || (existing.start && (existing.start.dateTime || existing.start.date));
+          const nextEnd = params.endTime || (existing.end && (existing.end.dateTime || existing.end.date));
+          dateRange = parseDateTimeRange(nextStart, nextEnd);
+          if (dateRange.error) return dateRange.error;
+        }
+        const resource = buildAdvancedEventResource(params, dateRange, null);
+        const event = Calendar.Events.patch(resource, targetCalendarId, eventIdForApi(id), advancedEventOptionalArgs(params, null));
+        return { event: eventResourceToJSON(event) };
+      }
+
       const cal = resolveCalendar(calendarId);
 
       const event = cal.getEventById(id);
@@ -472,6 +650,19 @@ const CalendarService = (() => {
       e.calendarName = cal.getName();
       return { event: e };
     }, 'UPDATE_FAILED', function(e) { return e.message || 'Could not update event'; });
+  }
+
+  function moveEvent(params) {
+    const id = requireParam(params, 'eventId');
+    const calendarId = requireParam(params, 'calendarId');
+    const destinationCalendarId = requireParam(params, 'destinationCalendarId');
+    validateCalendarId(calendarId);
+    validateCalendarId(destinationCalendarId);
+
+    return trap(function() {
+      const event = Calendar.Events.move(calendarId, eventIdForApi(id), destinationCalendarId, { sendUpdates: optionalString(params, 'sendUpdates', 'none') });
+      return { event: eventResourceToJSON(event), sourceCalendarId: calendarId, destinationCalendarId: destinationCalendarId };
+    }, 'MOVE_FAILED', function(e) { return e.message || 'Could not move event'; });
   }
 
   // ─── DESTRUCTIVE ───
@@ -679,8 +870,10 @@ const CalendarService = (() => {
   }
 
   const ACTIONS = {
-    listCalendars, getCalendar: calendarGet, listEvents, searchEvents,
-    getEvent, eventInstances, quickAdd, createEvent, updateEvent,
+    listCalendars, getColors, settingsList, settingsGet,
+    getCalendar: calendarGet, listEvents, searchEvents,
+    getEvent, eventInstances, quickAdd, createCalendar, updateCalendar,
+    deleteCalendar, createEvent, updateEvent, moveEvent,
     respondToEvent, createEventSeries, setEventColor, deleteEvent,
     findFreeBusy, batch,
   }

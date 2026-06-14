@@ -15,6 +15,7 @@ for (const name of [
   'calendarCreateEventSchema',
   'calendarCreateEventSeriesSchema',
   'calendarQuickAddSchema',
+  'calendarCreateCalendarSchema',
   'gmailSendSchema',
   'gmailUpdateDraftSchema',
   'gmailCreateFilterSchema',

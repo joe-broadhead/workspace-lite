@@ -105,20 +105,27 @@
 
 | **Batch** | `gmail_batch` | `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
 
-## Calendar — 15 tools
+## Calendar — 22 tools
 
 | Tool | Params |
 |---|---|
 | `calendar_list_calendars` | none |
+| `calendar_get_colors` | none |
+| `calendar_list_settings` | `maxResults?`, `pageToken?` |
+| `calendar_get_setting` | `setting` (e.g. `timezone`) |
 | `calendar_get_calendar` | `calendarId?` |
+| `calendar_create_calendar` | `summary`, `description?`, `location?`, `timeZone?`, `idempotencyKey?` |
+| `calendar_update_calendar` | `calendarId`, `summary?`, `description?`, `location?`, `timeZone?` |
+| `calendar_delete_calendar` | `calendarId`, `confirm` — rejects primary/default calendar |
 | `calendar_list_events` | `calendarId?`, `timeMin?`, `timeMax?`, `maxResults`, `page` |
 | `calendar_search_events` | `query`, `timeMin?`, `timeMax?`, `maxResults` |
 | `calendar_get_event` | `eventId`, `calendarId?` |
 | `calendar_get_event_instances` | `eventId`, `calendarId?` (default "primary"), `timeMin?`, `timeMax?` — expand recurring events into concrete instances |
-| `calendar_create_event` | `title`, `startTime`, `endTime`, `description?`, `location?`, `guests?`, `calendarId?` |
+| `calendar_create_event` | `title`, `startTime`, `endTime`, `description?`, `location?`, `guests?`, `calendarId?`, `createMeetLink?` |
 | `calendar_create_event_series` | `title`, `startTime`, `endTime`, `recurrence` (RRULE e.g. "WEEKLY", "MONTHLY", "EVERY MONDAY"), `description?`, `location?`, `calendarId?` |
 | `calendar_quick_add_event` | `text` — natural language (e.g. "Lunch with Sarah tomorrow at noon"), `calendarId?` (default "primary") |
-| `calendar_update_event` | `eventId`, any optional field to change |
+| `calendar_update_event` | `eventId`, any optional field to change, `createMeetLink?` |
+| `calendar_move_event` | `eventId`, `calendarId`, `destinationCalendarId`, `sendUpdates?` |
 | `calendar_delete_event` | `eventId`, `calendarId?` |
 | `calendar_respond_to_event` | `eventId`, `status` (YES/NO/MAYBE), `calendarId?` |
 | `calendar_set_event_color` | `eventId`, `color` (PALE_BLUE/PALE_GREEN/MAUVE/PALE_RED/YELLOW/ORANGE/CYAN/GRAY/BLUE/GREEN/RED), `calendarId?` |

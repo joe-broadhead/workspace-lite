@@ -1,7 +1,7 @@
 ---
 name: google-workspace
 version: 1.0.0
-description: "Google Workspace automation: Drive (44 tools), Gmail (39), Calendar (15), Sheets (27), Slides (19), Docs (17), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
+description: "Google Workspace automation: Drive (44 tools), Gmail (39), Calendar (22), Sheets (27), Slides (19), Docs (17), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
 metadata:
   requires:
     bins: []
@@ -28,6 +28,8 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `
 | Drive history | `drive_list_revisions` / `drive_get_start_page_token` → `drive_list_changes` |
 | Folder path | `drive_get_folder_path` to see full path to a file |
 | Schedule | `calendar_find_freebusy` → present options → `calendar_create_event` |
+| Meet event | `calendar_create_event` with `createMeetLink:true` |
+| Calendar settings | `calendar_get_setting` with `setting:"timezone"` |
 | Quick schedule | `calendar_quick_add_event` (natural language, e.g. "Lunch tomorrow noon") |
 | Recurring | `calendar_create_event_series` with recurrence rule |
 | RSVP | `calendar_respond_to_event` → YES/NO/MAYBE |
@@ -62,7 +64,8 @@ Read the relevant reference file before executing complex multi-tool workflows.
 - **Never send** email without explicit approval — always draft first
 - **Never delete/trash** files, emails, or events without confirmation
 - **Never create forwarding filters** or enable/change an enabled vacation responder without confirmation
-- **Never create** calendar events without suggesting a time and getting approval
+- **Never create** calendar events/calendars without suggesting the details and getting approval
+- **Never `calendar_delete_calendar`** without confirmation; it rejects primary/default calendars server-side
 - **Never `sheets_delete_sheet`**, `sheets_clear_range`, or `sheets_delete_rows` without confirmation
 - **Never `drive_remove_parent`**, `drive_remove_editor` / `drive_remove_viewer`, `drive_delete_comment`, or `drive_delete_reply` without confirmation
 - **Never `tasks_delete_tasklist`**, `tasks_delete_task`, or `tasks_clear_completed` without confirmation

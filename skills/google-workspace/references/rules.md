@@ -12,6 +12,8 @@
 - `gmail_get_attachment` downloads attachment content — returns base64 for binary, plain text for text files
 - `gmail_batch_modify` applies label changes to multiple messages at once — `messageIds` (array), `addLabels` (array), `removeLabels` (array)
 - `calendar_quick_add_event` creates an event from natural language — no ISO timestamps needed
+- `calendar_create_event` / `calendar_update_event` with `createMeetLink:true` creates Meet conference data through Calendar events
+- `calendar_get_setting` with `setting:"timezone"` returns the user's Calendar timezone setting
 - `calendar_create_event_series` uses RRULE format: "WEEKLY", "DAILY", "MONTHLY", "YEARLY", "EVERY MONDAY"
 - `calendar_respond_to_event` sets your attendance: YES/NO/MAYBE
 - `calendar_get_event_instances` expands recurring events into concrete instances within a time window
@@ -51,6 +53,7 @@
 - Never `drive_trash_file`, `drive_delete_file`, `drive_delete_comment`, `drive_delete_reply`, `gmail_trash_message`, `gmail_delete_message`, `calendar_delete_event` without confirmation
 - Never `drive_remove_editor`, `drive_remove_viewer`, `drive_remove_parent`, `drive_set_sharing` (change) without confirmation
 - Never `calendar_create_event` or `calendar_create_event_series` without suggesting time and getting approval
+- Never `calendar_create_calendar`, `calendar_update_calendar`, or `calendar_delete_calendar` without confirming the target calendar details
 - Never `drive_add_editor` or `drive_set_sharing` (new share) without confirmation
 - Never `sheets_delete_sheet` without confirmation — cannot undo
 - Never `sheets_delete_rows` without confirmation — rows shift up, cannot undo

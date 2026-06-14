@@ -4,7 +4,7 @@
 
 The `google-workspace` skill equips LLM agents with everything they need to automate Google Workspace through the Apps Script MCP servers. It's a self-contained knowledge pack with:
 
-- **Tool catalog** — exact signatures, parameter names, types, defaults, and descriptions for all 190 tools across Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms.
+- **Tool catalog** — exact signatures, parameter names, types, defaults, and descriptions for all 197 tools across Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms.
 - **Numbered workflows** — step-by-step tool sequences for common tasks (email triage, meeting prep, scheduling, spreadsheet creation, presentation building, data analysis).
 - **Safety rules** — guardrails that prevent agents from sending email without approval, deleting files without confirmation, or creating calendar events without user consent.
 - **Search syntax** — Gmail query operators, Drive search language, Calendar ISO formatting.

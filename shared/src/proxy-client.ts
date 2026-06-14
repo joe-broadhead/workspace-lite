@@ -9,11 +9,15 @@ type TokenClass = 'read' | 'write' | 'send' | 'share' | 'destructive' | 'admin'
 const ACTION_TOKEN_CLASSES: Record<string, Record<string, TokenClass>> = {
   calendar: {
     quickAdd: 'write',
+    createCalendar: 'write',
+    updateCalendar: 'write',
     createEvent: 'write',
     updateEvent: 'write',
+    moveEvent: 'write',
     respondToEvent: 'write',
     createEventSeries: 'write',
     setEventColor: 'write',
+    deleteCalendar: 'destructive',
     deleteEvent: 'destructive',
   },
   docs: {

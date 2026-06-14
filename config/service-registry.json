@@ -40,7 +40,7 @@
       "globalName": "CalendarService",
       "tokenEnvName": "GOOGLE_WORKSPACE_CALENDAR_PROXY_TOKEN",
       "proxyServiceName": "google-workspace-proxy-calendar",
-      "toolCount": 15,
+      "toolCount": 22,
       "advancedServices": [
         { "userSymbol": "Calendar", "version": "v3", "serviceId": "calendar" }
       ],

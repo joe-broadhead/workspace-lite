@@ -7,12 +7,19 @@ Create, search, update, and delete calendar events. Check availability across mu
 | Tool Name | Description |
 |---|---|
 | `calendar_list_calendars` | List all calendars available to the authenticated account. |
+| `calendar_get_colors` | Get Calendar API color definitions for calendars and events. |
+| `calendar_list_settings` | List Calendar user settings such as timezone. |
+| `calendar_get_setting` | Get a single Calendar user setting by ID. |
 | `calendar_get_calendar` | Get metadata for a specific calendar by ID. |
+| `calendar_create_calendar` | Create a secondary calendar. |
+| `calendar_update_calendar` | Update secondary calendar metadata. |
+| `calendar_delete_calendar` | Delete a secondary calendar. |
 | `calendar_list_events` | List events from a calendar within a time range. |
 | `calendar_search_events` | Search events by title or description text across calendars. |
 | `calendar_get_event` | Retrieve full details of a single event. |
 | `calendar_create_event` | Create a new event with title, start/end times, description, location, and guests. |
 | `calendar_update_event` | Update an existing event's fields (partial update). |
+| `calendar_move_event` | Move an event from one calendar to another. |
 | `calendar_delete_event` | Permanently delete an event. |
 | `calendar_find_freebusy` | Find busy slots across calendars to identify available times. |
 | `calendar_respond_to_event` | RSVP to an event (YES, NO, MAYBE). |
@@ -25,6 +32,10 @@ Create, search, update, and delete calendar events. Check availability across mu
 ## Key Features
 
 - **Multi-calendar support** — `list_calendars` surfaces all calendars (primary, secondary, shared, holiday, and subscribed). All event operations accept an optional `calendarId` to target specific calendars.
+- **Calendar metadata** — Read color definitions and user settings, including timezone, through Advanced Calendar service methods.
+- **Secondary calendar management** — Create, update, and delete secondary calendars. Primary/default calendar deletion is rejected server-side.
+- **Meet conference links** — `calendar_create_event` and `calendar_update_event` can set `createMeetLink: true`, which creates Google Meet conference data through the Calendar API event resource.
+- **Event moves** — `calendar_move_event` moves events between calendars using the Calendar API, subject to ownership and ACL constraints.
 - **Partial field updates** — `update_event` accepts only the fields you want to change; omitted fields remain unchanged.
 - **Free/busy lookup** — `find_freebusy` scans across calendars to find open slots, making it easy to schedule without conflicts.
 - **Flexible guest management** — `create_event` accepts a comma-separated list of guest emails and automatically sends invitations.
@@ -61,6 +72,18 @@ calendar_create_event({
 // Event created; invitations sent to Alice and Bob
 ```
 
+**Create an event with a Google Meet link:**
+
+```pseudo
+calendar_create_event({
+  title: "Design Review",
+  startTime: "2026-06-15T10:00:00-07:00",
+  endTime: "2026-06-15T11:00:00-07:00",
+  createMeetLink: true
+})
+// Meet link is returned in hangoutLink/conferenceData when Calendar API creates it
+```
+
 **Find open slots before scheduling:**
 
 ```pseudo
@@ -76,6 +99,10 @@ calendar_find_freebusy({
 
 - Events must have `title`, `startTime`, and `endTime` at minimum. Times should be ISO 8601 strings.
 - `delete_event` is permanent — there is no trash/recovery for calendar events.
+- `calendar_delete_calendar` only targets secondary calendars and rejects the primary/default calendar. Calendar deletion is permanent and requires confirmation.
+- Calendar timezone settings are user-specific. Use `calendar_get_setting({ setting: "timezone" })` to read the account setting; secondary calendars also carry their own `timeZone` field.
+- Secondary calendar create/update/delete and event moves require sufficient ownership or ACL permissions. Shared, subscribed, holiday, and primary calendars may reject these operations.
+- Meet links are created through Calendar event `conferenceData`; there is no direct Meet API surface in this service.
 - `find_freebusy` returns busy periods; determining available slots requires computing the gaps.
 - Recurring event instances are listed as separate items; modifying a recurring series requires the recurrence rule from the parent event.
 - Calendar IDs for shared/group calendars must be obtained from `list_calendars`; they are not discoverable by name.

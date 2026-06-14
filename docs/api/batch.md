@@ -201,6 +201,9 @@ The `action` field in each operation uses the **same names as the individual too
 | Individual Tool | Batch `action` |
 |---|---|
 | `calendar_list_calendars` | `listCalendars` |
+| `calendar_get_colors` | `getColors` |
+| `calendar_list_settings` | `settingsList` |
+| `calendar_get_setting` | `settingsGet` |
 | `calendar_get_calendar` | `getCalendar` |
 | `calendar_list_events` | `listEvents` |
 | `calendar_search_events` | `searchEvents` |
@@ -214,6 +217,10 @@ The `action` field in each operation uses the **same names as the individual too
 | `calendar_set_event_color` | `setEventColor` |
 | `calendar_get_event_instances` | `eventInstances` |
 | `calendar_quick_add_event` | `quickAdd` |
+| `calendar_create_calendar` | `createCalendar` |
+| `calendar_update_calendar` | `updateCalendar` |
+| `calendar_delete_calendar` | `deleteCalendar` |
+| `calendar_move_event` | `moveEvent` |
 
 ### Sheets
 
