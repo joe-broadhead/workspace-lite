@@ -1,0 +1,91 @@
+:root {
+  --md-accent-fg-color: #f59e0b;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-accent-fg-color: #fbbf24;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  color: var(--md-primary-fg-color);
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: var(--md-default-fg-color--light);
+  margin-top: -0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.grid.cards {
+  gap: 1rem;
+}
+
+.grid.cards .card {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.grid.cards .card:hover {
+  border-color: var(--md-primary-fg-color);
+  box-shadow: 0 2px 8px rgba(103, 58, 183, 0.18);
+}
+
+.workspace-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.workspace-stats .stat {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  padding: 0.9rem 1rem;
+  background: var(--md-code-bg-color);
+}
+
+.workspace-stats .stat-value {
+  color: var(--md-primary-fg-color);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.workspace-stats .stat-label {
+  color: var(--md-default-fg-color--light);
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+
+.tool-card {
+  background: var(--md-code-bg-color);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+}
+
+.diagram-large {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.diagram-large .mermaid {
+  min-width: 600px;
+}
+
+.md-typeset table:not([class]) {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}

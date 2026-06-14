@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible defect in workspace-lite.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not include tokens, deployment URLs with private context, customer data, or private document contents.
+  - type: input
+    id: service
+    attributes:
+      label: Service or area
+      description: "Example: Drive, Gmail, Calendar, setup, docs, CI."
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool or command
+      description: "Example: drive_search_files, scripts/setup.sh, npm run validate."
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include sanitized errors only.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Run ...
+        2. Call ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation run
+      description: Commands you ran, for example npm test or npm run validate.
+    validations:
+      required: false

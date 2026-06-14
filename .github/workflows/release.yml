@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release, for example v0.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Validate and create GitHub release
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: release_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate release tag
+        run: |
+          tag="${{ steps.release_tag.outputs.tag }}"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must match vMAJOR.MINOR.PATCH, got: $tag" >&2
+            exit 1
+          fi
+          git rev-parse "$tag^{commit}" >/dev/null
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Validate release candidate
+        run: npm run validate
+
+      - name: Audit npm dependencies
+        run: npm run audit
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r docs/requirements.txt
+
+      - name: Build docs strictly
+        run: mkdocs build --strict --site-dir site
+
+      - name: Extract release notes
+        run: |
+          version="${{ steps.release_tag.outputs.tag }}"
+          version="${version#v}"
+          awk -v version="$version" '
+            $0 ~ "^## " version "([[:space:]-]|$)" { capture=1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if ! [ -s RELEASE_NOTES.md ]; then
+            echo "No CHANGELOG.md section found for $version" >&2
+            exit 1
+          fi
+
+      - name: Create release archive
+        run: |
+          mkdir -p release
+          git archive --format=tar.gz --prefix="workspace-lite-${{ steps.release_tag.outputs.tag }}/" -o "release/workspace-lite-${{ steps.release_tag.outputs.tag }}.tar.gz" "${{ steps.release_tag.outputs.tag }}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.release_tag.outputs.tag }}" \
+            "release/workspace-lite-${{ steps.release_tag.outputs.tag }}.tar.gz" \
+            --title "workspace-lite ${{ steps.release_tag.outputs.tag }}" \
+            --notes-file RELEASE_NOTES.md

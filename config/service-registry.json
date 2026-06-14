@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "healthVersion": "1.0.0",
+  "services": [
+    {
+      "key": "drive",
+      "title": "Drive",
+      "globalName": "DriveService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-drive",
+      "toolCount": 44,
+      "advancedServices": [
+        { "userSymbol": "Drive", "version": "v3", "serviceId": "drive" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    },
+    {
+      "key": "gmail",
+      "title": "Gmail",
+      "globalName": "GmailService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-gmail",
+      "toolCount": 39,
+      "advancedServices": [
+        { "userSymbol": "Gmail", "version": "v1", "serviceId": "gmail" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://www.googleapis.com/auth/script.send_mail",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    },
+    {
+      "key": "calendar",
+      "title": "Calendar",
+      "globalName": "CalendarService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_CALENDAR_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-calendar",
+      "toolCount": 22,
+      "advancedServices": [
+        { "userSymbol": "Calendar", "version": "v3", "serviceId": "calendar" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    },
+    {
+      "key": "sheets",
+      "title": "Sheets",
+      "globalName": "SheetsService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-sheets",
+      "toolCount": 33,
+      "advancedServices": [
+        { "userSymbol": "Sheets", "version": "v4", "serviceId": "sheets" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    },
+    {
+      "key": "slides",
+      "title": "Slides",
+      "globalName": "SlidesService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-slides",
+      "toolCount": 25,
+      "advancedServices": [
+        { "userSymbol": "Slides", "version": "v1", "serviceId": "slides" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/presentations",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    },
+    {
+      "key": "docs",
+      "title": "Docs",
+      "globalName": "DocsService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-docs",
+      "toolCount": 26,
+      "advancedServices": [
+        { "userSymbol": "Docs", "version": "v1", "serviceId": "docs" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/documents",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    },
+    {
+      "key": "tasks",
+      "title": "Tasks",
+      "globalName": "TasksService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-tasks",
+      "toolCount": 13,
+      "advancedServices": [
+        { "userSymbol": "Tasks", "version": "v1", "serviceId": "tasks" }
+      ],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/tasks",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    },
+    {
+      "key": "forms",
+      "title": "Forms",
+      "globalName": "FormsService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_FORMS_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-forms",
+      "toolCount": 16,
+      "advancedServices": [],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/forms",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
+    }
+  ]
+}

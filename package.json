@@ -1,0 +1,53 @@
+{
+  "name": "workspace-lite",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP servers for Google Workspace via Apps Script proxy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joe-broadhead/workspace-lite.git"
+  },
+  "bugs": {
+    "url": "https://github.com/joe-broadhead/workspace-lite/issues"
+  },
+  "homepage": "https://joe-broadhead.github.io/workspace-lite/",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "shared",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build:shared && npm run build:packages",
+    "build:shared": "cd shared && npm run build",
+    "build:packages": "tsc -b packages/*",
+    "build:drive": "cd packages/drive && npm run build",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
+    "lint": "npm run typecheck",
+    "test": "tsx --test tests/*.test.ts",
+    "audit": "npm audit --audit-level=moderate",
+    "validate": "npm run typecheck && npm run build && npm test && npm run validate:manifests && npm run validate:limits && npm run validate:responses && npm run validate:mutations && npm run validate:inputs && npm run validate:architecture",
+    "validate:manifests": "node scripts/validate-manifests.mjs",
+    "validate:limits": "node scripts/validate-limits.mjs",
+    "validate:responses": "node scripts/validate-responses.mjs",
+    "validate:mutations": "node scripts/validate-mutation-safety.mjs",
+    "validate:inputs": "node scripts/validate-high-risk-inputs.mjs",
+    "validate:architecture": "node scripts/validate-architecture.mjs",
+    "generate:proxy-shell": "node scripts/generate-proxy-shell.mjs",
+    "docs:build": "mkdocs build --strict",
+    "docs:serve": "mkdocs serve",
+    "clean": "rm -rf packages/*/dist shared/dist packages/*/*.tsbuildinfo shared/*.tsbuildinfo *.tsbuildinfo",
+    "dev:drive": "cd packages/drive && npm run dev",
+    "install:deps": "npm install",
+    "deploy:drive": "cd packages/drive/apps-script && clasp push",
+    "postinstall": "npm run build:shared"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

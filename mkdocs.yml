@@ -1,0 +1,135 @@
+site_name: workspace-lite
+site_description: MCP servers for Google Workspace via Apps Script proxies.
+site_url: https://joe-broadhead.github.io/workspace-lite/
+repo_url: https://github.com/joe-broadhead/workspace-lite
+repo_name: workspace-lite
+edit_uri: edit/master/docs/
+strict: true
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10.9.0/dist/mermaid.min.js
+  - javascripts/mermaid-init.js
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+      - Setup Script: getting-started/setup-script.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Service Registry: architecture/registry.md
+      - Security: architecture/security.md
+  - Services:
+      - Drive: services/drive.md
+      - Gmail: services/gmail.md
+      - Calendar: services/calendar.md
+      - Sheets: services/sheets.md
+      - Slides: services/slides.md
+      - Docs: services/docs.md
+      - Tasks: services/tasks.md
+      - Forms: services/forms.md
+  - API Reference:
+      - Batch Operations: api/batch.md
+      - Error Codes: api/error-codes.md
+  - Agent Skill:
+      - Overview: skill/overview.md
+      - Workflows: skill/workflows.md
+  - Operations:
+      - Quotas & Limits: operations/quotas.md
+      - Mutation Safety: operations/mutation-safety.md
+      - Input Policies: operations/input-policies.md
+      - Troubleshooting: operations/troubleshooting.md
+      - Security: operations/security.md
+  - Project:
+      - Public Release Readiness: project/public-release.md
+      - Release Process: project/release-process.md
+      - Changelog: project/changelog.md
+      - Contributing: project/contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/joe-broadhead/workspace-lite
+  generator: false

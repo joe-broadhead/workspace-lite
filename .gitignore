@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.venv/
+*.tsbuildinfo
+.env
+*.log
+.DS_Store
+**/.clasp.json
+**/.clasprc.json
+**/BootstrapSecret.gs
+*.swp
+*.swo
+*~
+.vscode/
+coverage/
+site/

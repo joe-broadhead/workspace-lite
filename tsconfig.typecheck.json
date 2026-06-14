@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "paths": {
+      "@workspace-lite/shared": ["shared/src/index.ts"],
+      "@workspace-lite/shared/*": ["shared/src/*.ts"]
+    }
+  },
+  "include": [
+    "shared/src/**/*.ts",
+    "packages/*/src/**/*.ts",
+    "tests/**/*.ts"
+  ]
+}
