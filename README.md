@@ -49,22 +49,19 @@ Key properties:
 | Google account | Access to the Workspace services you plan to use |
 | clasp | Latest `@google/clasp` CLI |
 
-Install dependencies and build:
+Run the setup assistant:
 
 ```bash
 git clone https://github.com/joe-broadhead/workspace-lite.git
 cd workspace-lite
-npm ci
-npm run build
-```
-
-Run the setup assistant:
-
-```bash
 ./scripts/setup.sh
 ```
 
-The setup script creates or reuses Apps Script projects, pushes proxy code, prints Apps Script editor URLs, guides the manual web app deployment step, bootstraps tokens, and prints OpenCode MCP config.
+The setup script installs dependencies, builds the packages, creates or reuses Apps Script projects, pushes proxy code, prints Apps Script editor URLs, guides the manual Apps Script web app deployment step, bootstraps tokens, and prints OpenCode MCP config. Use `./scripts/setup.sh --dry-run` first if you want to preview the flow without creating projects, bootstrap secrets, or `.env` entries.
+
+The Apps Script web app deployment step is manual: open each printed editor URL, choose **Deploy → New deployment → Web app**, set **Execute as: Me**, set **Who has access: Anyone**, authorize scopes if prompted, and paste the `/exec` URL back into setup.
+
+Agent-assisted setup is supported. Install the repo's `workspace-lite-installer` skill to teach OpenCode agents how to run setup, `clasp push`, and deployment refresh commands while still routing Google OAuth scope review and initial web app deployment verification through the Apps Script GUI.
 
 Full setup documentation: <https://joe-broadhead.github.io/workspace-lite/getting-started/installation/>
 

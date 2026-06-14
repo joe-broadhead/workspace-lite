@@ -49,17 +49,25 @@ if ! command -v node &>/dev/null; then
   echo "Node.js is required. Install Node 20+ from https://nodejs.org"
   exit 1
 fi
-success "clasp and Node.js found"
+if [ "$DRY_RUN" -eq 1 ]; then
+  success "Node.js found; clasp check skipped"
+else
+  success "clasp and Node.js found"
+fi
 
 # ── clasp login ──
 banner "clasp login"
 if [ "$DRY_RUN" -eq 1 ]; then
-  warn "Skipping clasp login in dry run."
+  warn "Skipping clasp authentication check in dry run."
 elif ! clasp list &>/dev/null 2>&1; then
   echo "Logging into Google... A browser will open."
   clasp login
 fi
-success "clasp authenticated"
+if [ "$DRY_RUN" -eq 1 ]; then
+  success "clasp authentication check skipped"
+else
+  success "clasp authenticated"
+fi
 
 # ── Build ──
 banner "Build"
@@ -142,13 +150,16 @@ done
 # ── Deployment Guide ──
 banner "Deployment"
 echo ""
-echo "Each service needs a web app deployment. You'll need to do this ${#SERVICES[@]} times."
+echo "Each service needs a manual Apps Script web app deployment. You'll need to do this ${#SERVICES[@]} times."
+echo "Do not use clasp deploy for this step; create the web app deployment in the Apps Script editor so access settings are explicit."
 echo "For each service below:"
 echo "  1. Open the Apps Script editor URL for the service"
-echo "  2. Deploy → New deployment → Type: Web app"
-echo "  3. Execute as: Me (USER_DEPLOYING)"
-echo "  4. Access: Anyone (anonymous)"
-echo "  5. Copy the deployment URL"
+echo "  2. Click Deploy → New deployment"
+echo "  3. Click Select type / gear icon → Web app"
+echo "  4. Set Execute as: Me (USER_DEPLOYING)"
+echo "  5. Set Who has access: Anyone"
+echo "  6. Click Deploy and authorize scopes if prompted"
+echo "  7. Copy the Web app URL ending in /exec"
 echo ""
 echo "Services to deploy:"
 for svc in "${SERVICES[@]}"; do
@@ -165,59 +176,65 @@ echo ""
 # ── Token Bootstrap ──
 banner "Bootstrap tokens"
 echo ""
-if [ "$DRY_RUN" -eq 1 ]; then
-  warn "Skipping interactive token bootstrap and .env generation in dry run."
-  success "Dry run complete."
-  exit 0
-fi
-
-echo "After deploying each service, paste the deployment URLs below."
-echo "Press Enter to skip a service (can run again later)."
-echo ""
-
 URL_SERVICES=()
 URL_VALUES=()
-for svc in "${SERVICES[@]}"; do
-  read -r -p "Deployment URL for $svc: " url
-  if [ -n "$url" ]; then
-    URL_SERVICES+=("$svc")
-    URL_VALUES+=("$url")
-  fi
-done
+BOOTSTRAPPED_COUNT=0
+if [ "$DRY_RUN" -eq 1 ]; then
+  warn "Skipping interactive token bootstrap and .env generation in dry run."
+else
+  echo "After manually deploying each service as a Web app, paste the /exec deployment URLs below."
+  echo "Press Enter to skip a service and pause setup. You can rerun ./scripts/setup.sh after deploying it."
+  echo ""
 
-echo ""
-echo "# Generated on $(date)" > "$ROOT/.env"
-echo "" >> "$ROOT/.env"
+  for svc in "${SERVICES[@]}"; do
+    read -r -p "Deployment URL for $svc: " url
+    if [ -n "$url" ]; then
+      URL_SERVICES+=("$svc")
+      URL_VALUES+=("$url")
+    fi
+  done
 
-for i in "${!URL_SERVICES[@]}"; do
-  svc="${URL_SERVICES[$i]}"
-  url="${URL_VALUES[$i]}"
-  dir="$ROOT/packages/$svc/apps-script"
-  ensure_bootstrap_secret "$dir"
-  setup_key=$(read_bootstrap_secret "$dir")
-  echo "→ Bootstrapping $svc..."
-
-  response=$(curl -sL "${url}?bootstrap=1&setupKey=${setup_key}" 2>/dev/null || echo '{"success":false}')
-  token=$(echo "$response" | grep -o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"')
-
-  if [ -z "$token" ]; then
-    warn "Could not get token for $svc. Already bootstrapped? The URL may have been bootstrapped before."
-    continue
+  echo ""
+  if [ "${#URL_SERVICES[@]}" -eq 0 ]; then
+    warn "No deployment URLs provided; leaving .env unchanged."
   fi
 
-  env_name=$(echo "$svc" | tr '[:lower:]' '[:upper:]')
-  cat >> "$ROOT/.env" << EOF
+  for i in "${!URL_SERVICES[@]}"; do
+    svc="${URL_SERVICES[$i]}"
+    url="${URL_VALUES[$i]}"
+    dir="$ROOT/packages/$svc/apps-script"
+    ensure_bootstrap_secret "$dir"
+    setup_key=$(read_bootstrap_secret "$dir")
+    echo "→ Bootstrapping $svc..."
+
+    response=$(curl -sL "${url}?bootstrap=1&setupKey=${setup_key}" 2>/dev/null || echo '{"success":false}')
+    token=$(echo "$response" | grep -o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"')
+
+    if [ -z "$token" ]; then
+      warn "Could not get token for $svc. Already bootstrapped? The URL may have been bootstrapped before."
+      continue
+    fi
+
+    if [ "$BOOTSTRAPPED_COUNT" -eq 0 ]; then
+      echo "" >> "$ROOT/.env"
+      echo "# Generated on $(date)" >> "$ROOT/.env"
+    fi
+
+    env_name=$(echo "$svc" | tr '[:lower:]' '[:upper:]')
+    cat >> "$ROOT/.env" << EOF
 export GOOGLE_WORKSPACE_${env_name}_PROXY_URL="$url"
 export GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN="$token"
 EOF
 
-  success "$svc: token bootstrapped"
-done
+    BOOTSTRAPPED_COUNT=$((BOOTSTRAPPED_COUNT + 1))
+    success "$svc: token bootstrapped"
+  done
+fi
 
 # ── Config output ──
 banner "OpenCode Config"
 echo ""
-echo "Add these entries to your opencode.jsonc under \"mcpServers\":"
+echo "Add these entries to your opencode.jsonc under \"mcp\":"
 echo ""
 
 for svc in "${SERVICES[@]}"; do
@@ -243,8 +260,20 @@ EOF
 done
 
 # ── Skill ──
-banner "Install skill"
+banner "Install skills"
 echo ""
+echo "  mkdir -p ~/.config/opencode/skills"
 echo "  ln -sf \"$ROOT/skills/google-workspace\" ~/.config/opencode/skills/google-workspace"
+echo "  ln -sf \"$ROOT/skills/workspace-lite-installer\" ~/.config/opencode/skills/workspace-lite-installer"
 echo ""
-success "Setup complete. Restart OpenCode to use all 218 tools."
+if [ "$DRY_RUN" -eq 1 ]; then
+  success "Dry run complete. No Apps Script projects, bootstrap secrets, or .env entries were changed."
+elif [ "$BOOTSTRAPPED_COUNT" -eq 0 ]; then
+  warn "Setup paused before token bootstrap. Complete the manual Apps Script web app deployments, then rerun ./scripts/setup.sh and paste /exec URLs to create .env entries."
+  success "Apps Script projects were created or updated. MCP tools are not usable until tokens are bootstrapped."
+elif [ "$BOOTSTRAPPED_COUNT" -lt "${#SERVICES[@]}" ]; then
+  warn "Setup partially complete: bootstrapped $BOOTSTRAPPED_COUNT of ${#SERVICES[@]} services. Rerun ./scripts/setup.sh to finish skipped services."
+  success "Restart OpenCode after configured services are added to opencode.jsonc."
+else
+  success "Setup complete. Restart OpenCode to use all 218 tools."
+fi

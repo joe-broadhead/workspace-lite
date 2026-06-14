@@ -1,10 +1,17 @@
 import { z } from 'zod'
 
+function isEmailAddress(value: string) {
+  if (value.length > 320) return false
+  return /^[^\s@,<>\"]+@[^\s@,<>\"]+\.[^\s@,<>\"]+$/.test(value)
+}
+
+const emailAddressSchema = z.string().max(320).refine(isEmailAddress, 'Invalid email address')
+
 export const googleIdSchema = z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid Google Workspace ID')
 export const driveIdSchema = googleIdSchema.describe('Drive file or folder ID.')
 export const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO datetime')
 export const gmailSearchDateSchema = z.string().regex(/^\d{4}\/\d{1,2}\/\d{1,2}$/, 'Use Gmail date format YYYY/MM/DD')
-export const emailListSchema = z.string().max(1000).refine((value) => value.split(',').map((email) => email.trim()).filter(Boolean).every((email) => z.string().email().safeParse(email).success), 'Use comma-separated email addresses')
+export const emailListSchema = z.string().max(1000).refine((value) => value.split(',').map((email) => email.trim()).filter(Boolean).every(isEmailAddress), 'Use comma-separated email addresses')
 export const httpsUrlSchema = z.string().url().refine((value) => {
   try { return new URL(value).protocol === 'https:' }
   catch { return false }
@@ -114,27 +121,27 @@ export const fileSetSharingSchema = {
 
 export const fileAddEditorSchema = {
   fileId: driveIdSchema.describe('File ID.'),
-  email: z.string().email().describe('Email to add as editor.'),
+  email: emailAddressSchema.describe('Email to add as editor.'),
   idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
 export const fileAddViewerSchema = {
   fileId: driveIdSchema.describe('File ID.'),
-  email: z.string().email().describe('Email to add as viewer.'),
+  email: emailAddressSchema.describe('Email to add as viewer.'),
   idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
 export const fileRemoveEditorSchema = {
   fileId: driveIdSchema.describe('File ID.'),
-  email: z.string().email().describe('Email to remove as editor.'),
+  email: emailAddressSchema.describe('Email to remove as editor.'),
   ...confirmationSchema,
 }
 
 export const fileRemoveViewerSchema = {
   fileId: driveIdSchema.describe('File ID.'),
-  email: z.string().email().describe('Email to remove as viewer.'),
+  email: emailAddressSchema.describe('Email to remove as viewer.'),
   ...confirmationSchema,
 }
 
@@ -744,7 +751,7 @@ export const formsBatchSchema = {
 export const gmailMessageIdSchema = z.string().min(1).describe('Gmail message ID.')
 export const gmailThreadIdSchema = z.string().min(1).describe('Gmail thread ID.')
 export const gmailDraftIdSchema = z.string().min(1).describe('Gmail draft ID.')
-export const gmailEmailSchema = z.string().email().max(320).describe('Email address.')
+export const gmailEmailSchema = emailAddressSchema.describe('Email address.')
 export const gmailSubjectSchema = z.string().min(1).max(1000).describe('Email subject.')
 export const gmailBodySchema = z.string().min(1).max(100000).describe('Email body.')
 
@@ -1161,7 +1168,7 @@ export const sheetsProtectRangeSchema = {
   range: a1RangeSchema.describe('Range to protect in A1 notation.'),
   description: z.string().max(1000).optional().describe('Protection description.'),
   warningOnly: z.boolean().optional().describe('If true, show a warning instead of blocking edits.'),
-  editors: z.array(z.string().email()).max(50).optional().describe('Additional editor email addresses for this protection.'),
+  editors: z.array(emailAddressSchema).max(50).optional().describe('Additional editor email addresses for this protection.'),
   domainEdit: z.boolean().optional().describe('Whether domain users can edit, when the domain policy supports it.'),
 }
 
@@ -1171,7 +1178,7 @@ export const sheetsProtectSheetSchema = {
   description: z.string().max(1000).optional().describe('Protection description.'),
   warningOnly: z.boolean().optional().describe('If true, show a warning instead of blocking edits.'),
   unprotectedRanges: z.array(a1RangeSchema).max(50).optional().describe('Same-sheet A1 ranges to leave editable within the protected sheet.'),
-  editors: z.array(z.string().email()).max(50).optional().describe('Additional editor email addresses for this protection.'),
+  editors: z.array(emailAddressSchema).max(50).optional().describe('Additional editor email addresses for this protection.'),
   domainEdit: z.boolean().optional().describe('Whether domain users can edit, when the domain policy supports it.'),
 }
 

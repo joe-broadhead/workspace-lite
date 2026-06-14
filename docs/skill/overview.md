@@ -1,6 +1,15 @@
 # Agent Skill Overview
 
-## What the Skill Provides
+## Skills In This Repo
+
+This repo contains two OpenCode skills:
+
+| Skill | Purpose |
+|---|---|
+| `google-workspace` | Teaches agents how to use the Workspace MCP tools safely. |
+| `workspace-lite-installer` | Teaches agents how to install, push, refresh deployments, and troubleshoot the MCP setup. |
+
+## What `google-workspace` Provides
 
 The `google-workspace` skill equips LLM agents with everything they need to automate Google Workspace through the Apps Script MCP servers. It's a self-contained knowledge pack with:
 
@@ -127,7 +136,9 @@ The agent creates a draft, presents it for review, and only sends after the user
 ## Installation
 
 ```bash
+mkdir -p ~/.config/opencode/skills
 ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
+ln -sf "$(pwd)/skills/workspace-lite-installer" ~/.config/opencode/skills/workspace-lite-installer
 ```
 
-The skill is discovered automatically by OpenCode on startup. No additional configuration is required beyond the symlink.
+The skills are discovered automatically by OpenCode on startup. Restart OpenCode after adding or changing skill symlinks.

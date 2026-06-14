@@ -72,7 +72,7 @@ Tokens are passed to MCP servers via the `environment` block in `opencode.jsonc`
 
 ```jsonc
 {
-  "mcpServers": {
+  "mcp": {
     "google-drive": {
       "type": "local",
       "command": ["npx", "tsx", "/path/to/packages/drive/src/index.ts"],

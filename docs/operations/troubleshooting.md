@@ -12,6 +12,7 @@
 2. **Deployment URL is incorrect.** Verify the URL in your `.env` file matches the deployment URL from the Apps Script editor.
 3. **Execute-as setting is wrong.** The deployment must be "Execute as: Me (USER_DEPLOYING)".
 4. **Access setting is wrong.** The deployment must allow anonymous access, not only signed-in Google users.
+5. **Initial deployment was created only with `clasp deploy`.** Use the Apps Script editor GUI for initial setup so the deployment type, anonymous access, and OAuth scopes are explicitly verified.
 
 **Resolution:**
 
@@ -29,7 +30,9 @@ If this returns an error or no response, re-deploy:
 open "https://script.google.com/d/<script-id>/edit"
 ```
 
-In the Apps Script editor: **Deploy → New deployment → Type: Web app → Execute as: Me → Access: Anyone (anonymous)**. Update the URL in your `.env` file.
+In the Apps Script editor: **Deploy → New deployment → Select type: Web app → Execute as: Me → Who has access: Anyone**. Update the URL in your `.env` file.
+
+Do not use `clasp deploy` as the replacement for the GUI deployment step during installation. It can create a deployment record that still returns a Google access-denied HTML page when used as the public web app URL. After a user-created web app deployment exists, `clasp deploy -i <deployment-id> -V <version>` is appropriate for refreshing that same URL.
 
 ### Scopes Not Authorized
 
@@ -110,7 +113,7 @@ This is expected — the bootstrap endpoint is single-use by design. If you need
 **Resolution:** Verify both the environment variable and the script property value match.
 
 ```bash
-echo $GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN
+node -e 'const key = "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN"; console.log(process.env[key] ? `${key} is set` : `${key} is missing`)'
 ```
 
 ### NOT_FOUND
@@ -240,14 +243,12 @@ This confirms the web app is deployed, accessible, and functional. No auth token
 
 ### Token Verification
 
-Verify your local token matches the proxy's token:
+Verify your local token is set, then compare the private value with Apps Script Script Properties without pasting it into logs, issues, or support threads:
 
 ```bash
-# Check local
-printf '%s\n' "$GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN"
-
-# Check proxy (requires access to Apps Script editor)
-# In the editor: Project Settings → Script Properties → PROXY_AUTH_TOKEN
+node -e 'const key = "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN"; const value = process.env[key]; console.log(value ? `${key} is set (${value.length} chars)` : `${key} is missing`)'
 ```
+
+Check the proxy value in the Apps Script editor under **Project Settings → Script Properties → PROXY_AUTH_TOKEN**.
 
 If they don't match, update the environment variable to match the script property value, or rotate the token.

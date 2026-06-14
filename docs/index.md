@@ -52,7 +52,7 @@ MCP servers for Google Workspace
 
     ---
 
-    The `google-workspace` skill for OpenCode: tool catalogs, numbered workflows, and safety rules.
+    OpenCode skills for using Workspace tools and guiding agent-assisted installation.
 
     [:octicons-arrow-right-24: Skill Overview](skill/overview.md)
     [:octicons-arrow-right-24: Workflows](skill/workflows.md)
@@ -106,11 +106,14 @@ MCP servers for Google Workspace
 ```bash
 git clone https://github.com/joe-broadhead/workspace-lite.git
 cd workspace-lite
-npm install && npm run build
 ./scripts/setup.sh
 ```
 
-The setup script creates or reuses 8 Apps Script projects, pushes code, guides the manual web app deployments, bootstraps auth tokens, and prints OpenCode config.
+The setup script installs dependencies, builds the packages, creates or reuses 8 Apps Script projects, pushes code, guides the manual Apps Script web app deployments, bootstraps auth tokens, and prints OpenCode config. Use `./scripts/setup.sh --dry-run` first to preview without creating projects, bootstrap secrets, or `.env` entries.
+
+For each service, open the printed Apps Script editor URL and use **Deploy → New deployment → Web app** with **Execute as: Me** and **Who has access: Anyone**, then paste the `/exec` URL back into setup.
+
+Agents can help run setup, `clasp push`, and refresh existing deployments with the `workspace-lite-installer` skill, but the user must review Google OAuth scopes and initial web app settings in the Apps Script GUI.
 
 [:material-arrow-right: Full installation guide](getting-started/installation.md)
 

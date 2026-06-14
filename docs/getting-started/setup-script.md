@@ -10,13 +10,15 @@
 |-------|---------|
 | **Prerequisites check** | Verifies `clasp` and `node` are installed |
 | **clasp login** | Opens browser for Google authentication (once) |
-| **Build** | `npm install && npm run build` &mdash; compiles shared package and all 8 services |
+| **Build** | `npm ci && npm run build` when `package-lock.json` is present; compiles shared package and all 8 services |
 | **Project creation** | `clasp create --type standalone` for each of the 8 services with correct OAuth scopes and project titles |
 | **Code push** | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service-specific `.gs` files to each project |
-| **Deployment guide** | Prints instructions for the 8 manual web app deployments |
-| **Token bootstrap** | Collects deployment URLs, calls `?bootstrap=1` on each, writes tokens to `.env` |
-| **Config generator** | Prints ready-to-paste `opencode.jsonc` JSON for all 8 MCP servers |
-| **Skill command** | Prints the `ln -sf` command to install the `google-workspace` skill |
+| **Deployment guide** | Prints Apps Script editor URLs and instructions for the 8 manual web app deployments |
+| **Token bootstrap** | Collects deployment URLs, calls `?bootstrap=1` on each, appends successful token entries to `.env` |
+| **Config generator** | Prints ready-to-paste `opencode.jsonc` JSON for all 8 MCP servers under `mcp` |
+| **Skill commands** | Prints `ln -sf` commands to install the `google-workspace` usage skill and `workspace-lite-installer` operator skill |
+
+Run `./scripts/setup.sh --dry-run` to validate prerequisites, install dependencies, build, and preview project/config output without creating Apps Script projects, generating `BootstrapSecret.gs`, prompting for deployment URLs, or changing `.env`.
 
 ---
 
@@ -43,7 +45,7 @@ All projects use `runtimeVersion: V8`, `executeAs: USER_DEPLOYING`, and `access:
 
 ### `.env` file
 
-The script writes a `.env` file at the project root with all 16 primary environment variables:
+When token bootstrap succeeds, the script appends export lines to `.env` at the project root. A complete bootstrap produces all 16 primary environment variables:
 
 ```bash
 # Generated on Fri Jun 13 2026 14:30:00 CDT
@@ -66,9 +68,11 @@ export GOOGLE_WORKSPACE_FORMS_PROXY_URL="https://script.google.com/macros/s/<for
 export GOOGLE_WORKSPACE_FORMS_PROXY_TOKEN="<forms-proxy-token>"
 ```
 
+If you skip all deployment URL prompts, or if every bootstrap attempt fails, `.env` is left unchanged.
+
 ### OpenCode Config
 
-The script prints a `mcpServers` block for `opencode.jsonc`:
+The script prints entries for the top-level `mcp` block in `opencode.jsonc`:
 
 ```jsonc
 "google-drive": {
@@ -87,6 +91,27 @@ The script prints a `mcpServers` block for `opencode.jsonc`:
 "google-tasks": { /* ... */ },
 "google-forms": { /* ... */ }
 ```
+
+---
+
+## Manual Deployment Step
+
+The script intentionally pauses for Apps Script editor deployments. For each printed editor URL:
+
+1. Open the URL.
+2. Click **Deploy → New deployment**.
+3. Click **Select type** or the gear icon and choose **Web app**.
+4. Set **Execute as** to **Me**.
+5. Set **Who has access** to **Anyone**.
+6. Click **Deploy** and authorize scopes if prompted.
+7. Copy the **Web app URL** ending in `/exec`.
+8. Paste that URL back into the setup prompt.
+
+Do not use `clasp deploy` as a replacement for the first GUI deployment. The CLI can refresh a known deployment later, but the install flow needs a web app deployment with visibly confirmed execute-as, access settings, and OAuth scopes.
+
+If you are not ready to deploy all services, press Enter at the prompt for skipped services. The script leaves `.env` unchanged for skipped or failed bootstraps, and you can rerun `./scripts/setup.sh` later.
+
+If an agent is helping with setup after you complete the GUI deployments, it can recover the `/exec` URLs with `clasp deployments`. The correct row is the versioned deployment (`@1`, `@2`, etc.), not `@HEAD`; the URL is `https://script.google.com/macros/s/<deployment-id>/exec`.
 
 ---
 
@@ -121,7 +146,18 @@ Update the matching proxy URL in `.env` if it changed, then re-source.
 
 ### Scenario: Re-deploy after pushing code changes
 
-`clasp push` does not change the deployment &mdash; the web app picks up the latest code automatically. If you need a new deployment URL (e.g., after changing app access), deploy again from the editor and re-bootstrap.
+`clasp push` updates the Apps Script project source, but a versioned web app deployment keeps serving its pinned version until you refresh it. After the user has created the initial GUI web app deployment, an agent or maintainer can refresh the same deployment URL from the CLI:
+
+```bash
+cd packages/<service>/apps-script
+clasp push --force
+VERSION_OUTPUT="$(clasp version "Refresh web app deployment $(date +%F)")"
+VERSION="$(printf '%s\n' "$VERSION_OUTPUT" | sed -n 's/.*version \([0-9][0-9]*\).*/\1/p')"
+clasp deployments
+clasp deploy -i "<existing-versioned-deployment-id>" -V "$VERSION" -d "Refresh web app deployment $(date +%F)"
+```
+
+If the code change adds or changes Google OAuth scopes, the user must open the Apps Script editor, review the new scope prompt, authorize it, and then refresh/redeploy. Use a new deployment URL only when intentionally changing web app access or replacing a broken deployment.
 
 ---
 
@@ -149,6 +185,7 @@ Update the matching proxy URL in `.env` if it changed, then re-source.
 | &ldquo;Sorry, unable to open file at this time&rdquo; | Wait a few seconds after pushing; Apps Script needs time to process |
 | Web app not responding | Verify deployment type is **Web app**, not API executable |
 | 403 / 401 from proxy | Check that **Execute as: Me** is set and **Access: Anyone (anonymous)** is set |
+| Google access denied HTML page | Redeploy from the Apps Script editor with **Deploy → New deployment → Web app**. Do not use `clasp deploy` for initial setup. |
 | &ldquo;Script function not found: doGet&rdquo; | Push failed. Run `cd packages/<service>/apps-script && clasp push --force` |
 
 ### Token bootstrap fails
@@ -164,7 +201,7 @@ Update the matching proxy URL in `.env` if it changed, then re-source.
 
 | Symptom | Fix |
 |---------|-----|
-| Tools not listed | Verify `.env` is sourced, OpenCode was restarted, and `opencode.jsonc` has the `mcpServers` block |
+| Tools not listed | Verify `.env` is sourced, OpenCode was restarted, and `opencode.jsonc` has the top-level `mcp` block |
 | `GOOGLE_WORKSPACE_*` not found | Run `source /path/to/.env` before starting OpenCode, or add exports to `.zshrc` |
 | Port / STDIO error | The MCP server process failed to start. Check logs with `npx tsx packages/drive/src/index.ts` directly |
 

@@ -55,9 +55,11 @@ workspace-lite/
 ├── scripts/
 │   └── setup.sh                # One-shot setup: clasp login → create → push → deploy guide → bootstrap
 ├── skills/
-│   └── google-workspace/       # OpenCode agent skill
-│       ├── SKILL.md            # Fast-start index, tool catalog pointers, safety rules
-│       └── references/         # tool-catalog.md, workflows.md, rules.md
+│   ├── google-workspace/       # OpenCode usage skill
+│   │   ├── SKILL.md            # Fast-start index, tool catalog pointers, safety rules
+│   │   └── references/         # tool-catalog.md, workflows.md, rules.md
+│   └── workspace-lite-installer/ # OpenCode install/operator skill
+│       └── SKILL.md            # Setup, clasp push, deployment refresh, scope-review boundaries
 ├── tsconfig.base.json           # Shared TypeScript config
 ├── package.json                 # Workspace root: build, typecheck, dev scripts
 └── mkdocs.yml                   # Documentation config

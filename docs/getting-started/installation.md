@@ -2,6 +2,9 @@
 
 Complete setup of all 8 Google Workspace MCP servers, including the required manual Apps Script web app deployments.
 
+!!! tip "Agent-assisted install"
+    This repo includes a `workspace-lite-installer` skill for OpenCode agents. Agents can run local setup commands, `clasp push`, and refresh existing deployments, but the user must review OAuth scopes and verify initial web app deployment settings in the Apps Script GUI.
+
 ## Prerequisites
 
 | Requirement | Version / Command | Notes |
@@ -18,16 +21,14 @@ Complete setup of all 8 Google Workspace MCP servers, including the required man
 
 ---
 
-## Step 1: Clone &amp; Build
+## Step 1: Clone
 
 ```bash
 git clone https://github.com/joe-broadhead/workspace-lite.git
 cd workspace-lite
-npm install
-npm run build
 ```
 
-`npm install` triggers a `postinstall` script that builds the shared package. `npm run build` compiles all 8 service packages.
+The setup script installs dependencies with `npm ci` when `package-lock.json` is present, then builds all 8 service packages. To preview the flow without creating Apps Script projects, bootstrap secrets, or `.env` entries, run `./scripts/setup.sh --dry-run`.
 
 ---
 
@@ -45,18 +46,29 @@ The script automates:
 | 1. Authenticate | Opens a browser for `clasp login` (one-time) |
 | 2. Create projects | Creates 8 Apps Script standalone projects with correct OAuth scopes |
 | 3. Push code | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service files to each project |
-| 4. Deploy guide | Prints instructions for deploying each project as a web app |
-| 5. Token bootstrap | Collects deployment URLs, bootstraps auth tokens, writes `.env` |
-| 6. Config output | Prints ready-to-paste OpenCode `mcpServers` JSON |
-| 7. Skill setup | Prints the symlink command for the `google-workspace` skill |
+| 4. Deploy guide | Prints Apps Script editor URLs and manual web app deployment instructions |
+| 5. Token bootstrap | Collects deployment URLs, bootstraps auth tokens, appends successful entries to `.env` |
+| 6. Config output | Prints ready-to-paste OpenCode `mcp` JSON |
+| 7. Skill setup | Prints symlink commands for the `google-workspace` and `workspace-lite-installer` skills |
 
 ---
 
-## Step 3: Deploy Web Apps (GUI)
+## Step 3: Deploy Web Apps In Apps Script
 
 The setup script pauses here and prints an Apps Script editor URL for each of the 8 services, like `https://script.google.com/d/<script-id>/edit`.
 
-In each Apps Script editor:
+Open each editor URL and create the deployment manually:
+
+1. Click **Deploy → New deployment**.
+2. Click **Select type** or the gear icon.
+3. Choose **Web app**.
+4. Set **Execute as** to **Me**.
+5. Set **Who has access** to **Anyone**.
+6. Click **Deploy**.
+7. If Google asks for authorization, review permissions and allow the scopes for that service.
+8. Copy the **Web app URL** ending in `/exec`.
+
+Use these exact settings:
 
 | Field | Value |
 |-------|-------|
@@ -66,28 +78,30 @@ In each Apps Script editor:
 
 Copy each deployment URL (looks like `https://script.google.com/macros/s/.../exec`) and paste it back into the script prompt.
 
-!!! warning "GUI step cannot be automated"
-    Google does not provide an API for creating web app deployments. You must click through the Apps Script editor 8 times.
+!!! warning "GUI step requires the user"
+    Agents and scripts can push code, create Apps Script versions, and refresh an existing deployment with `clasp deploy -i`. The initial deployment still needs the Apps Script editor so the user can verify **Web app**, **Execute as: Me**, **Who has access: Anyone**, and OAuth scopes before approving access.
 
 ---
 
-## Step 4: Install the Agent Skill
+## Step 4: Install the Agent Skills
 
 ```bash
+mkdir -p ~/.config/opencode/skills
 ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
+ln -sf "$(pwd)/skills/workspace-lite-installer" ~/.config/opencode/skills/workspace-lite-installer
 ```
 
-This makes the `google-workspace` skill available to OpenCode. The skill provides LLMs with tool catalogs, numbered workflows, and safety rules.
+This makes two repo skills available to OpenCode. `google-workspace` teaches agents how to use the 218 Workspace tools. `workspace-lite-installer` teaches agents how to install, push, redeploy, and troubleshoot the MCPs while preserving the user-only Google authorization steps.
 
 ---
 
 ## Step 5: Configure OpenCode
 
-The setup script prints a JSON block. Add it to your `opencode.jsonc` under `mcpServers`:
+The setup script prints a JSON block. Add it to your `opencode.jsonc` under `mcp`:
 
 ```jsonc
 {
-  "mcpServers": {
+  "mcp": {
     "google-drive": {
       "type": "local",
       "command": ["npx", "tsx", "/path/to/workspace-lite/packages/drive/src/index.ts"],
@@ -95,7 +109,7 @@ The setup script prints a JSON block. Add it to your `opencode.jsonc` under `mcp
         "GOOGLE_WORKSPACE_DRIVE_PROXY_URL": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_URL}",
         "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN}"
       }
-    }
+    },
     // ... repeat for google-gmail, google-calendar, google-sheets, google-slides, google-docs, google-tasks, google-forms
   }
 }
@@ -108,6 +122,8 @@ source .env
 ```
 
 Restart OpenCode. When all 8 services are configured, all 218 tools are available.
+
+If you skipped deployment URLs or bootstrap failed, the script leaves `.env` unchanged for those services. Deploy the web apps in the Apps Script editor, rerun `./scripts/setup.sh`, paste the `/exec` deployment URLs, then source `.env` and restart OpenCode.
 
 ---
 
@@ -134,7 +150,7 @@ For each service, two environment variables are required:
 
 1. Create each Apps Script project with `clasp create --type standalone`
 2. Push code with `clasp push`
-3. Deploy as web app manually (GUI) and copy the deployment URL
+3. Deploy as a web app in the Apps Script GUI and copy the deployment URL. The user must verify scopes and web app access settings here.
 4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and write the bootstrapped token directly to your environment file:
 
 ```bash
@@ -148,7 +164,7 @@ TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JS
 
 ```jsonc
 {
-  "mcpServers": {
+  "mcp": {
     "google-drive": {
       "type": "local",
       "command": ["npx", "tsx", "/path/to/packages/drive/src/index.ts"],

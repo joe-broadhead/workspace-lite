@@ -13,6 +13,7 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 - Public-release project hygiene: CI, docs deploy, release workflow, contributing guide, security policy, release process docs, and public release checklist.
 - Semantic safety validators for send-capable Gmail and Calendar modes, Drive allowlist-sensitive read surfaces, and proxy token routing.
 - Forms environment variables in `.env.example`.
+- `workspace-lite-installer` OpenCode skill for agent-assisted install, clasp push, deployment refresh, and troubleshooting workflows.
 
 ### Changed
 
@@ -22,6 +23,7 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 - Proxy error envelopes now flow through the production client consistently with the test client and response formatters.
 - Setup and docs no longer depend on unsupported clasp editor-opening or login-status commands.
 - Bootstrap token examples avoid printing token values directly.
+- Installation docs now distinguish user-required initial Apps Script GUI deployment and OAuth scope review from agent-safe `clasp push` and existing-deployment refresh operations.
 
 ### Fixed
 
