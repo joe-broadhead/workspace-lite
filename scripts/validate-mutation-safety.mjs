@@ -21,6 +21,8 @@ for (const name of [
   'gmailForwardSchema',
   'tasksCreateTasklistSchema',
   'tasksCreateTaskSchema',
+  'formsCreateFormSchema',
+  'formsAddItemSchema',
 ]) {
   const start = schemas.indexOf(`export const ${name}`)
   const end = schemas.indexOf('\n}\n', start)
@@ -55,6 +57,12 @@ const tasks = readFileSync('packages/tasks/apps-script/TasksService.gs', 'utf8')
 if (!tasks.includes("withIdempotency('tasklistsCreate'")) failures.push('Tasks tasklist create must support idempotency replay')
 if (!tasks.includes("withIdempotency('tasksCreate'")) failures.push('Tasks task create must support idempotency replay')
 if (!tasks.includes('IDEMPOTENCY:tasks:')) failures.push('Tasks mutations must support idempotency replay')
+
+const forms = readFileSync('packages/forms/apps-script/FormsService.gs', 'utf8')
+if (!forms.includes("withIdempotency('formCreate'")) failures.push('Forms form create must support idempotency replay')
+if (!forms.includes("withIdempotency('itemAdd'")) failures.push('Forms item add must support idempotency replay')
+if (!forms.includes('IDEMPOTENCY:forms:')) failures.push('Forms mutations must support idempotency replay')
+if (!forms.includes('validateCommonItemFields(params)')) failures.push('Forms item add must validate common fields before creating an item')
 
 const mutationDocs = readFileSync('docs/operations/mutation-safety.md', 'utf8')
 for (const term of ['drive_move_file', 'gmail_update_draft', 'calendar_create_event', 'idempotencyKey', 'partial: true', 'Retry guidance']) {

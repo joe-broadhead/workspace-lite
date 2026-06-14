@@ -283,6 +283,26 @@ The `action` field in each operation uses the **same names as the individual too
 | `tasks_move_task` | `tasksMove` |
 | `tasks_clear_completed` | `tasksClear` |
 
+### Forms
+
+| Individual Tool | Batch `action` |
+|---|---|
+| `forms_create_form` | `formCreate` |
+| `forms_get_form` | `formGet` |
+| `forms_update_form` | `formUpdate` |
+| `forms_set_accepting_responses` | `formSetAcceptingResponses` |
+| `forms_set_response_destination` | `formSetDestination` |
+| `forms_remove_response_destination` | `formRemoveDestination` |
+| `forms_list_items` | `itemsList` |
+| `forms_add_item` | `itemAdd` |
+| `forms_update_item` | `itemUpdate` |
+| `forms_move_item` | `itemMove` |
+| `forms_delete_item` | `itemDelete` |
+| `forms_list_responses` | `responsesList` |
+| `forms_get_response` | `responseGet` |
+| `forms_delete_response` | `responseDelete` |
+| `forms_delete_all_responses` | `responsesDeleteAll` |
+
 ## Error Response Format
 
 Each result entry in the `results` array has this shape:

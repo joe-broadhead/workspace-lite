@@ -37,7 +37,7 @@ MCP servers for Google Workspace
 
     ---
 
-    Deep dives into each of the 7 Google Workspace services.
+    Deep dives into each of the 8 Google Workspace services.
 
     [:octicons-arrow-right-24: Drive](services/drive.md)
     [:octicons-arrow-right-24: Gmail](services/gmail.md)
@@ -46,6 +46,7 @@ MCP servers for Google Workspace
     [:octicons-arrow-right-24: Slides](services/slides.md)
     [:octicons-arrow-right-24: Docs](services/docs.md)
     [:octicons-arrow-right-24: Tasks](services/tasks.md)
+    [:octicons-arrow-right-24: Forms](services/forms.md)
 
 -   :material-robot:{ .lg .middle } __Agent Skill__
 
@@ -69,6 +70,7 @@ MCP servers for Google Workspace
     [:octicons-arrow-right-24: Slides](services/slides.md)
     [:octicons-arrow-right-24: Docs](services/docs.md)
     [:octicons-arrow-right-24: Tasks](services/tasks.md)
+    [:octicons-arrow-right-24: Forms](services/forms.md)
     [:octicons-arrow-right-24: Batch Operations](api/batch.md)
 
 </div>
@@ -80,9 +82,9 @@ MCP servers for Google Workspace
 | Feature | Detail |
 |---------|--------|
 | :material-shield-key:{ .middle } **Bearer token auth** | One-time bootstrap per service. Token stored in Apps Script properties. No OAuth refresh loops, no service accounts. |
-| :material-package-variant-closed:{ .middle } **7 services** | Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks &mdash; every service has a dedicated MCP server and Apps Script proxy. |
-| :material-counter:{ .middle } **153 tools** | Drive&nbsp;(29), Gmail&nbsp;(33), Calendar&nbsp;(15), Sheets&nbsp;(27), Slides&nbsp;(19), Docs&nbsp;(17), Tasks&nbsp;(13). |
-| :material-layers-triple:{ .middle } **Batch on all 7** | `{service}_batch` tools combine up to 20 operations in one round-trip. Sequential execution with per-op error collection. |
+| :material-package-variant-closed:{ .middle } **8 services** | Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, Forms &mdash; every service has a dedicated MCP server and Apps Script proxy. |
+| :material-counter:{ .middle } **169 tools** | Drive&nbsp;(29), Gmail&nbsp;(33), Calendar&nbsp;(15), Sheets&nbsp;(27), Slides&nbsp;(19), Docs&nbsp;(17), Tasks&nbsp;(13), Forms&nbsp;(16). |
+| :material-layers-triple:{ .middle } **Batch on all 8** | `{service}_batch` tools combine up to 20 operations in one round-trip. Sequential execution with per-op error collection. |
 | :material-arrange-bring-forward:{ .middle } **Auto-positioning** | Slides text boxes, images, shapes, and tables auto-position below existing elements. Override with explicit coordinates. |
 | :material-email-fast:{ .middle } **Draft-first email** | `gmail_create_draft`, `gmail_create_draft_reply`, `gmail_create_draft_reply_all` &mdash; review before sending. Never sends without explicit approval. |
 | :material-clock-fast:{ .middle } **Rate limiting** | 100 req/min per proxy via Apps Script `CacheService`. Shared across all instances of a deployment. |
@@ -98,6 +100,6 @@ npm install && npm run build
 ./scripts/setup.sh
 ```
 
-The setup script creates 7 Apps Script projects, pushes code, guides you through web app deployment, bootstraps auth tokens, and prints ready-to-paste OpenCode config.
+The setup script creates 8 Apps Script projects, pushes code, guides you through web app deployment, bootstraps auth tokens, and prints ready-to-paste OpenCode config.
 
 [:material-arrow-right: Full installation guide](getting-started/installation.md)

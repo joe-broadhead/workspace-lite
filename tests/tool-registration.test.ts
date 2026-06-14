@@ -5,6 +5,7 @@ import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { registerCalendarTools } from '../packages/calendar/src/tools/index.js'
 import { registerDocsTools } from '../packages/docs/src/tools/index.js'
 import { registerDriveTools } from '../packages/drive/src/tools/index.js'
+import { registerFormsTools } from '../packages/forms/src/tools/index.js'
 import { registerGmailTools } from '../packages/gmail/src/tools/index.js'
 import { registerSheetsTools } from '../packages/sheets/src/tools/index.js'
 import { registerSlidesTools } from '../packages/slides/src/tools/index.js'
@@ -47,6 +48,7 @@ const services = [
     slides: registerSlidesTools,
     docs: registerDocsTools,
     tasks: registerTasksTools,
+    forms: registerFormsTools,
   }[service.key],
 }))
 

@@ -422,6 +422,157 @@ export const tasksBatchSchema = {
   ])).min(1).max(20).describe('Ordered list of validated Google Tasks operations.'),
 }
 
+// ─── FORMS SCHEMAS ───
+
+export const formsIdSchema = googleIdSchema.describe('Google Form ID.')
+export const formsSpreadsheetIdSchema = googleIdSchema.describe('Google Sheets spreadsheet ID for response destination.')
+export const formsItemIdSchema = z.union([z.string().min(1), z.number().int().nonnegative()]).describe('Google Form item ID.')
+export const formsResponseIdSchema = z.string().min(1).max(256).describe('Google Form response ID.')
+export const formsTitleSchema = z.string().min(1).max(1024).describe('Form or item title.')
+export const formsLongTextSchema = z.string().max(10000).describe('Text content. Maximum 10,000 characters.')
+export const formsItemTypeSchema = z.enum([
+  'TEXT', 'text',
+  'PARAGRAPH_TEXT', 'PARAGRAPH', 'paragraph_text', 'paragraph',
+  'MULTIPLE_CHOICE', 'multiple_choice',
+  'CHECKBOX', 'checkbox',
+  'LIST', 'list',
+  'SCALE', 'scale',
+  'DATE', 'date',
+  'TIME', 'time',
+  'SECTION_HEADER', 'section_header',
+  'PAGE_BREAK', 'page_break',
+]).describe('Supported Forms item type.')
+
+const formsCommonItemFields = {
+  title: formsTitleSchema.optional(),
+  helpText: formsLongTextSchema.optional().describe('Optional help text shown under the item.'),
+  required: z.boolean().optional().describe('Whether the item requires a response, when supported by the item type.'),
+  choices: z.array(z.string().min(1).max(500)).min(1).max(200).optional().describe('Choice labels for multiple choice, checkbox, or list items.'),
+  showOtherOption: z.boolean().optional().describe('Whether to show an "Other" option on supported choice items.'),
+  lowerBound: z.number().int().min(0).max(10).optional().describe('Lower bound for scale items.'),
+  upperBound: z.number().int().min(0).max(10).optional().describe('Upper bound for scale items.'),
+  leftLabel: z.string().max(500).optional().describe('Left label for scale items.'),
+  rightLabel: z.string().max(500).optional().describe('Right label for scale items.'),
+}
+
+export const formsCreateFormSchema = {
+  title: formsTitleSchema.describe('Form title.'),
+  description: formsLongTextSchema.optional().describe('Form description.'),
+  isPublished: z.boolean().optional().describe('Whether the form is created in the published state.'),
+  idempotencyKey: idempotencyKeySchema,
+}
+
+export const formsGetFormSchema = {
+  formId: formsIdSchema,
+  includeItems: z.boolean().optional().describe('Include item metadata in the response.'),
+}
+
+export const formsUpdateFormSchema = {
+  formId: formsIdSchema,
+  title: formsTitleSchema.optional().describe('New form title.'),
+  description: formsLongTextSchema.optional().describe('New form description.'),
+  confirmationMessage: formsLongTextSchema.optional().describe('Message shown after submission.'),
+  customClosedFormMessage: formsLongTextSchema.optional().describe('Message shown while the form is closed to responses.'),
+  collectEmail: z.boolean().optional().describe('Whether the form collects respondent email addresses.'),
+  allowResponseEdits: z.boolean().optional().describe('Whether respondents can edit responses after submission.'),
+  limitOneResponsePerUser: z.boolean().optional().describe('Whether the form limits responses to one per user.'),
+  publishingSummary: z.boolean().optional().describe('Whether respondents can view the response summary.'),
+  isPublished: z.boolean().optional().describe('Whether the form is published.'),
+  showLinkToRespondAgain: z.boolean().optional().describe('Whether respondents see a link to submit another response.'),
+  requireLogin: z.boolean().optional().describe('Whether respondents must log in before responding.'),
+  progressBar: z.boolean().optional().describe('Whether the form shows a progress bar.'),
+  quiz: z.boolean().optional().describe('Whether the form is a quiz.'),
+}
+
+export const formsSetAcceptingResponsesSchema = {
+  formId: formsIdSchema,
+  acceptingResponses: z.boolean().describe('Whether the form accepts responses.'),
+  customClosedFormMessage: formsLongTextSchema.optional().describe('Message shown when the form is closed.'),
+}
+
+export const formsSetResponseDestinationSchema = {
+  formId: formsIdSchema,
+  spreadsheetId: formsSpreadsheetIdSchema,
+}
+
+export const formsRemoveResponseDestinationSchema = {
+  formId: formsIdSchema,
+  ...confirmationSchema,
+}
+
+export const formsListItemsSchema = {
+  formId: formsIdSchema,
+}
+
+export const formsAddItemSchema = {
+  formId: formsIdSchema,
+  itemType: formsItemTypeSchema,
+  index: z.number().int().min(0).optional().describe('Zero-based insertion index. Omit to append.'),
+  ...formsCommonItemFields,
+  idempotencyKey: idempotencyKeySchema,
+}
+
+export const formsUpdateItemSchema = {
+  formId: formsIdSchema,
+  itemId: formsItemIdSchema,
+  ...formsCommonItemFields,
+}
+
+export const formsMoveItemSchema = {
+  formId: formsIdSchema,
+  itemId: formsItemIdSchema,
+  index: z.number().int().min(0).describe('New zero-based item index.'),
+}
+
+export const formsDeleteItemSchema = {
+  formId: formsIdSchema,
+  itemId: formsItemIdSchema,
+  ...confirmationSchema,
+}
+
+export const formsListResponsesSchema = {
+  formId: formsIdSchema,
+  maxResults: z.number().int().min(1).max(100).default(20).describe('Maximum responses to return.'),
+  page: z.number().int().min(0).default(0).describe('Zero-based response page.'),
+  includeAnswers: z.boolean().optional().describe('Include answer values in each listed response.'),
+}
+
+export const formsGetResponseSchema = {
+  formId: formsIdSchema,
+  responseId: formsResponseIdSchema,
+}
+
+export const formsDeleteResponseSchema = {
+  formId: formsIdSchema,
+  responseId: formsResponseIdSchema,
+  ...confirmationSchema,
+}
+
+export const formsDeleteAllResponsesSchema = {
+  formId: formsIdSchema,
+  ...confirmationSchema,
+}
+
+export const formsBatchSchema = {
+  operations: z.array(z.discriminatedUnion('action', [
+    batchOperationSchema('formCreate', formsCreateFormSchema),
+    batchOperationSchema('formGet', formsGetFormSchema),
+    batchOperationSchema('formUpdate', formsUpdateFormSchema),
+    batchOperationSchema('formSetAcceptingResponses', formsSetAcceptingResponsesSchema),
+    batchOperationSchema('formSetDestination', formsSetResponseDestinationSchema),
+    batchOperationSchema('formRemoveDestination', formsRemoveResponseDestinationSchema),
+    batchOperationSchema('itemsList', formsListItemsSchema),
+    batchOperationSchema('itemAdd', formsAddItemSchema),
+    batchOperationSchema('itemUpdate', formsUpdateItemSchema),
+    batchOperationSchema('itemMove', formsMoveItemSchema),
+    batchOperationSchema('itemDelete', formsDeleteItemSchema),
+    batchOperationSchema('responsesList', formsListResponsesSchema),
+    batchOperationSchema('responseGet', formsGetResponseSchema),
+    batchOperationSchema('responseDelete', formsDeleteResponseSchema),
+    batchOperationSchema('responsesDeleteAll', formsDeleteAllResponsesSchema),
+  ])).min(1).max(20).describe('Ordered list of validated Google Forms operations.'),
+}
+
 // ─── GMAIL SCHEMAS ───
 
 export const gmailMessageIdSchema = z.string().min(1).describe('Gmail message ID.')

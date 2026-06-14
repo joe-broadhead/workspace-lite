@@ -10,6 +10,7 @@ const checks = [
   ['packages/docs/apps-script/DocsService.gs', ['paragraphs', 'documentChars', 'responseBytes', 'documentJsonBytes']],
   ['packages/slides/apps-script/SlidesService.gs', ['pageElements', 'textChars', 'responseBytes']],
   ['packages/tasks/apps-script/TasksService.gs', ['tasklistsPageSize', 'tasksPageSize', 'titleChars', 'notesChars', 'responseBytes']],
+  ['packages/forms/apps-script/FormsService.gs', ['items', 'responses', 'responseAnswers', 'titleChars', 'descriptionChars', 'choices', 'choiceChars', 'responseBytes']],
 ]
 
 const codeEntrypoints = [
@@ -20,6 +21,7 @@ const codeEntrypoints = [
   'packages/docs/apps-script/Code.gs',
   'packages/slides/apps-script/Code.gs',
   'packages/tasks/apps-script/Code.gs',
+  'packages/forms/apps-script/Code.gs',
 ]
 
 function parseLimits(file) {

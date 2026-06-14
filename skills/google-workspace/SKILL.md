@@ -1,7 +1,7 @@
 ---
 name: google-workspace
 version: 1.0.0
-description: "Google Workspace automation: Drive (29 tools), Gmail (33), Calendar (15), Sheets (27), Slides (19), Docs (17), Tasks (13). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, or manage tasks."
+description: "Google Workspace automation: Drive (29 tools), Gmail (33), Calendar (15), Sheets (27), Slides (19), Docs (17), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
 metadata:
   requires:
     bins: []
@@ -9,7 +9,7 @@ metadata:
 
 # Google Workspace Assistant
 
-Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `slides_*`, `docs_*`, `tasks_*`.
+Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `slides_*`, `docs_*`, `tasks_*`, `forms_*`.
 
 ## Quick Start
 
@@ -42,6 +42,7 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `
 | Format document | `docs_insert_paragraph` with heading → `docs_format_text` for styling |
 | Doc as JSON | `docs_get_as_json` — full structured document tree |
 | Manage tasks | `tasks_list_tasklists` → `tasks_list_tasks` → `tasks_create_task` / `tasks_update_task` |
+| Build form | `forms_create_form` → `forms_add_item` / `forms_batch` → `forms_get_form` |
 
 ## When to Load References
 
@@ -61,6 +62,7 @@ Read the relevant reference file before executing complex multi-tool workflows.
 - **Never `sheets_delete_sheet`**, `sheets_clear_range`, or `sheets_delete_rows` without confirmation
 - **Never `drive_remove_parent`**, `drive_remove_editor` / `drive_remove_viewer` without confirmation
 - **Never `tasks_delete_tasklist`**, `tasks_delete_task`, or `tasks_clear_completed` without confirmation
+- **Never `forms_remove_response_destination`**, `forms_delete_item`, `forms_delete_response`, or `forms_delete_all_responses` without confirmation
 - **Use `sheets_batch`** for compound spreadsheet operations (one round-trip vs many)
 - **Use `sheets_batch_get`** to read multiple ranges in a single API call
 - **Handle errors**: partial failures in `sheets_batch` / `drive_batch` / `calendar_batch` etc. are collected per-operation — check `results[].success`

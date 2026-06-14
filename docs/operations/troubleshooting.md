@@ -50,12 +50,13 @@ Each service requires its own set of OAuth scopes:
 | Service | Required Scope |
 |---|---|
 | Drive | `https://www.googleapis.com/auth/drive` |
-| Gmail | `https://mail.google.com/` |
+| Gmail | `https://www.googleapis.com/auth/gmail.modify`, `https://www.googleapis.com/auth/script.send_mail` |
 | Calendar | `https://www.googleapis.com/auth/calendar` |
 | Sheets | `https://www.googleapis.com/auth/spreadsheets` |
 | Slides | `https://www.googleapis.com/auth/presentations` |
 | Docs | `https://www.googleapis.com/auth/documents` |
 | Tasks | `https://www.googleapis.com/auth/tasks` |
+| Forms | `https://www.googleapis.com/auth/forms`, `https://www.googleapis.com/auth/spreadsheets` |
 
 ---
 

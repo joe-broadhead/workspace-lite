@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 153 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 169 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
@@ -17,6 +17,7 @@ graph LR
     C -->|Workspace APIs| H[Slides API]
     C -->|Workspace APIs| I[Docs API]
     C -->|Workspace APIs| J[Tasks API]
+    C -->|Workspace APIs| K[Forms API]
 ```
 
 | Layer | Technology | Responsibility |
@@ -49,7 +50,8 @@ workspace-lite/
 │   ├── sheets/                 # 27 tools
 │   ├── slides/                 # 19 tools
 │   ├── docs/                   # 17 tools
-│   └── tasks/                  # 13 tools
+│   ├── tasks/                  # 13 tools
+│   └── forms/                  # 16 tools
 ├── scripts/
 │   └── setup.sh                # One-shot setup: clasp login → create → push → deploy guide → bootstrap
 ├── skills/
@@ -187,7 +189,7 @@ function isRateLimited(token, maxWeight, weight) {
 | Aspect | Detail |
 |--------|--------|
 | Rate limit | 100 weighted units per 60-second window |
-| Per proxy | Separate rate limit for each of the 7 services |
+| Per proxy | Separate rate limit for each of the 8 services |
 | Response on limit | `{ success: false, error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 60 seconds." } }` |
 | Implementation | `CacheService` &mdash; zero external dependencies, works across all instances of a deployment |
 

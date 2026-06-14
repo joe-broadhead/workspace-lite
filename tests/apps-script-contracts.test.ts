@@ -77,6 +77,7 @@ describe('Apps Script proxy contracts', () => {
       ['packages/slides/apps-script/SlidesService.gs', "slideDelete: { class: 'destructive'"],
       ['packages/docs/apps-script/DocsService.gs', "setText: { class: 'destructive'"],
       ['packages/tasks/apps-script/TasksService.gs', "tasksClear: { class: 'destructive'"],
+      ['packages/forms/apps-script/FormsService.gs', "responsesDeleteAll: { class: 'destructive'"],
     ]
 
     for (const [path, token] of safetyChecks) {

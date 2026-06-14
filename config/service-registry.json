@@ -105,6 +105,20 @@
         "https://www.googleapis.com/auth/tasks",
         "https://www.googleapis.com/auth/script.external_request"
       ]
+    },
+    {
+      "key": "forms",
+      "title": "Forms",
+      "globalName": "FormsService",
+      "tokenEnvName": "GOOGLE_WORKSPACE_FORMS_PROXY_TOKEN",
+      "proxyServiceName": "google-workspace-proxy-forms",
+      "toolCount": 16,
+      "advancedServices": [],
+      "oauthScopes": [
+        "https://www.googleapis.com/auth/forms",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/script.external_request"
+      ]
     }
   ]
 }

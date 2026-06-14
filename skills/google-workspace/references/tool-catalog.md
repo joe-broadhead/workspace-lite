@@ -243,3 +243,33 @@
 | `tasks_move_task` | `tasklistId`, `taskId`, `parent?`, `previous?` |
 | `tasks_clear_completed` | `tasklistId`, `confirm` |
 | **Batch** | `tasks_batch` | `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
+
+## Forms — 16 tools
+
+**Manage Forms:**
+| Tool | Params |
+|---|---|
+| `forms_create_form` | `title`, `description?`, `isPublished?`, `idempotencyKey?` |
+| `forms_get_form` | `formId`, `includeItems?` |
+| `forms_update_form` | `formId`, then any of: `title?`, `description?`, `confirmationMessage?`, `customClosedFormMessage?`, `collectEmail?`, `allowResponseEdits?`, `limitOneResponsePerUser?`, `publishingSummary?`, `isPublished?`, `showLinkToRespondAgain?`, `requireLogin?`, `progressBar?`, `quiz?` |
+| `forms_set_accepting_responses` | `formId`, `acceptingResponses`, `customClosedFormMessage?` |
+| `forms_set_response_destination` | `formId`, `spreadsheetId` |
+| `forms_remove_response_destination` | `formId`, `confirm` |
+
+**Items:**
+| Tool | Params |
+|---|---|
+| `forms_list_items` | `formId` |
+| `forms_add_item` | `formId`, `itemType`, `index?`, `title?`, `helpText?`, `required?`, `choices?`, `showOtherOption?`, `lowerBound?`, `upperBound?`, `leftLabel?`, `rightLabel?`, `idempotencyKey?` |
+| `forms_update_item` | `formId`, `itemId`, then any common or item-specific field accepted by `forms_add_item` |
+| `forms_move_item` | `formId`, `itemId`, `index` |
+| `forms_delete_item` | `formId`, `itemId`, `confirm` |
+
+**Responses:**
+| Tool | Params |
+|---|---|
+| `forms_list_responses` | `formId`, `maxResults?`, `page?`, `includeAnswers?` |
+| `forms_get_response` | `formId`, `responseId` |
+| `forms_delete_response` | `formId`, `responseId`, `confirm` |
+| `forms_delete_all_responses` | `formId`, `confirm` |
+| **Batch** | `forms_batch` | `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |

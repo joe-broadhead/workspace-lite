@@ -1,6 +1,6 @@
 # Setup Script
 
-`scripts/setup.sh` is the one-shot automation that takes you from a fresh clone to a working 7-service deployment.
+`scripts/setup.sh` is the one-shot automation that takes you from a fresh clone to a working 8-service deployment.
 
 ---
 
@@ -10,12 +10,12 @@
 |-------|---------|
 | **Prerequisites check** | Verifies `clasp` and `node` are installed |
 | **clasp login** | Opens browser for Google authentication (once) |
-| **Build** | `npm install && npm run build` &mdash; compiles shared package and all 7 services |
-| **Project creation** | `clasp create --type standalone` for each of the 7 services with correct OAuth scopes and project titles |
+| **Build** | `npm install && npm run build` &mdash; compiles shared package and all 8 services |
+| **Project creation** | `clasp create --type standalone` for each of the 8 services with correct OAuth scopes and project titles |
 | **Code push** | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service-specific `.gs` files to each project |
-| **Deployment guide** | Prints instructions for the 7 manual web app deployments |
+| **Deployment guide** | Prints instructions for the 8 manual web app deployments |
 | **Token bootstrap** | Collects deployment URLs, calls `?bootstrap=1` on each, writes tokens to `.env` |
-| **Config generator** | Prints ready-to-paste `opencode.jsonc` JSON for all 7 MCP servers |
+| **Config generator** | Prints ready-to-paste `opencode.jsonc` JSON for all 8 MCP servers |
 | **Skill command** | Prints the `ln -sf` command to install the `google-workspace` skill |
 
 ---
@@ -33,6 +33,7 @@ Each service gets its own project with service-specific OAuth scopes:
 | Slides | Google Workspace Proxy - Slides | `presentations`, `script.external_request` |
 | Docs | Google Workspace Proxy - Docs | `documents`, `script.external_request` |
 | Tasks | Google Workspace Proxy - Tasks | `tasks`, `script.external_request` |
+| Forms | Google Workspace Proxy - Forms | `forms`, `spreadsheets`, `script.external_request` |
 
 All projects use `runtimeVersion: V8`, `executeAs: USER_DEPLOYING`, and `access: ANYONE_ANONYMOUS`.
 
@@ -42,7 +43,7 @@ All projects use `runtimeVersion: V8`, `executeAs: USER_DEPLOYING`, and `access:
 
 ### `.env` file
 
-The script writes a `.env` file at the project root with all 14 primary environment variables:
+The script writes a `.env` file at the project root with all 16 primary environment variables:
 
 ```bash
 # Generated on Fri Jun 13 2026 14:30:00 CDT
@@ -61,6 +62,8 @@ export GOOGLE_WORKSPACE_DOCS_PROXY_URL="https://script.google.com/macros/s/<docs
 export GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN="<docs-proxy-token>"
 export GOOGLE_WORKSPACE_TASKS_PROXY_URL="https://script.google.com/macros/s/<tasks-deployment-id>/exec"
 export GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN="<tasks-proxy-token>"
+export GOOGLE_WORKSPACE_FORMS_PROXY_URL="https://script.google.com/macros/s/<forms-deployment-id>/exec"
+export GOOGLE_WORKSPACE_FORMS_PROXY_TOKEN="<forms-proxy-token>"
 ```
 
 ### OpenCode Config
@@ -80,8 +83,9 @@ The script prints a `mcpServers` block for `opencode.jsonc`:
 "google-calendar": { /* ... */ },
 "google-sheets": { /* ... */ },
 "google-slides": { /* ... */ },
-"google-docs": { /* ... */ }
-"google-tasks": { /* ... */ }
+"google-docs": { /* ... */ },
+"google-tasks": { /* ... */ },
+"google-forms": { /* ... */ }
 ```
 
 ---

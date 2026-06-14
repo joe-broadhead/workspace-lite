@@ -1,5 +1,5 @@
 site_name: workspace-lite
-site_description: MCP servers for Google Workspace via Apps Script proxy — Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks
+site_description: MCP servers for Google Workspace via Apps Script proxy — Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, Forms
 repo_url: https://github.com/joe-broadhead/workspace-lite
 edit_uri: edit/main/docs/
 
@@ -104,6 +104,7 @@ nav:
       - Slides: services/slides.md
       - Docs: services/docs.md
       - Tasks: services/tasks.md
+      - Forms: services/forms.md
   - Agent Skill:
       - Overview: skill/overview.md
       - Workflows: skill/workflows.md

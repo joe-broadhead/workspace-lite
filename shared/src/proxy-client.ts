@@ -125,6 +125,19 @@ const ACTION_TOKEN_CLASSES: Record<string, Record<string, TokenClass>> = {
     tasksDelete: 'destructive',
     tasksClear: 'destructive',
   },
+  forms: {
+    formCreate: 'write',
+    formUpdate: 'write',
+    formSetAcceptingResponses: 'write',
+    formSetDestination: 'write',
+    itemAdd: 'write',
+    itemUpdate: 'write',
+    itemMove: 'write',
+    formRemoveDestination: 'destructive',
+    itemDelete: 'destructive',
+    responseDelete: 'destructive',
+    responsesDeleteAll: 'destructive',
+  },
 }
 
 function actionTokenClass(service: string, action: string, params?: Record<string, unknown>): TokenClass {
