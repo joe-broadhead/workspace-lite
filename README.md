@@ -30,12 +30,12 @@ MCP servers exposing all Google Workspace services through Apps Script web app p
 | `drive` | 44 | ✅ | Full Drive CRUD: list, search, read, create, update, copy, move, share, trash, permissions, parent management, folder paths, export, comments/replies, revisions, shared drives, changes |
 | `gmail` | 39 | ✅ | Search, read, send (draft-first), reply, forward, drafts, labels, threads, trash, attachments, batch modify, filters, vacation responder |
 | `calendar` | 22 | ✅ | List events, search, create/update/delete, free/busy, multi-calendar, settings, secondary calendars, Meet links, event move, colors, respond |
-| `sheets` | 27 | ✅ | Create/read/write/append, formulas, formatting, charts, sort, freeze, merge, notes, data validation, conditional formatting, row ops |
+| `sheets` | 33 | ✅ | Create/read/write/append, formulas, find/replace, protections, formatting, charts, sort, freeze, merge, notes, data validation, conditional formatting, row ops |
 | `slides` | 25 | ✅ | Create, add/delete/duplicate/move slides, text, images, shapes, tables, auto-position, notes, backgrounds, lines, element geometry/transforms, alt text, links, z-order |
 | `docs` | 26 | ✅ | Create/read, paragraphs, headings, lists, tables, images, page breaks, text formatting, headers/footers, JSON export, page setup, bookmarks, named ranges, tables of contents |
 | `tasks` | 13 | ✅ | Task lists and tasks: list/get/create/update/delete, move tasks, clear completed |
 | `forms` | 16 | ✅ | Create/manage forms, add/update/move/delete items, response destinations, response reads/deletes |
-| **Total** | **212** | all 8 | |
+| **Total** | **218** | all 8 | |
 
 ## Quick Start (one-time setup)
 

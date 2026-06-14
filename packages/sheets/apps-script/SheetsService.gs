@@ -23,6 +23,8 @@ const SheetsService = (() => {
     rangeGetFormulas: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     rangeGetNotes: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     valuesBatchGet: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    textFind: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    protectionsList: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     conditionalFormatGet: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     spreadsheetCreate: { class: 'write' },
     sheetAdd: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
@@ -41,9 +43,13 @@ const SheetsService = (() => {
     noteSet: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     dataValidationSet: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     rowsInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    textReplace: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    rangeProtect: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    sheetProtect: { class: 'write', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     sheetDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     rangeClear: { class: 'destructive', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     rowsDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
+    protectionRemove: { class: 'destructive', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
     batch: { class: 'read', allowlists: [{ property: 'ALLOWED_SPREADSHEET_IDS', params: ['spreadsheetId'] }] },
   }
 
@@ -56,7 +62,9 @@ const SheetsService = (() => {
     columnWidth: true, freezeRows: true, rangeSort: true,
     formulaSet: true, chartCreate: true, noteSet: true,
     conditionalFormatGet: true, dataValidationSet: true,
-    rowsInsert: true, rowsDelete: true,
+    rowsInsert: true, rowsDelete: true, textFind: true,
+    textReplace: true, protectionsList: true, rangeProtect: true,
+    sheetProtect: true, protectionRemove: true,
   }
 
   const LIMITS = {
@@ -257,6 +265,208 @@ const SheetsService = (() => {
     const sheet = getSheet(ss, sheetName || null);
     if (!sheet) return { err: 'NOT_FOUND', msg: `Sheet not found: ${sheetName || 'first'}` };
     return { ss: ss, sheet: sheet };
+  }
+
+  function safeValue(fn, fallback) {
+    try { return fn(); }
+    catch (e) { return fallback; }
+  }
+
+  function normalizeFindText(text, name) {
+    if (text === undefined || text === null) return { error: err('BAD_REQUEST', `Missing required parameter: ${name}`) };
+    const value = String(text);
+    if (!value) return { error: err('BAD_REQUEST', `${name} must be non-empty`) };
+    if (value.length > 500) return { error: err('BAD_REQUEST', `${name} must be 500 characters or fewer`) };
+    return { value: value };
+  }
+
+  function validateTextReplacement(value) {
+    const text = value === undefined || value === null ? '' : String(value);
+    if (text.length > 5000) return { error: err('BAD_REQUEST', 'replaceText must be 5,000 characters or fewer') };
+    if (/^[=+\-@]/.test(text.trim())) {
+      return { error: err('BAD_REQUEST', 'replaceText cannot start with formula metacharacters. Use sheets_set_formula for formulas.') };
+    }
+    return { value: text };
+  }
+
+  function resolveSearchRanges(ss, sheetName, rangeStr, maxCells, label) {
+    const ranges = [];
+    let totalCells = 0;
+
+    if (rangeStr) {
+      const rangeError = validateA1Range(rangeStr, 'range');
+      if (rangeError) return { error: rangeError };
+      let range;
+      try {
+        if (rangeStr.indexOf('!') >= 0) {
+          range = ss.getRange(rangeStr);
+        } else {
+          const sheet = getSheet(ss, sheetName || null);
+          if (!sheet) return { error: err('NOT_FOUND', `Sheet not found: ${sheetName || 'first'}`) };
+          range = sheet.getRange(rangeStr);
+        }
+      } catch(e) {
+        return { error: err('BAD_REQUEST', `Invalid range: ${rangeStr}`) };
+      }
+      totalCells = rangeCellCount(range);
+      if (totalCells > maxCells) return { error: limitExceeded(label, totalCells, maxCells) };
+      return { ranges: [range], scope: 'range', totalCells: totalCells };
+    }
+
+    if (sheetName) {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return { error: err('NOT_FOUND', `Sheet not found: ${sheetName}`) };
+      const range = sheet.getDataRange();
+      totalCells = rangeCellCount(range);
+      if (totalCells > maxCells) return { error: limitExceeded(label, totalCells, maxCells) };
+      return { ranges: [range], scope: 'sheet', totalCells: totalCells };
+    }
+
+    const sheets = ss.getSheets();
+    for (const sheet of sheets) {
+      const range = sheet.getDataRange();
+      totalCells += rangeCellCount(range);
+      if (totalCells > maxCells) return { error: limitExceeded(label, totalCells, maxCells) };
+      ranges.push(range);
+    }
+    return { ranges: ranges, scope: 'spreadsheet', totalCells: totalCells };
+  }
+
+  function configureTextFinder(finder, params) {
+    finder.matchCase(optionalBool(params, 'matchCase', false));
+    finder.matchEntireCell(optionalBool(params, 'matchEntireCell', false));
+    finder.matchFormulaText(optionalBool(params, 'matchFormulaText', false));
+    finder.useRegularExpression(optionalBool(params, 'useRegularExpression', false));
+    finder.ignoreDiacritics(optionalBool(params, 'ignoreDiacritics', false));
+    return finder;
+  }
+
+  function protectionTypeFromName(typeName) {
+    const normalized = String(typeName || '').toUpperCase();
+    if (normalized === 'RANGE') return { name: 'RANGE', value: SpreadsheetApp.ProtectionType.RANGE };
+    if (normalized === 'SHEET') return { name: 'SHEET', value: SpreadsheetApp.ProtectionType.SHEET };
+    return { error: err('BAD_REQUEST', 'type must be RANGE or SHEET') };
+  }
+
+  function userEmails(users) {
+    const emails = [];
+    for (const user of users || []) {
+      const email = safeValue(function() { return user.getEmail(); }, '');
+      if (email) emails.push(email);
+    }
+    return emails;
+  }
+
+  function serializeProtection(protection, index) {
+    const range = protection.getRange();
+    const type = protection.getProtectionType().toString();
+    const unprotectedRanges = [];
+    const unprotected = type === 'SHEET' ? safeValue(function() { return protection.getUnprotectedRanges(); }, []) : [];
+    for (const unprotectedRange of unprotected || []) {
+      unprotectedRanges.push(unprotectedRange.getA1Notation());
+    }
+    return {
+      index: index,
+      type: type,
+      sheetName: range.getSheet().getName(),
+      range: range.getA1Notation(),
+      description: protection.getDescription() || '',
+      rangeName: safeValue(function() { return protection.getRangeName(); }, null),
+      warningOnly: protection.isWarningOnly(),
+      canEdit: protection.canEdit(),
+      domainEdit: safeValue(function() { return protection.canDomainEdit(); }, false),
+      editors: userEmails(safeValue(function() { return protection.getEditors(); }, [])),
+      unprotectedRanges: unprotectedRanges,
+    };
+  }
+
+  function protectionsForParams(ss, params, requireType) {
+    const sheetName = optionalString(params, 'sheetName', null);
+    const typeText = optionalString(params, 'type', null);
+    const typeNames = [];
+    if (typeText) {
+      const typeResult = protectionTypeFromName(typeText);
+      if (typeResult.error) return { error: typeResult.error };
+      typeNames.push(typeResult.name);
+    } else if (requireType) {
+      return { error: err('BAD_REQUEST', 'type is required') };
+    } else {
+      typeNames.push('RANGE', 'SHEET');
+    }
+
+    let sheet = null;
+    if (sheetName) {
+      sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return { error: err('NOT_FOUND', `Sheet not found: ${sheetName}`) };
+    }
+
+    const protections = [];
+    for (const name of typeNames) {
+      const type = protectionTypeFromName(name).value;
+      const list = sheet ? sheet.getProtections(type) : ss.getProtections(type);
+      for (const protection of list) protections.push(protection);
+    }
+    return { protections: protections };
+  }
+
+  function normalizeA1ForCompare(rangeStr) {
+    if (!rangeStr) return null;
+    const text = String(rangeStr).trim();
+    const bang = text.lastIndexOf('!');
+    return bang >= 0 ? text.slice(bang + 1) : text;
+  }
+
+  function filterProtections(protections, params) {
+    const rangeFilter = normalizeA1ForCompare(optionalString(params, 'range', null));
+    const hasDescription = params.description !== undefined && params.description !== null;
+    const description = hasDescription ? String(params.description) : null;
+    const filtered = [];
+    for (const protection of protections) {
+      const range = protection.getRange();
+      if (rangeFilter && range.getA1Notation() !== rangeFilter) continue;
+      if (hasDescription && (protection.getDescription() || '') !== description) continue;
+      filtered.push(protection);
+    }
+    return filtered;
+  }
+
+  function configureProtection(protection, params, sheet) {
+    const applied = [];
+    let unprotectedRangeObjects = null;
+    if (Array.isArray(params.unprotectedRanges)) {
+      unprotectedRangeObjects = [];
+      for (let i = 0; i < params.unprotectedRanges.length; i++) {
+        const a1 = String(params.unprotectedRanges[i]);
+        const rangeError = validateA1Range(a1, 'unprotectedRanges[' + i + ']');
+        if (rangeError) return { error: rangeError };
+        if (a1.indexOf('!') >= 0) return { error: err('BAD_REQUEST', 'unprotectedRanges must be same-sheet A1 ranges without a sheet prefix') };
+        unprotectedRangeObjects.push(sheet.getRange(a1));
+      }
+    }
+
+    if (params.description !== undefined) {
+      protection.setDescription(String(params.description));
+      applied.push('description');
+    }
+    if (params.warningOnly !== undefined) {
+      const warningOnly = optionalBool(params, 'warningOnly', false);
+      protection.setWarningOnly(warningOnly);
+      applied.push(`warningOnly=${warningOnly}`);
+    }
+    if (Array.isArray(params.editors) && params.editors.length > 0) {
+      protection.addEditors(params.editors.map(function(email) { return String(email).trim(); }).filter(Boolean));
+      applied.push('editors');
+    }
+    if (params.domainEdit !== undefined) {
+      const domainEdit = optionalBool(params, 'domainEdit', false);
+      protection.setDomainEdit(domainEdit);
+      applied.push(`domainEdit=${domainEdit}`);
+    }
+    if (unprotectedRangeObjects) {
+      protection.setUnprotectedRanges(unprotectedRangeObjects);
+      applied.push('unprotectedRanges');
+    }
+    return { applied: applied };
   }
 
   function spreadsheetToJSON(ss) {
@@ -487,6 +697,93 @@ const SheetsService = (() => {
       },
       'READ_FAILED',
       (e) => e.message || 'Could not batch-get values'
+    );
+  }
+
+  // ── Text finding / replacement ──
+
+  function textFind(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const findResult = normalizeFindText(params.findText, 'findText');
+    if (findResult.error) return findResult.error;
+    const sheetName = optionalString(params, 'sheetName', null);
+    const rangeStr = optionalString(params, 'range', null);
+    const maxResultsLimit = validateFiniteNumber(optionalNumber(params, 'maxResults', 100), 'maxResults', 1, 500);
+    if (maxResultsLimit.error) return maxResultsLimit.error;
+    const maxResults = Math.floor(maxResultsLimit.value);
+
+    const ss = getSpreadsheet(id);
+    if (!ss) return err('NOT_FOUND', `Spreadsheet not found: ${id}`);
+    const resolved = resolveSearchRanges(ss, sheetName, rangeStr, LIMITS.readCells, 'textFind cells');
+    if (resolved.error) return resolved.error;
+
+    return trap(
+      () => {
+        const matches = [];
+        let totalMatches = 0;
+        for (const range of resolved.ranges) {
+          const finder = configureTextFinder(range.createTextFinder(findResult.value), params);
+          const found = finder.findAll();
+          totalMatches += found.length;
+          for (const cell of found) {
+            if (matches.length >= maxResults) continue;
+            matches.push({
+              sheetName: cell.getSheet().getName(),
+              range: cell.getA1Notation(),
+              row: cell.getRow(),
+              column: cell.getColumn(),
+              value: cell.getValue(),
+              displayValue: cell.getDisplayValue(),
+              formula: cell.getFormula() || '',
+            });
+          }
+        }
+        return {
+          findText: findResult.value,
+          scope: resolved.scope,
+          totalCellsSearched: resolved.totalCells,
+          totalMatches: totalMatches,
+          returnedMatches: matches.length,
+          truncated: totalMatches > matches.length,
+          matches: matches,
+        };
+      },
+      'READ_FAILED',
+      (e) => `Could not find text: ${e.message}`
+    );
+  }
+
+  function textReplace(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const findResult = normalizeFindText(params.findText, 'findText');
+    if (findResult.error) return findResult.error;
+    const replaceResult = validateTextReplacement(params.replaceText);
+    if (replaceResult.error) return replaceResult.error;
+    const sheetName = optionalString(params, 'sheetName', null);
+    const rangeStr = optionalString(params, 'range', null);
+
+    const ss = getSpreadsheet(id);
+    if (!ss) return err('NOT_FOUND', `Spreadsheet not found: ${id}`);
+    const resolved = resolveSearchRanges(ss, sheetName, rangeStr, LIMITS.writeCells, 'textReplace cells');
+    if (resolved.error) return resolved.error;
+
+    return trap(
+      () => {
+        let replacements = 0;
+        for (const range of resolved.ranges) {
+          const finder = configureTextFinder(range.createTextFinder(findResult.value), params);
+          replacements += finder.replaceAllWith(replaceResult.value);
+        }
+        return {
+          findText: findResult.value,
+          replaceText: replaceResult.value,
+          scope: resolved.scope,
+          totalCellsSearched: resolved.totalCells,
+          replacements: replacements,
+        };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not replace text: ${e.message}`
     );
   }
 
@@ -991,6 +1288,112 @@ const SheetsService = (() => {
     );
   }
 
+  // ── Protections ──
+
+  function protectionsList(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const ss = getSpreadsheet(id);
+    if (!ss) return err('NOT_FOUND', `Spreadsheet not found: ${id}`);
+    const protectionsResult = protectionsForParams(ss, params, false);
+    if (protectionsResult.error) return protectionsResult.error;
+    const filtered = filterProtections(protectionsResult.protections, params);
+
+    return trap(
+      () => {
+        const protections = [];
+        for (let i = 0; i < filtered.length; i++) protections.push(serializeProtection(filtered[i], i));
+        return { protections: protections, count: protections.length };
+      },
+      'READ_FAILED',
+      (e) => `Could not list protections: ${e.message}`
+    );
+  }
+
+  function rangeProtect(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const rangeStr = requireParam(params, 'range');
+    const sheetName = optionalString(params, 'sheetName', null);
+    const rangeError = validateA1Range(rangeStr, 'range');
+    if (rangeError) return rangeError;
+
+    const ss = getSpreadsheet(id);
+    if (!ss) return err('NOT_FOUND', `Spreadsheet not found: ${id}`);
+    const resolved = resolveSearchRanges(ss, sheetName, rangeStr, LIMITS.writeCells, 'rangeProtect cells');
+    if (resolved.error) return resolved.error;
+    if (resolved.ranges.length !== 1) return err('BAD_REQUEST', 'rangeProtect requires one target range');
+
+    return trap(
+      () => {
+        const range = resolved.ranges[0];
+        const protection = range.protect();
+        try {
+          const configured = configureProtection(protection, params, range.getSheet());
+          if (configured.error) {
+            protection.remove();
+            return configured.error;
+          }
+          return { protection: serializeProtection(protection, 0), applied: configured.applied };
+        } catch (e) {
+          safeValue(function() { protection.remove(); return true; }, false);
+          throw e;
+        }
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not protect range: ${e.message}`
+    );
+  }
+
+  function sheetProtect(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const sheetName = optionalString(params, 'sheetName', null);
+    const r = resolveSheet(id, sheetName);
+    if (r.err) return err(r.err, r.msg);
+
+    return trap(
+      () => {
+        const protection = r.sheet.protect();
+        try {
+          const configured = configureProtection(protection, params, r.sheet);
+          if (configured.error) {
+            protection.remove();
+            return configured.error;
+          }
+          return { protection: serializeProtection(protection, 0), applied: configured.applied };
+        } catch (e) {
+          safeValue(function() { protection.remove(); return true; }, false);
+          throw e;
+        }
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not protect sheet: ${e.message}`
+    );
+  }
+
+  function protectionRemove(params) {
+    const id = requireParam(params, 'spreadsheetId');
+    const indexLimit = validateFiniteNumber(optionalNumber(params, 'index', 0), 'index', 0, 10000);
+    if (indexLimit.error) return indexLimit.error;
+    const index = Math.floor(indexLimit.value);
+    const ss = getSpreadsheet(id);
+    if (!ss) return err('NOT_FOUND', `Spreadsheet not found: ${id}`);
+    const protectionsResult = protectionsForParams(ss, params, true);
+    if (protectionsResult.error) return protectionsResult.error;
+    const filtered = filterProtections(protectionsResult.protections, params);
+    if (filtered.length === 0) return err('NOT_FOUND', 'No matching protection found');
+    if (index >= filtered.length) return err('BAD_REQUEST', `index ${index} is out of range for ${filtered.length} matching protections`);
+
+    return trap(
+      () => {
+        const protection = filtered[index];
+        const removed = serializeProtection(protection, index);
+        protection.remove();
+        return { removed: removed, remainingMatchesBeforeRemoval: filtered.length - 1 };
+      },
+      'DELETE_FAILED',
+      (e) => `Could not remove protection: ${e.message}`
+    );
+  }
+
   // ── Data validation ──
 
   function buildValidationRule(validationType, params) {
@@ -1193,7 +1596,8 @@ const SheetsService = (() => {
     rangeClear, rangeFormat, rangeMerge, rangeUnmerge, columnWidth,
     freezeRows, rangeSort, formulaSet, chartCreate, noteSet,
     rangeGetFormulas, rangeGetNotes, valuesBatchGet,
-    conditionalFormatGet, dataValidationSet, rowsInsert, rowsDelete,
+    textFind, textReplace, protectionsList, rangeProtect, sheetProtect,
+    protectionRemove, conditionalFormatGet, dataValidationSet, rowsInsert, rowsDelete,
     batch: function(params) { return runBatch(handle)(params); },
   }
 

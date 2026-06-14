@@ -132,7 +132,7 @@
 | `calendar_find_freebusy` | `timeMin?`, `timeMax?` |
 | **Batch** | `calendar_batch` | `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
 
-## Sheets — 27 tools
+## Sheets — 33 tools
 
 **Manage:**
 | Tool | Params |
@@ -150,12 +150,14 @@
 | `sheets_read_range` | `spreadsheetId`, `sheetName?`, `range?` (A1 notation, omit for all data) |
 | `sheets_read_formulas` | `spreadsheetId`, `sheetName?`, `range?` — returns formulas and display values alongside raw values |
 | `sheets_batch_get` | `spreadsheetId`, `ranges` (array of A1 strings, e.g. ["Sheet1!A1:B10", "Sheet2!C1:D20"]) — read multiple ranges in one API call |
+| `sheets_find_text` | `spreadsheetId`, `findText`, `sheetName?`, `range?`, `maxResults?`, TextFinder options: `matchCase?`, `matchEntireCell?`, `matchFormulaText?`, `useRegularExpression?`, `ignoreDiacritics?` |
 | `sheets_write_range` | `spreadsheetId`, `range`, `values` (2D array), `sheetName?` |
 | `sheets_append_rows` | `spreadsheetId`, `values` (2D array), `sheetName?` |
 | `sheets_clear_range` | `spreadsheetId`, `range?` (omit for entire sheet), `sheetName?` |
 | `sheets_insert_rows` | `spreadsheetId`, `startPosition` (1-based), `howMany?` (default 1), `sheetName?` — existing rows shift down |
 | `sheets_delete_rows` | `spreadsheetId`, `startPosition` (1-based), `howMany?` (default 1), `sheetName?` — existing rows shift up |
 | `sheets_set_formula` | `spreadsheetId`, `range`, `formula` (e.g. "=SUM(A1:A10)"), `sheetName?` |
+| `sheets_replace_text` | `spreadsheetId`, `findText`, `replaceText`, `sheetName?`, `range?`, TextFinder options — plain text replacement only |
 
 **Format:**
 | Tool | Params |
@@ -167,6 +169,10 @@
 | `sheets_freeze_rows` | `spreadsheetId`, `numRows` (0 to unfreeze), `sheetName?` |
 | `sheets_set_data_validation` | `spreadsheetId`, `range`, `validationType` (VALUE_IN_LIST/NUMBER_BETWEEN/NUMBER_GREATER_THAN/NUMBER_LESS_THAN/TEXT_CONTAINS/TEXT_IS_VALID_EMAIL/TEXT_IS_VALID_URL/DATE_BEFORE/DATE_AFTER/CHECKBOX/CUSTOM_FORMULA), `sheetName?`, then: `values?` (array for VALUE_IN_LIST), `min?`/`max?` (for NUMBER_BETWEEN), `value?` (for NUMBER_GREATER_THAN etc.), `text?` (for TEXT_CONTAINS), `date?` (ISO string for DATE_), `formula?` (for CUSTOM_FORMULA), `helpText?`, `strict?` (reject invalid input) |
 | `sheets_get_conditional_formatting` | `spreadsheetId`, `sheetName?` — read existing conditional format rules |
+| `sheets_list_protections` | `spreadsheetId`, `sheetName?`, `type?` (RANGE/SHEET), `range?`, `description?` — returns filtered indexes |
+| `sheets_protect_range` | `spreadsheetId`, `range`, `sheetName?`, `description?`, `warningOnly?`, `editors?`, `domainEdit?` |
+| `sheets_protect_sheet` | `spreadsheetId`, `sheetName?`, `description?`, `warningOnly?`, `unprotectedRanges?`, `editors?`, `domainEdit?` |
+| `sheets_remove_protection` | `spreadsheetId`, `type` (RANGE/SHEET), `sheetName?`, `range?`, `description?`, `index?`, `confirm` |
 | `sheets_get_notes` | `spreadsheetId`, `sheetName?`, `range?` — read cell notes |
 
 **Other:**

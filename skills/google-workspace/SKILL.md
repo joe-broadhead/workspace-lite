@@ -1,7 +1,7 @@
 ---
 name: google-workspace
 version: 1.0.0
-description: "Google Workspace automation: Drive (44 tools), Gmail (39), Calendar (22), Sheets (27), Slides (25), Docs (26), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
+description: "Google Workspace automation: Drive (44 tools), Gmail (39), Calendar (22), Sheets (33), Slides (25), Docs (26), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
 metadata:
   requires:
     bins: []
@@ -37,8 +37,10 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `
 | Create sheet | `sheets_create_spreadsheet` → `sheets_batch` for compound setup |
 | Analyze data | `sheets_get_spreadsheet` → `sheets_read_range` → compute → `sheets_write_range` |
 | Multi-range read | `sheets_batch_get` — read multiple ranges in one call |
+| Find/replace sheet text | `sheets_find_text` → `sheets_replace_text` with TextFinder options |
 | Insert/delete rows | `sheets_insert_rows` / `sheets_delete_rows` |
 | Validation | `sheets_set_data_validation` for dropdowns, checkboxes, rules |
+| Protect sheets/ranges | `sheets_list_protections` → `sheets_protect_range` / `sheets_protect_sheet` / `sheets_remove_protection` |
 | Conditional fmt | `sheets_get_conditional_formatting` → read existing rules |
 | Create slides | `slides_create_presentation` → `slides_batch` for compound setup |
 | Build slides | `slides_add_slide` with titleText → `slides_insert_text_box` for body → `slides_insert_image`/`slides_insert_table` for visuals |
@@ -69,6 +71,7 @@ Read the relevant reference file before executing complex multi-tool workflows.
 - **Never create** calendar events/calendars without suggesting the details and getting approval
 - **Never `calendar_delete_calendar`** without confirmation; it rejects primary/default calendars server-side
 - **Never `sheets_delete_sheet`**, `sheets_clear_range`, or `sheets_delete_rows` without confirmation
+- **Never `sheets_remove_protection`** without confirmation
 - **Never `drive_remove_parent`**, `drive_remove_editor` / `drive_remove_viewer`, `drive_delete_comment`, or `drive_delete_reply` without confirmation
 - **Never `tasks_delete_tasklist`**, `tasks_delete_task`, or `tasks_clear_completed` without confirmation
 - **Never `forms_remove_response_destination`**, `forms_delete_item`, `forms_delete_response`, or `forms_delete_all_responses` without confirmation

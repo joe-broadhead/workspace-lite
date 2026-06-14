@@ -1,6 +1,6 @@
 # Google Sheets
 
-Create spreadsheets, manage sheets/tabs, read and write data, apply formatting, sort, chart, and more.
+Create spreadsheets, manage sheets/tabs, read and write data, find and replace text, protect sheets/ranges, apply formatting, sort, chart, and more.
 
 ## Tools
 
@@ -18,6 +18,8 @@ Create spreadsheets, manage sheets/tabs, read and write data, apply formatting, 
 | `sheets_clear_range` | Clear values from a range (or all data if no range specified). |
 | `sheets_set_formula` | Set a formula in a cell or range (e.g. `=SUM(A1:A10)`). |
 | `sheets_read_formulas` | Read both formulas and display values from a range. |
+| `sheets_find_text` | Find text with Apps Script TextFinder options: case, full cell, formula text, regex, and diacritics. |
+| `sheets_replace_text` | Replace text with Apps Script TextFinder within a spreadsheet, sheet, or A1 range. |
 | `sheets_get_notes` | Read notes from a range of cells. |
 | `sheets_set_note` | Add or clear a note on a cell or range. |
 | `sheets_format_range` | Apply formatting: background, font color/size/family, bold, italic, underline, alignment, number format, text wrap, borders. |
@@ -32,6 +34,10 @@ Create spreadsheets, manage sheets/tabs, read and write data, apply formatting, 
 | `sheets_delete_rows` | Delete rows at the specified position, shifting existing rows up. |
 | `sheets_set_data_validation` | Set data validation on a range (value lists, number ranges, checkboxes, custom formulas). |
 | `sheets_get_conditional_formatting` | Read conditional format rules on a sheet. |
+| `sheets_list_protections` | List protected ranges and sheets with filtered indexes for follow-up removal. |
+| `sheets_protect_range` | Protect a range with optional description, warning-only mode, editors, and domain edit setting. |
+| `sheets_protect_sheet` | Protect a sheet with optional unprotected ranges, description, warning-only mode, editors, and domain edit setting. |
+| `sheets_remove_protection` | Remove a protected range or sheet selected by type, filters, and index. |
 | `sheets_batch` | Execute up to 20 sheets operations in a single round-trip. |
 
 ## Key Features
@@ -39,6 +45,8 @@ Create spreadsheets, manage sheets/tabs, read and write data, apply formatting, 
 - **Batch operations for compound workflows** — Use `sheets_batch` to chain up to 20 operations in a single round-trip. Combine `write_range`, `format_range`, `freeze_rows`, and `set_column_width` atomically to build styled, formatted sheets in one call.
 - **Rich formatting surface** — `format_range` supports colors, fonts, alignment, number formatting, text wrapping, and customizable borders (style and color).
 - **Formula support** — `set_formula` writes formulas; `read_formulas` returns both raw formulas and computed display values for auditing.
+- **TextFinder search/replace** — `find_text` and `replace_text` expose documented Apps Script TextFinder options, including regex and formula text matching.
+- **Protection management** — `list_protections`, `protect_range`, `protect_sheet`, and `remove_protection` manage documented Apps Script `Protection` objects without raw batchUpdate passthroughs.
 - **Chart creation** — `create_chart` supports 11 chart types (AREA, BAR, COLUMN, COMBO, HISTOGRAM, LINE, PIE, SCATTER, TABLE, TIMELINE, WATERFALL) with configurable titles, axes, legend position, and stacking.
 - **Cell notes** — `set_note` and `get_notes` provide per-cell annotations independent of cell values (useful for documentation or review comments).
 
@@ -73,6 +81,37 @@ sheets_read_formulas({ spreadsheetId: "<id>", range: "C2:C100" })
 sheets_get_notes({ spreadsheetId: "<id>", range: "A1:A100" })
 ```
 
+**Find, replace, and protect:**
+
+```pseudo
+# Find case-sensitive matches in formulas
+sheets_find_text({
+  spreadsheetId: "<id>",
+  sheetName: "Forecast",
+  findText: "SUM",
+  matchFormulaText: true,
+  matchCase: true
+})
+
+# Replace plain text in one range
+sheets_replace_text({
+  spreadsheetId: "<id>",
+  sheetName: "Forecast",
+  range: "A2:A100",
+  findText: "Draft",
+  replaceText: "Final"
+})
+
+# Protect a header range
+sheets_protect_range({
+  spreadsheetId: "<id>",
+  sheetName: "Forecast",
+  range: "A1:E1",
+  description: "Locked headers",
+  warningOnly: false
+})
+```
+
 **Sort and chart:**
 
 ```pseudo
@@ -99,5 +138,7 @@ sheets_create_chart({
 - `sheets_delete_sheet` cannot delete the last remaining sheet in a spreadsheet.
 - Range operations use A1 notation; column numbers for `set_column_width`, `freeze_rows`, and `sort_range` are 1-based (A=1).
 - `append_rows` always writes to the bottom of the sheet; it cannot insert rows at specific positions.
+- `replace_text` rejects replacements that start with formula metacharacters; use `set_formula` for formulas.
+- `remove_protection` requires `confirm=true`; because Apps Script `Protection` has no durable ID, use `list_protections` filters and index immediately before removal.
 - Chart creation has size limits (100-1200px width, 100-1200px height) and supports up to 50 rows and 20 columns in the data table.
 - Batch operations are most effective when operations are independent; sequential dependencies (e.g., writing then formatting the same range) work within a batch because operations execute in order.

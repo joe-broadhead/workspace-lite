@@ -3,6 +3,8 @@ import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   sheetsRangeWriteSchema, sheetsAppendRowsSchema, sheetsClearRangeSchema,
   sheetsSetFormulaSchema, sheetsInsertRowsSchema, sheetsDeleteRowsSchema,
+  sheetsReplaceTextSchema, sheetsProtectRangeSchema, sheetsProtectSheetSchema,
+  sheetsRemoveProtectionSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -44,6 +46,47 @@ export function registerSheetsWriteTools(server: ToolServer) {
     async (args: Record<string, unknown>) => {
       const result = await callProxy('formulaSet', args)
       return formatResponse(result, { summary: 'Formula set.' })
+    },
+  )
+
+  server.tool(
+    'sheets_replace_text',
+    'Find and replace text in a spreadsheet, sheet, or A1 range using Apps Script TextFinder. Replacement text is treated as plain text; use sheets_set_formula for formulas.',
+    sheetsReplaceTextSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('textReplace', args)
+      const data = result.data as Record<string, unknown>
+      return formatResponse(result, { summary: `Replaced ${data.replacements ?? 0} occurrence(s).` })
+    },
+  )
+
+  server.tool(
+    'sheets_protect_range',
+    'Create a protected range with optional description, warning-only mode, additional editors, and domain edit setting.',
+    sheetsProtectRangeSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('rangeProtect', args)
+      return formatResponse(result, { summary: 'Range protected.' })
+    },
+  )
+
+  server.tool(
+    'sheets_protect_sheet',
+    'Protect a sheet with optional description, warning-only mode, unprotected ranges, additional editors, and domain edit setting.',
+    sheetsProtectSheetSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('sheetProtect', args)
+      return formatResponse(result, { summary: 'Sheet protected.' })
+    },
+  )
+
+  server.tool(
+    'sheets_remove_protection',
+    'Remove a protected range or sheet selected by type plus optional sheetName, range, description, and filtered index. Requires confirm=true.',
+    sheetsRemoveProtectionSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('protectionRemove', args)
+      return formatResponse(result, { summary: 'Protection removed.' })
     },
   )
 

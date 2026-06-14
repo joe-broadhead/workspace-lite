@@ -55,7 +55,7 @@
       "globalName": "SheetsService",
       "tokenEnvName": "GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN",
       "proxyServiceName": "google-workspace-proxy-sheets",
-      "toolCount": 27,
+      "toolCount": 33,
       "advancedServices": [
         { "userSymbol": "Sheets", "version": "v4", "serviceId": "sheets" }
       ],

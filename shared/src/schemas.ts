@@ -1114,6 +1114,72 @@ export const sheetsBatchGetSchema = {
   ranges: z.array(z.string()).min(1).max(10).describe('Array of range strings in A1 notation (e.g. ["Sheet1!A1:B10", "Sheet2!C1:D20"]).'),
 }
 
+const sheetsTextFinderOptionsSchema = {
+  matchCase: z.boolean().optional().describe('Require case-sensitive matches.'),
+  matchEntireCell: z.boolean().optional().describe('Require the full cell content to match.'),
+  matchFormulaText: z.boolean().optional().describe('Search formula text instead of displayed formula results.'),
+  useRegularExpression: z.boolean().optional().describe('Treat findText as a regular expression.'),
+  ignoreDiacritics: z.boolean().optional().describe('Ignore diacritics while matching text.'),
+}
+
+export const sheetsFindTextSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to all used ranges in the spreadsheet.'),
+  range: a1RangeSchema.optional().describe('Optional A1 range to search. If provided without sheetName, a sheet prefix may be included.'),
+  findText: z.string().min(1).max(500).describe('Text or regular expression to find.'),
+  maxResults: z.number().int().min(1).max(500).default(100).optional().describe('Maximum matches to return. totalMatches still reports all matches found within limits.'),
+  ...sheetsTextFinderOptionsSchema,
+}
+
+export const sheetsReplaceTextSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to all used ranges in the spreadsheet.'),
+  range: a1RangeSchema.optional().describe('Optional A1 range to replace within. If provided without sheetName, a sheet prefix may be included.'),
+  findText: z.string().min(1).max(500).describe('Text or regular expression to find.'),
+  replaceText: z.string().max(5000).refine((value) => !/^[=+\-@]/.test(value.trim()), 'Replacement text cannot start with formula metacharacters').describe('Replacement text. Use sheets_set_formula for formulas.'),
+  ...sheetsTextFinderOptionsSchema,
+}
+
+export const sheetsProtectionTypeSchema = z.enum(['RANGE', 'SHEET']).describe('Protection type.')
+
+export const sheetsListProtectionsSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Omit to list matching protections across the spreadsheet.'),
+  type: sheetsProtectionTypeSchema.optional().describe('Filter by range or sheet protections. Omit to include both.'),
+  range: a1RangeSchema.optional().describe('Optional protected range filter.'),
+  description: z.string().optional().describe('Optional exact description filter.'),
+}
+
+export const sheetsProtectRangeSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet unless range includes a sheet prefix.'),
+  range: a1RangeSchema.describe('Range to protect in A1 notation.'),
+  description: z.string().max(1000).optional().describe('Protection description.'),
+  warningOnly: z.boolean().optional().describe('If true, show a warning instead of blocking edits.'),
+  editors: z.array(z.string().email()).max(50).optional().describe('Additional editor email addresses for this protection.'),
+  domainEdit: z.boolean().optional().describe('Whether domain users can edit, when the domain policy supports it.'),
+}
+
+export const sheetsProtectSheetSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
+  description: z.string().max(1000).optional().describe('Protection description.'),
+  warningOnly: z.boolean().optional().describe('If true, show a warning instead of blocking edits.'),
+  unprotectedRanges: z.array(a1RangeSchema).max(50).optional().describe('Same-sheet A1 ranges to leave editable within the protected sheet.'),
+  editors: z.array(z.string().email()).max(50).optional().describe('Additional editor email addresses for this protection.'),
+  domainEdit: z.boolean().optional().describe('Whether domain users can edit, when the domain policy supports it.'),
+}
+
+export const sheetsRemoveProtectionSchema = {
+  spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
+  type: sheetsProtectionTypeSchema,
+  sheetName: z.string().optional().describe('Sheet/tab name. Omit to search across the spreadsheet.'),
+  range: a1RangeSchema.optional().describe('Optional protected range filter.'),
+  description: z.string().optional().describe('Optional exact description filter.'),
+  index: z.number().int().min(0).default(0).optional().describe('Zero-based index within the filtered protection list returned by sheets_list_protections.'),
+  ...confirmationSchema,
+}
+
 export const sheetsInsertRowsSchema = {
   spreadsheetId: sheetsSpreadsheetIdSchema.describe('Spreadsheet ID.'),
   sheetName: z.string().optional().describe('Sheet/tab name. Defaults to first sheet.'),
@@ -1146,6 +1212,8 @@ export const sheetsBatchSchema = {
     batchOperationSchema('rangeGetFormulas', withoutSpreadsheetId(sheetsGetFormulasSchema)),
     batchOperationSchema('rangeGetNotes', withoutSpreadsheetId(sheetsGetNotesSchema)),
     batchOperationSchema('valuesBatchGet', withoutSpreadsheetId(sheetsBatchGetSchema)),
+    batchOperationSchema('textFind', withoutSpreadsheetId(sheetsFindTextSchema)),
+    batchOperationSchema('textReplace', withoutSpreadsheetId(sheetsReplaceTextSchema)),
     batchOperationSchema('rangeFormat', withoutSpreadsheetId(sheetsFormatRangeSchema)),
     batchOperationSchema('rangeMerge', withoutSpreadsheetId(sheetsMergeCellsSchema)),
     batchOperationSchema('rangeUnmerge', withoutSpreadsheetId(sheetsMergeCellsSchema)),
@@ -1157,6 +1225,10 @@ export const sheetsBatchSchema = {
     batchOperationSchema('noteSet', withoutSpreadsheetId(sheetsSetNoteSchema)),
     batchOperationSchema('conditionalFormatGet', withoutSpreadsheetId(sheetsConditionalFormatSchema)),
     batchOperationSchema('dataValidationSet', withoutSpreadsheetId(sheetsDataValidationSchema)),
+    batchOperationSchema('protectionsList', withoutSpreadsheetId(sheetsListProtectionsSchema)),
+    batchOperationSchema('rangeProtect', withoutSpreadsheetId(sheetsProtectRangeSchema)),
+    batchOperationSchema('sheetProtect', withoutSpreadsheetId(sheetsProtectSheetSchema)),
+    batchOperationSchema('protectionRemove', withoutSpreadsheetId(sheetsRemoveProtectionSchema)),
     batchOperationSchema('rowsInsert', withoutSpreadsheetId(sheetsInsertRowsSchema)),
     batchOperationSchema('rowsDelete', withoutSpreadsheetId(sheetsDeleteRowsSchema)),
   ])).min(1).max(20).describe('Ordered list of validated Sheets operations. spreadsheetCreate is excluded because batches target one existing spreadsheet.'),

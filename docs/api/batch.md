@@ -237,6 +237,8 @@ The `action` field in each operation uses the **same names as the individual too
 | `sheets_clear_range` | `rangeClear` |
 | `sheets_read_formulas` | `rangeGetFormulas` |
 | `sheets_get_notes` | `rangeGetNotes` |
+| `sheets_find_text` | `textFind` |
+| `sheets_replace_text` | `textReplace` |
 | `sheets_format_range` | `rangeFormat` |
 | `sheets_merge_cells` | `rangeMerge` |
 | `sheets_unmerge_cells` | `rangeUnmerge` |
@@ -249,6 +251,10 @@ The `action` field in each operation uses the **same names as the individual too
 | `sheets_batch_get` | `valuesBatchGet` |
 | `sheets_set_data_validation` | `dataValidationSet` |
 | `sheets_get_conditional_formatting` | `conditionalFormatGet` |
+| `sheets_list_protections` | `protectionsList` |
+| `sheets_protect_range` | `rangeProtect` |
+| `sheets_protect_sheet` | `sheetProtect` |
+| `sheets_remove_protection` | `protectionRemove` |
 | `sheets_insert_rows` | `rowsInsert` |
 | `sheets_delete_rows` | `rowsDelete` |
 

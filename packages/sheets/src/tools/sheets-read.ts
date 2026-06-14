@@ -1,5 +1,9 @@
+import { formatResponse } from '@workspace-lite/shared'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
-import { sheetsRangeReadSchema, sheetsGetFormulasSchema, sheetsGetNotesSchema, sheetsBatchGetSchema } from '@workspace-lite/shared/schemas'
+import {
+  sheetsRangeReadSchema, sheetsGetFormulasSchema, sheetsGetNotesSchema,
+  sheetsBatchGetSchema, sheetsFindTextSchema, sheetsListProtectionsSchema,
+} from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
 export function registerSheetsReadTools(server: ToolServer) {
@@ -94,6 +98,39 @@ export function registerSheetsReadTools(server: ToolServer) {
       return {
         content: [{ type: 'text' as const, text: `Batch get: ${summary}\n\n${JSON.stringify(valueRanges, null, 2)}` }],
       }
+    },
+  )
+
+  server.tool(
+    'sheets_find_text',
+    'Find text in a spreadsheet, sheet, or A1 range using Apps Script TextFinder options such as case sensitivity, regex, formula text, and diacritic handling.',
+    sheetsFindTextSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('textFind', args)
+      const data = result.data as Record<string, unknown>
+      const matches = (data.matches as Array<Record<string, unknown>>) || []
+      const lines = matches.map((match) => {
+        const display = match.displayValue ?? match.value ?? ''
+        const formula = match.formula ? ` formula=${match.formula}` : ''
+        return `${match.sheetName}!${match.range}: ${display}${formula}`
+      })
+      const suffix = data.truncated ? `\n\nReturned ${data.returnedMatches} of ${data.totalMatches} matches. Increase maxResults or narrow the range.` : ''
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `Found ${data.totalMatches} match(es) across ${data.totalCellsSearched} cell(s).\n\n${lines.join('\n')}${suffix}`,
+        }],
+      }
+    },
+  )
+
+  server.tool(
+    'sheets_list_protections',
+    'List protected ranges and sheets. Returns current filtered indexes for follow-up removal with sheets_remove_protection.',
+    sheetsListProtectionsSchema,
+    async (args: Record<string, unknown>) => {
+      const result = await callProxy('protectionsList', args)
+      return formatResponse(result, { summary: 'Protections retrieved.' })
     },
   )
 }
