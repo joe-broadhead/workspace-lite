@@ -47,7 +47,7 @@
     "postinstall": "npm run build:shared"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^25.9.3",
     "tsx": "^4.22.4",
     "typescript": "^5.5.0"
   }
