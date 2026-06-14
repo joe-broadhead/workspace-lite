@@ -195,7 +195,7 @@ After a meeting:
 3. `slides_insert_text_box` — add body text on content slides (auto-positioned)
 4. `slides_insert_table` — add data table on one slide (auto-positioned)
 5. `slides_insert_image` — add charts/logos (auto-positioned)
-6. `slides_get_slide_notes` — add speaker notes per slide
+6. `slides_get_slide_notes` with `notes` — add speaker notes per slide
 
 **Content elements auto-position by default** — each new element stacks 8pt below the previous one, left-aligned, full-width. No need to specify coordinates. Override with explicit `left`/`top`/`width`/`height` or set `autoPosition: false`.
 
@@ -218,6 +218,15 @@ Tip: use `slides_batch` to add multiple blank slides in one call, then populate 
 1. `slides_get_presentation` — slides list with layout info
 2. `slides_get_slide_elements` — per slide, list elements with positions
 3. `slides_get_slide_notes` — read speaker notes
+
+### Tune Slide Elements
+
+"Move the logo, add alt text, and put it behind the chart"
+
+1. `slides_get_slide_elements` — find the target `objectId`
+2. `slides_update_element_geometry` — update `left`, `top`, `width`, `height`, or `rotation`
+3. `slides_set_element_alt_text` — set accessibility `title` and `description`
+4. `slides_reorder_element` — adjust z-order with BRING_FORWARD, BRING_TO_FRONT, SEND_BACKWARD, or SEND_TO_BACK
 
 ---
 
@@ -248,6 +257,7 @@ Tip: use `slides_batch` to add multiple blank slides in one call, then populate 
 
 3. `docs_format_text` — bold headings or apply styles
 4. `docs_insert_image` — add diagrams or screenshots
+5. `docs_list_table_of_contents` — inspect existing TOC elements when present
 
 ### Format an Existing Document
 

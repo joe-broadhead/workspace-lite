@@ -33,7 +33,10 @@
 - `slides_insert_line` draws lines with STRAIGHT/BENT/CURVED categories and SOLID/DOTTED/DASHED types
 - `slides_delete_element` removes a page element by objectId — get ids from `slides_get_slide_elements`
 - `slides_format_text` applies formatting to text within a specific element by findText
+- `slides_update_element_geometry` adjusts common position/size/rotation fields; `slides_update_element_transform` is for affine transform fields
+- `slides_set_element_link` requires exactly one of `linkUrl`, `targetSlideIndex`, or `clear`
 - `docs_get_as_json` returns full structured document tree — use for programmatic access, `docs_get_document` for text reading
+- `docs_create_bookmark` and `docs_create_named_range` add navigation structure without raw batchUpdate passthroughs; `docs_list_table_of_contents` inspects existing TOC elements because Docs does not expose supported TOC creation
 - `sheets_batch` executes up to 20 operations in one round-trip — use for compound setup
 - `sheets_read_range` returns values as a 2D array with sheet name, range, and row/col counts
 - `sheets_format_range` only applies properties you specify — omit params to leave formatting unchanged
@@ -60,6 +63,7 @@
 - Never `sheets_clear_range` without confirming the range
 - Never `slides_delete_element` without confirming which element
 - Never `slides_delete_slide` without confirmation — cannot undo
+- Never `docs_delete_bookmark` or `docs_delete_named_range` without confirmation
 - Never assume a file, email, event, or sheet exists — search first
 
 ## Search Tips

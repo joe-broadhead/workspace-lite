@@ -17,9 +17,15 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 | `slides_insert_shape` | Insert a shape (rectangle, ellipse, arrow, star, cloud, flowchart, etc.). |
 | `slides_insert_table` | Insert a table from a 2D array of values. |
 | `slides_get_slide_elements` | List all elements on a slide with types, IDs, positions, dimensions, and full text. |
+| `slides_get_element` | Get one element with geometry, rotation, alt text, and link metadata. |
 | `slides_get_element_text` | Read text from a specific shape or text element by object ID. |
 | `slides_delete_element` | Delete a page element from a slide by its object ID. |
 | `slides_format_text` | Format text within an element — bold, italic, underline, font, size, color, and links. |
+| `slides_update_element_geometry` | Update an element's left, top, width, height, or rotation. |
+| `slides_update_element_transform` | Update an element affine transform through constrained Slides API fields. |
+| `slides_set_element_alt_text` | Set or clear element accessibility title and description. |
+| `slides_set_element_link` | Set an element link to an HTTPS URL, slide, or clear it. |
+| `slides_reorder_element` | Bring an element forward/front or send it backward/back. |
 | `slides_get_slide_notes` | Get or set speaker notes for a slide. |
 | `slides_replace_all_text` | Find and replace text across all slides in a presentation. |
 | `slides_set_slide_background` | Set the background color of a slide using a solid fill color. |
@@ -30,6 +36,7 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 
 - **Auto-positioning** — `insert_text_box`, `insert_image`, `insert_shape`, and `insert_table` all support `autoPosition: true` (the default). Elements stack automatically below existing content without manual coordinate calculation. Override with explicit `left`, `top`, `width`, `height` when needed.
 - **Rich element model** — `slides_get_slide_elements` returns every element on a slide with its type, object ID, bounding box, and full text content. Use `slides_get_element_text` to read one text element directly.
+- **Structural element editing** — Update exact geometry, affine transforms, alt text, links, and z-order for existing elements by object ID.
 - **15 shape types** — RECTANGLE, ROUND_RECTANGLE, ELLIPSE, TRIANGLE, ARROW_RIGHT, ARROW_LEFT, STAR_5, HEXAGON, CLOUD, FLOW_CHART_PROCESS, FLOW_CHART_DECISION, WAVE, CHEVRON, PENTAGON, TRAPEZOID.
 - **Text formatting on find** — `slides_format_text` searches within an element for specific text and applies formatting only to matches — no need to know character indices.
 - **Slide reordering** — `duplicate_slide`, `move_slide`, and `delete_slide` enable full programmatic slide deck manipulation.
@@ -66,6 +73,42 @@ slides_insert_text_box({
   slideIndex: 1,
   text: "Revenue grew 23% quarter-over-quarter."
   // autoPosition: true stacks below image automatically
+})
+```
+
+**Tune element structure after insertion:**
+
+```pseudo
+slides_get_element({
+  presentationId: "<id>",
+  slideIndex: 1,
+  objectId: "<element-id>"
+})
+
+slides_update_element_geometry({
+  presentationId: "<id>",
+  slideIndex: 1,
+  objectId: "<element-id>",
+  left: 72,
+  top: 144,
+  width: 360,
+  height: 120,
+  rotation: 0
+})
+
+slides_set_element_alt_text({
+  presentationId: "<id>",
+  slideIndex: 1,
+  objectId: "<element-id>",
+  title: "Revenue chart",
+  description: "Bar chart showing Q4 revenue growth by segment."
+})
+
+slides_set_element_link({
+  presentationId: "<id>",
+  slideIndex: 1,
+  objectId: "<element-id>",
+  linkUrl: "https://example.com/source"
 })
 ```
 
@@ -109,5 +152,7 @@ slides_replace_all_text({
 - Auto-positioning stacks elements vertically below existing content. It does not handle complex multi-column layouts — use explicit coordinates for those.
 - Images must be publicly accessible URLs; local file uploads are not supported directly.
 - `slides_format_text` finds and formats all occurrences of the search text within a single element. For cross-element formatting, call it once per element or use `slides_replace_all_text`.
+- `slides_update_element_transform` uses constrained Slides API affine transform fields; use `slides_update_element_geometry` for common position, size, and rotation changes.
+- `slides_set_element_link` accepts exactly one of `linkUrl`, `targetSlideIndex`, or `clear`.
 - Slide indices are 0-based and reflect the current order. After `delete_slide` or `move_slide`, indices shift.
 - Element object IDs are stable within a presentation session but should always be obtained from `slides_get_slide_elements` rather than hardcoded.

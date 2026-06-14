@@ -22,6 +22,15 @@ Create, read, and programmatically build documents with paragraphs, headings, li
 | `docs_set_header` | Set the document header text (empty string to clear). |
 | `docs_set_footer` | Set the document footer text (empty string to clear). |
 | `docs_get_as_json` | Get the full document as structured JSON with all content, formatting, and structure. |
+| `docs_get_page_setup` | Read page size and margins in points. |
+| `docs_update_page_setup` | Update page size and margins in points. |
+| `docs_list_bookmarks` | List bookmarks with IDs and paragraph positions when available. |
+| `docs_create_bookmark` | Create a bookmark at a paragraph character offset. |
+| `docs_delete_bookmark` | Delete a bookmark by ID. |
+| `docs_list_named_ranges` | List named ranges, optionally filtered by name. |
+| `docs_create_named_range` | Create a named range around a paragraph or partial paragraph span. |
+| `docs_delete_named_range` | Delete a named range by ID. |
+| `docs_list_table_of_contents` | List existing table-of-contents elements with child indexes and text previews. |
 | `docs_batch` | Execute multiple operations (up to 20) in a single round-trip. |
 
 ## Key Features
@@ -30,6 +39,7 @@ Create, read, and programmatically build documents with paragraphs, headings, li
 - **Paragraph-based API** — The document model is paragraph-centric. Each paragraph has an index (0-based) and can be independently inserted, updated, or deleted.
 - **Pattern-based formatting** — `format_text` finds specific text patterns anywhere in the document and applies formatting (bold, italic, colors, font, links) only to matches.
 - **Rich element insertion** — Insert images (from URLs), tables (with auto-bolded headers), bulleted or numbered lists, page breaks, and horizontal rules — all with `append`/`prepend` positioning control.
+- **Structural controls** — Page setup, bookmarks, named ranges, and existing table-of-contents elements are exposed as constrained tools rather than raw Docs API requests.
 - **Batch operations** — Use `docs_batch` to chain up to 20 document operations in a single round-trip.
 
 ## Examples
@@ -67,6 +77,34 @@ docs_insert_table({
 // First row auto-bolded as header
 ```
 
+**Add document structure and navigation:**
+
+```pseudo
+docs_update_page_setup({
+  documentId: "<id>",
+  pageWidth: 612,
+  pageHeight: 792,
+  marginTop: 72,
+  marginBottom: 72,
+  marginLeft: 72,
+  marginRight: 72
+})
+
+docs_create_bookmark({
+  documentId: "<id>",
+  paragraphIndex: 3,
+  offset: 0
+})
+
+docs_create_named_range({
+  documentId: "<id>",
+  name: "executive-summary",
+  paragraphIndex: 3
+})
+
+docs_list_table_of_contents({ documentId: "<id>" })
+```
+
 **Format specific terms throughout a document:**
 
 ```pseudo
@@ -99,5 +137,8 @@ docs_update_paragraph({
 - The paragraph index model requires knowing the current structure. After inserting or deleting paragraphs, all subsequent indices shift. Use `docs_get_document` to inspect the current layout before indexed operations.
 - Images must be publicly accessible URLs; local file uploads are not supported directly.
 - `docs_set_text` replaces the entire document body — use with caution on existing documents. Prefer `insert_paragraph` and `replace_text` for targeted changes.
+- `docs_delete_bookmark` and `docs_delete_named_range` require `confirm: true` because they remove document metadata.
+- Bookmarks and named ranges are anchored to paragraph indices. Use `docs_get_document`, `docs_list_bookmarks`, or `docs_list_named_ranges` after structural edits because indices can shift.
+- Google Docs table-of-contents elements can be inspected when already present, but Apps Script and the Docs API do not expose a supported creation method through this service surface.
 - `format_text` applies formatting to all occurrences of the search text. For single-instance formatting, ensure the search text is unique within the document.
 - Headers and footers accept plain text only; rich formatting in headers/footers is not supported through this tool surface.

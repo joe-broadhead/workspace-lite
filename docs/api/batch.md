@@ -266,9 +266,15 @@ The `action` field in each operation uses the **same names as the individual too
 | `slides_insert_shape` | `shapeInsert` |
 | `slides_insert_table` | `tableInsert` |
 | `slides_get_slide_elements` | `slideElementsList` |
+| `slides_get_element` | `elementGet` |
 | `slides_get_element_text` | `elementGetText` |
 | `slides_delete_element` | `elementDelete` |
 | `slides_format_text` | `elementFormatText` |
+| `slides_update_element_geometry` | `elementGeometryUpdate` |
+| `slides_update_element_transform` | `elementTransformUpdate` |
+| `slides_set_element_alt_text` | `elementAltTextSet` |
+| `slides_set_element_link` | `elementLinkSet` |
+| `slides_reorder_element` | `elementReorder` |
 | `slides_get_slide_notes` | `slideNotes` |
 | `slides_replace_all_text` | `textReplaceAll` |
 | `slides_insert_line` | `lineInsert` |
@@ -293,6 +299,15 @@ The `action` field in each operation uses the **same names as the individual too
 | `docs_set_header` | `headerSet` |
 | `docs_set_footer` | `footerSet` |
 | `docs_get_as_json` | `documentGetJson` |
+| `docs_get_page_setup` | `pageSetupGet` |
+| `docs_update_page_setup` | `pageSetupUpdate` |
+| `docs_list_bookmarks` | `bookmarksList` |
+| `docs_create_bookmark` | `bookmarkCreate` |
+| `docs_delete_bookmark` | `bookmarkDelete` |
+| `docs_list_named_ranges` | `namedRangesList` |
+| `docs_create_named_range` | `namedRangeCreate` |
+| `docs_delete_named_range` | `namedRangeDelete` |
+| `docs_list_table_of_contents` | `tableOfContentsList` |
 
 ### Tasks
 

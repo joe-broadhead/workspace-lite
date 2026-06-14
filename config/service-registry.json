@@ -70,8 +70,10 @@
       "globalName": "SlidesService",
       "tokenEnvName": "GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN",
       "proxyServiceName": "google-workspace-proxy-slides",
-      "toolCount": 19,
-      "advancedServices": [],
+      "toolCount": 25,
+      "advancedServices": [
+        { "userSymbol": "Slides", "version": "v1", "serviceId": "slides" }
+      ],
       "oauthScopes": [
         "https://www.googleapis.com/auth/presentations",
         "https://www.googleapis.com/auth/script.external_request"
@@ -83,7 +85,7 @@
       "globalName": "DocsService",
       "tokenEnvName": "GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN",
       "proxyServiceName": "google-workspace-proxy-docs",
-      "toolCount": 17,
+      "toolCount": 26,
       "advancedServices": [
         { "userSymbol": "Docs", "version": "v1", "serviceId": "docs" }
       ],

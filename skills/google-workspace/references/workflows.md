@@ -309,7 +309,7 @@ Returns formulas, display values, and raw values for each cell.
 3. slides_insert_text_box → add body text on content slides (auto-positioned)
 4. slides_insert_table → add data table on one slide (auto-positioned)
 5. slides_insert_image → add charts/logos (auto-positioned)
-6. slides_set_notes → add speaker notes per slide
+6. slides_get_slide_notes with notes → add speaker notes per slide
 ```
 
 **Content elements auto-position by default** — each new element stacks 8pt below the previous one, left-aligned, full-width. No need to specify coordinates. Override with explicit `left`/`top`/`width`/`height` or set `autoPosition: false`.
@@ -366,6 +366,9 @@ Line categories: `STRAIGHT`, `BENT`, `CURVED`. Line types: `SOLID`, `DOTTED`, `D
 1. slides_get_slide_elements → find objectId of target element
 2. slides_delete_element → presentationId, slideIndex, objectId
 3. slides_format_text → presentationId, slideIndex, objectId, findText:"Q2 Results", bold:true
+4. slides_update_element_geometry → adjust left/top/width/height/rotation
+5. slides_set_element_alt_text → add accessibility title/description
+6. slides_reorder_element → change z-order when elements overlap
 ```
 
 ---
@@ -391,7 +394,7 @@ Line categories: `STRAIGHT`, `BENT`, `CURVED`. Line types: `SOLID`, `DOTTED`, `D
 3. docs_insert_paragraph → text:"Key findings..."
 4. docs_insert_paragraph → text:"Financials", heading:"HEADING2"
 5. docs_insert_table → values:[["Category","Q1","Q2"],["Revenue","$100K","$120K"]]
-6. docs_insert_table_of_contents → inserts at cursor position, auto-populates from headings
+6. docs_list_table_of_contents → inspect existing TOC elements when present
 ```
 
 ### Inspect Document Structure

@@ -14,6 +14,15 @@ const DocsService = (() => {
     formatText: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
     headerSet: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
     footerSet: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    pageSetupGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    pageSetupUpdate: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    bookmarksList: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    bookmarkCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    bookmarkDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    namedRangesList: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    namedRangeCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    namedRangeDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
+    tableOfContentsList: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
     setText: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
     paragraphDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
     batch: { class: 'read', allowlists: [{ property: 'ALLOWED_DOCUMENT_IDS', params: ['documentId'] }] },
@@ -25,6 +34,9 @@ const DocsService = (() => {
     replaceText: true, listInsert: true, tableInsert: true,
     imageInsert: true, pageBreakInsert: true, horizontalRuleInsert: true,
     formatText: true, headerSet: true, footerSet: true,
+    pageSetupGet: true, pageSetupUpdate: true, bookmarksList: true,
+    bookmarkCreate: true, bookmarkDelete: true, namedRangesList: true,
+    namedRangeCreate: true, namedRangeDelete: true, tableOfContentsList: true,
   }
 
   const LIMITS = {
@@ -230,6 +242,85 @@ const DocsService = (() => {
       numParagraphs: parsed.paragraphs.length,
       charCount: parsed.charCount,
       paragraphs: parsed.paragraphs,
+    };
+  }
+
+  function resolveParagraph(doc, paragraphIndex) {
+    const index = Number(paragraphIndex);
+    if (!Number.isInteger(index) || index < 0) return { error: err('BAD_REQUEST', 'paragraphIndex must be a non-negative integer') };
+    const paragraphs = doc.getBody().getParagraphs();
+    if (index >= paragraphs.length) return { error: err('NOT_FOUND', `Paragraph index out of range: ${index}`) };
+    return { paragraph: paragraphs[index], paragraphIndex: index };
+  }
+
+  function paragraphIndexForElement(body, element) {
+    let current = element;
+    while (current && current.getType && current.getType() !== DocumentApp.ElementType.PARAGRAPH) {
+      current = current.getParent ? current.getParent() : null;
+    }
+    if (!current) return null;
+    const paragraphs = body.getParagraphs();
+    for (let i = 0; i < paragraphs.length; i++) {
+      if (paragraphs[i] === current) return i;
+    }
+    return null;
+  }
+
+  function pageSetupToJSON(body) {
+    return {
+      pageWidth: body.getPageWidth(),
+      pageHeight: body.getPageHeight(),
+      marginTop: body.getMarginTop(),
+      marginBottom: body.getMarginBottom(),
+      marginLeft: body.getMarginLeft(),
+      marginRight: body.getMarginRight(),
+    };
+  }
+
+  function setBodyNumber(body, params, name, setterName, min, changes) {
+    if (params[name] === undefined) return null;
+    const value = Number(params[name]);
+    if (!isFinite(value) || value < min || value > 2000) return err('BAD_REQUEST', `${name} must be a point value between ${min} and 2000`);
+    body[setterName](value);
+    changes.push(name);
+    return null;
+  }
+
+  function bookmarkToJSON(doc, bookmark) {
+    const position = bookmark.getPosition();
+    const element = position ? position.getElement() : null;
+    const paragraphIndex = element ? paragraphIndexForElement(doc.getBody(), element) : null;
+    return {
+      id: bookmark.getId(),
+      paragraphIndex,
+      offset: position ? position.getOffset() : null,
+      elementType: element && element.getType ? element.getType().toString() : null,
+    };
+  }
+
+  function rangeToJSON(doc, range) {
+    const body = doc.getBody();
+    const elements = range.getRangeElements().map(function(rangeElement) {
+      const element = rangeElement.getElement();
+      let text = null;
+      try { text = element.asText ? element.asText().getText() : null; } catch (t) {}
+      return {
+        elementType: element && element.getType ? element.getType().toString() : null,
+        paragraphIndex: paragraphIndexForElement(body, element),
+        isPartial: rangeElement.isPartial(),
+        startOffset: rangeElement.isPartial() ? rangeElement.getStartOffset() : null,
+        endOffsetInclusive: rangeElement.isPartial() ? rangeElement.getEndOffsetInclusive() : null,
+        textPreview: text === null ? null : text.substring(0, 200),
+      };
+    });
+    return { elements };
+  }
+
+  function namedRangeToJSON(doc, namedRange) {
+    return {
+      id: namedRange.getId(),
+      name: namedRange.getName(),
+      range: rangeToJSON(doc, namedRange.getRange()),
     };
   }
 
@@ -619,11 +710,206 @@ const DocsService = (() => {
     );
   }
 
+  // ── Structure ──
+
+  function pageSetupGet(params) {
+    const id = requireParam(params, 'documentId');
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    return ok({ documentId: id, pageSetup: pageSetupToJSON(doc.getBody()) });
+  }
+
+  function pageSetupUpdate(params) {
+    const id = requireParam(params, 'documentId');
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    return trap(
+      () => {
+        const body = doc.getBody();
+        const changes = [];
+        let failed = setBodyNumber(body, params, 'pageWidth', 'setPageWidth', 1, changes);
+        if (failed) return failed;
+        failed = setBodyNumber(body, params, 'pageHeight', 'setPageHeight', 1, changes);
+        if (failed) return failed;
+        failed = setBodyNumber(body, params, 'marginTop', 'setMarginTop', 0, changes);
+        if (failed) return failed;
+        failed = setBodyNumber(body, params, 'marginBottom', 'setMarginBottom', 0, changes);
+        if (failed) return failed;
+        failed = setBodyNumber(body, params, 'marginLeft', 'setMarginLeft', 0, changes);
+        if (failed) return failed;
+        failed = setBodyNumber(body, params, 'marginRight', 'setMarginRight', 0, changes);
+        if (failed) return failed;
+        if (changes.length === 0) return err('BAD_REQUEST', 'Provide at least one page setup field to update');
+        return { documentId: id, changes, pageSetup: pageSetupToJSON(body) };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not update page setup: ${e.message}`
+    );
+  }
+
+  function bookmarksList(params) {
+    const id = requireParam(params, 'documentId');
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    return trap(
+      () => ({ bookmarks: doc.getBookmarks().map(function(bookmark) { return bookmarkToJSON(doc, bookmark); }) }),
+      'READ_FAILED',
+      (e) => `Could not list bookmarks: ${e.message}`
+    );
+  }
+
+  function bookmarkCreate(params) {
+    const id = requireParam(params, 'documentId');
+    const paragraphIndex = requireParam(params, 'paragraphIndex');
+    const offset = optionalNumber(params, 'offset', 0);
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    const resolved = resolveParagraph(doc, paragraphIndex);
+    if (resolved.error) return resolved.error;
+
+    return trap(
+      () => {
+        const text = resolved.paragraph.editAsText();
+        const textLength = text.getText().length;
+        if (!Number.isInteger(offset) || offset < 0 || offset > textLength) return err('BAD_REQUEST', `offset must be between 0 and ${textLength}`);
+        const bookmark = doc.addBookmark(doc.newPosition(text, offset));
+        return { bookmark: bookmarkToJSON(doc, bookmark) };
+      },
+      'CREATE_FAILED',
+      (e) => `Could not create bookmark: ${e.message}`
+    );
+  }
+
+  function bookmarkDelete(params) {
+    const id = requireParam(params, 'documentId');
+    const bookmarkId = requireParam(params, 'bookmarkId');
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    return trap(
+      () => {
+        const bookmark = doc.getBookmark(bookmarkId);
+        if (!bookmark) return err('NOT_FOUND', `Bookmark not found: ${bookmarkId}`);
+        bookmark.remove();
+        return { deleted: true, bookmarkId };
+      },
+      'DELETE_FAILED',
+      (e) => `Could not delete bookmark: ${e.message}`
+    );
+  }
+
+  function namedRangesList(params) {
+    const id = requireParam(params, 'documentId');
+    const name = optionalString(params, 'name', null);
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    return trap(
+      () => {
+        const ranges = name ? doc.getNamedRanges(name) : doc.getNamedRanges();
+        return { namedRanges: ranges.map(function(namedRange) { return namedRangeToJSON(doc, namedRange); }) };
+      },
+      'READ_FAILED',
+      (e) => `Could not list named ranges: ${e.message}`
+    );
+  }
+
+  function namedRangeCreate(params) {
+    const id = requireParam(params, 'documentId');
+    const name = requireParam(params, 'name');
+    const paragraphIndex = requireParam(params, 'paragraphIndex');
+    const hasStart = params.startOffset !== undefined;
+    const hasEnd = params.endOffsetInclusive !== undefined;
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    const resolved = resolveParagraph(doc, paragraphIndex);
+    if (resolved.error) return resolved.error;
+
+    return trap(
+      () => {
+        const builder = doc.newRange();
+        if (hasStart || hasEnd) {
+          if (!hasStart || !hasEnd) return err('BAD_REQUEST', 'Provide both startOffset and endOffsetInclusive for partial named ranges');
+          const start = Number(params.startOffset);
+          const end = Number(params.endOffsetInclusive);
+          const text = resolved.paragraph.editAsText();
+          const textLength = text.getText().length;
+          if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start || end >= textLength) {
+            return err('BAD_REQUEST', `Offsets must be integers between 0 and ${Math.max(textLength - 1, 0)}, with endOffsetInclusive >= startOffset`);
+          }
+          builder.addElement(text, start, end);
+        } else {
+          builder.addElement(resolved.paragraph);
+        }
+        const namedRange = doc.addNamedRange(name, builder.build());
+        return { namedRange: namedRangeToJSON(doc, namedRange) };
+      },
+      'CREATE_FAILED',
+      (e) => `Could not create named range: ${e.message}`
+    );
+  }
+
+  function namedRangeDelete(params) {
+    const id = requireParam(params, 'documentId');
+    const namedRangeId = requireParam(params, 'namedRangeId');
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+    return trap(
+      () => {
+        const namedRange = doc.getNamedRangeById(namedRangeId);
+        if (!namedRange) return err('NOT_FOUND', `Named range not found: ${namedRangeId}`);
+        namedRange.remove();
+        return { deleted: true, namedRangeId };
+      },
+      'DELETE_FAILED',
+      (e) => `Could not delete named range: ${e.message}`
+    );
+  }
+
+  function tableOfContentsList(params) {
+    const id = requireParam(params, 'documentId');
+
+    const doc = getDocument(id);
+    if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);
+
+    return trap(
+      () => {
+        const body = doc.getBody();
+        const tablesOfContents = [];
+        for (let i = 0; i < body.getNumChildren(); i++) {
+          const child = body.getChild(i);
+          if (child.getType && child.getType().toString() === 'TABLE_OF_CONTENTS') {
+            const text = safeText(child);
+            tablesOfContents.push({
+              childIndex: i,
+              textPreview: text.substring(0, 500),
+              textLength: text.length,
+            });
+          }
+        }
+        return { tablesOfContents };
+      },
+      'READ_FAILED',
+      (e) => `Could not list tables of contents: ${e.message}`
+    );
+  }
+
+  function safeText(element) {
+    try { return element.getText ? element.getText() : ''; } catch (e) { return ''; }
+  }
+
   const ACTIONS = {
     documentCreate, documentGet, documentGetJson, paragraphInsert,
     paragraphUpdate, paragraphDelete, setText, replaceText, listInsert,
     tableInsert, imageInsert, pageBreakInsert, horizontalRuleInsert,
-    formatText, headerSet, footerSet,
+    formatText, headerSet, footerSet, pageSetupGet, pageSetupUpdate,
+    bookmarksList, bookmarkCreate, bookmarkDelete, namedRangesList,
+    namedRangeCreate, namedRangeDelete, tableOfContentsList,
     batch: function(params) { return runBatch(handle)(params); },
   }
 

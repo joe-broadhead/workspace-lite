@@ -177,7 +177,7 @@
 | `sheets_set_note` | `spreadsheetId`, `range`, `note` (empty string clears), `sheetName?` |
 | **Batch** | `sheets_batch` | `operations` — array of `{action, params}`, up to 20. Same action names as individual tools. Executes sequentially; errors collected per-operation. |
 
-## Slides — 19 tools
+## Slides — 25 tools
 
 **Manage:**
 | Tool | Params |
@@ -203,6 +203,7 @@
 | Tool | Params |
 |---|---|
 | `slides_get_slide_elements` | `presentationId`, `slideIndex` — returns all elements with types, IDs, positions, dimensions, full text |
+| `slides_get_element` | `presentationId`, `slideIndex`, `objectId` — returns one element with geometry, rotation, alt text, and link metadata |
 | `slides_get_element_text` | `presentationId`, `slideIndex`, `objectId` — read text from one shape/text element |
 | `slides_get_slide_notes` | `presentationId`, `slideIndex`, `notes?` (provide to set, omit to get) |
 
@@ -211,10 +212,15 @@
 |---|---|
 | `slides_delete_element` | `presentationId`, `slideIndex`, `objectId` — delete a page element by its objectId |
 | `slides_format_text` | `presentationId`, `slideIndex`, `objectId`, `findText`, then any of: `bold?`, `italic?`, `underline?`, `fontFamily?`, `fontSize?`, `foregroundColor?`, `backgroundColor?`, `linkUrl?` |
+| `slides_update_element_geometry` | `presentationId`, `slideIndex`, `objectId`, any of `left?`, `top?`, `width?`, `height?`, `rotation?` |
+| `slides_update_element_transform` | `presentationId`, `slideIndex`, `objectId`, `applyMode?` (ABSOLUTE/RELATIVE), `unit?` (PT/EMU), `scaleX?`, `scaleY?`, `shearX?`, `shearY?`, `translateX?`, `translateY?` |
+| `slides_set_element_alt_text` | `presentationId`, `slideIndex`, `objectId`, `title?`, `description?` |
+| `slides_set_element_link` | `presentationId`, `slideIndex`, `objectId`, exactly one of `linkUrl?`, `targetSlideIndex?`, `clear?` |
+| `slides_reorder_element` | `presentationId`, `slideIndex`, `objectId`, `operation` (BRING_FORWARD/BRING_TO_FRONT/SEND_BACKWARD/SEND_TO_BACK) |
 | `slides_replace_all_text` | `presentationId`, `findText`, `replaceText` |
 | **Batch** | `slides_batch` | `presentationId`, `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
 
-## Docs — 17 tools
+## Docs — 26 tools
 
 **Manage:**
 | Tool | Params |
@@ -247,6 +253,15 @@
 |---|---|
 | `docs_set_header` | `documentId`, `text` (empty string to clear) |
 | `docs_set_footer` | `documentId`, `text` (empty string to clear) |
+| `docs_get_page_setup` | `documentId` — returns page width, page height, and margins in points |
+| `docs_update_page_setup` | `documentId`, any of `pageWidth?`, `pageHeight?`, `marginTop?`, `marginBottom?`, `marginLeft?`, `marginRight?` |
+| `docs_list_bookmarks` | `documentId` |
+| `docs_create_bookmark` | `documentId`, `paragraphIndex`, `offset?` |
+| `docs_delete_bookmark` | `documentId`, `bookmarkId`, `confirm` |
+| `docs_list_named_ranges` | `documentId`, `name?` |
+| `docs_create_named_range` | `documentId`, `name`, `paragraphIndex`, `startOffset?`, `endOffsetInclusive?` |
+| `docs_delete_named_range` | `documentId`, `namedRangeId`, `confirm` |
+| `docs_list_table_of_contents` | `documentId` — list existing table-of-contents elements with child indexes and text previews |
 
 | **Batch** | `docs_batch` | `documentId`, `operations` — array of `{action, params}`, up to 20. Executes sequentially; errors collected per-operation. |
 

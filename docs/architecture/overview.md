@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 197 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 212 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
@@ -48,8 +48,8 @@ workspace-lite/
 │   ├── gmail/                  # 39 tools
 │   ├── calendar/               # 22 tools
 │   ├── sheets/                 # 27 tools
-│   ├── slides/                 # 19 tools
-│   ├── docs/                   # 17 tools
+│   ├── slides/                 # 25 tools
+│   ├── docs/                   # 26 tools
 │   ├── tasks/                  # 13 tools
 │   └── forms/                  # 16 tools
 ├── scripts/

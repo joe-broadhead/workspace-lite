@@ -1,7 +1,7 @@
 ---
 name: google-workspace
 version: 1.0.0
-description: "Google Workspace automation: Drive (44 tools), Gmail (39), Calendar (22), Sheets (27), Slides (19), Docs (17), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
+description: "Google Workspace automation: Drive (44 tools), Gmail (39), Calendar (22), Sheets (27), Slides (25), Docs (26), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
 metadata:
   requires:
     bins: []
@@ -43,9 +43,11 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `
 | Create slides | `slides_create_presentation` → `slides_batch` for compound setup |
 | Build slides | `slides_add_slide` with titleText → `slides_insert_text_box` for body → `slides_insert_image`/`slides_insert_table` for visuals |
 | Slide background | `slides_set_slide_background` with hex color |
+| Tune slide elements | `slides_get_element` → `slides_update_element_geometry` / `slides_set_element_alt_text` / `slides_set_element_link` |
 | Write document | `docs_create_document` → `docs_batch` for compound setup |
 | Format document | `docs_insert_paragraph` with heading → `docs_format_text` for styling |
 | Doc as JSON | `docs_get_as_json` — full structured document tree |
+| Doc navigation | `docs_create_bookmark` / `docs_create_named_range` → `docs_list_table_of_contents` when TOCs already exist |
 | Manage tasks | `tasks_list_tasklists` → `tasks_list_tasks` → `tasks_create_task` / `tasks_update_task` |
 | Build form | `forms_create_form` → `forms_add_item` / `forms_batch` → `forms_get_form` |
 

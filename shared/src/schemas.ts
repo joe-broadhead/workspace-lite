@@ -1263,6 +1263,12 @@ export const slidesGetElementTextSchema = {
   objectId: z.string().describe('Object ID of the shape element to read text from.'),
 }
 
+export const slidesElementGetSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the page element.'),
+}
+
 export const slidesFormatTextSchema = {
   presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
   slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
@@ -1295,6 +1301,55 @@ export const slidesInsertLineSchema = {
   lineType: z.enum(['SOLID', 'DOTTED', 'DASHED']).default('SOLID').optional().describe('Line style.'),
 }
 
+export const slidesElementGeometrySchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the page element.'),
+  left: z.number().optional().describe('Left position in points.'),
+  top: z.number().optional().describe('Top position in points.'),
+  width: z.number().positive().optional().describe('Width in points.'),
+  height: z.number().positive().optional().describe('Height in points.'),
+  rotation: z.number().optional().describe('Clockwise rotation in degrees.'),
+}
+
+export const slidesElementTransformSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based), used to verify and return the element.'),
+  objectId: z.string().describe('Object ID of the page element.'),
+  applyMode: z.enum(['ABSOLUTE', 'RELATIVE']).default('ABSOLUTE').optional().describe('Slides API transform apply mode.'),
+  unit: z.enum(['PT', 'EMU']).default('PT').optional().describe('Translation unit.'),
+  scaleX: z.number().optional().describe('Affine transform scaleX.'),
+  scaleY: z.number().optional().describe('Affine transform scaleY.'),
+  shearX: z.number().optional().describe('Affine transform shearX.'),
+  shearY: z.number().optional().describe('Affine transform shearY.'),
+  translateX: z.number().optional().describe('Affine transform translateX.'),
+  translateY: z.number().optional().describe('Affine transform translateY.'),
+}
+
+export const slidesElementAltTextSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the page element.'),
+  title: z.string().max(1000).optional().describe('Element accessibility title. Empty string clears it.'),
+  description: z.string().max(5000).optional().describe('Element accessibility description. Empty string clears it.'),
+}
+
+export const slidesElementLinkSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the page element.'),
+  linkUrl: httpsUrlSchema.optional().describe('HTTPS URL to link the element to.'),
+  targetSlideIndex: z.number().int().min(0).optional().describe('Slide index to link the element to.'),
+  clear: z.boolean().optional().describe('Remove the element link.'),
+}
+
+export const slidesElementReorderSchema = {
+  presentationId: slidesPresentationIdSchema.describe('Presentation ID.'),
+  slideIndex: z.number().int().min(0).describe('Slide index (0-based).'),
+  objectId: z.string().describe('Object ID of the page element.'),
+  operation: z.enum(['BRING_FORWARD', 'BRING_TO_FRONT', 'SEND_BACKWARD', 'SEND_TO_BACK']).describe('Z-order operation to apply.'),
+}
+
 const withoutPresentationId = (schema: ToolSchema) => omitSchemaKeys(schema, ['presentationId'])
 
 export const slidesBatchSchema = {
@@ -1311,8 +1366,14 @@ export const slidesBatchSchema = {
     batchOperationSchema('tableInsert', withoutPresentationId(slidesInsertTableSchema)),
     batchOperationSchema('slideElementsList', withoutPresentationId(slidesSlideIndexSchema)),
     batchOperationSchema('elementDelete', withoutPresentationId(slidesDeleteElementSchema)),
+    batchOperationSchema('elementGet', withoutPresentationId(slidesElementGetSchema)),
     batchOperationSchema('elementGetText', withoutPresentationId(slidesGetElementTextSchema)),
     batchOperationSchema('elementFormatText', withoutPresentationId(slidesFormatTextSchema)),
+    batchOperationSchema('elementGeometryUpdate', withoutPresentationId(slidesElementGeometrySchema)),
+    batchOperationSchema('elementTransformUpdate', withoutPresentationId(slidesElementTransformSchema)),
+    batchOperationSchema('elementAltTextSet', withoutPresentationId(slidesElementAltTextSchema)),
+    batchOperationSchema('elementLinkSet', withoutPresentationId(slidesElementLinkSchema)),
+    batchOperationSchema('elementReorder', withoutPresentationId(slidesElementReorderSchema)),
     batchOperationSchema('slideNotes', withoutPresentationId(slidesSlideNotesSchema)),
     batchOperationSchema('textReplaceAll', withoutPresentationId(slidesReplaceAllTextSchema)),
     batchOperationSchema('slideBackground', withoutPresentationId(slidesBackgroundSchema)),
@@ -1418,6 +1479,59 @@ export const docsGetAsJsonSchema = {
   documentId: docsDocumentIdSchema.describe('Document ID.'),
 }
 
+export const docsPageSetupGetSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+}
+
+export const docsPageSetupUpdateSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  pageWidth: z.number().positive().max(2000).optional().describe('Page width in points.'),
+  pageHeight: z.number().positive().max(2000).optional().describe('Page height in points.'),
+  marginTop: z.number().min(0).max(2000).optional().describe('Top margin in points.'),
+  marginBottom: z.number().min(0).max(2000).optional().describe('Bottom margin in points.'),
+  marginLeft: z.number().min(0).max(2000).optional().describe('Left margin in points.'),
+  marginRight: z.number().min(0).max(2000).optional().describe('Right margin in points.'),
+}
+
+export const docsBookmarksListSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+}
+
+export const docsBookmarkCreateSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  paragraphIndex: z.number().int().min(0).describe('Paragraph index where the bookmark should be placed.'),
+  offset: z.number().int().min(0).default(0).optional().describe('Character offset within the paragraph text.'),
+}
+
+export const docsBookmarkDeleteSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  bookmarkId: z.string().min(1).describe('Bookmark ID to delete.'),
+  ...confirmationSchema,
+}
+
+export const docsNamedRangesListSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  name: z.string().min(1).optional().describe('Optional named range name filter.'),
+}
+
+export const docsNamedRangeCreateSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  name: z.string().min(1).max(256).describe('Named range name.'),
+  paragraphIndex: z.number().int().min(0).describe('Paragraph index to include in the named range.'),
+  startOffset: z.number().int().min(0).optional().describe('Start character offset for a partial paragraph range.'),
+  endOffsetInclusive: z.number().int().min(0).optional().describe('Inclusive end character offset for a partial paragraph range.'),
+}
+
+export const docsNamedRangeDeleteSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+  namedRangeId: z.string().min(1).describe('Named range ID to delete.'),
+  ...confirmationSchema,
+}
+
+export const docsTableOfContentsListSchema = {
+  documentId: docsDocumentIdSchema.describe('Document ID.'),
+}
+
 const withoutDocumentId = (schema: ToolSchema) => omitSchemaKeys(schema, ['documentId'])
 
 export const docsBatchSchema = {
@@ -1438,5 +1552,14 @@ export const docsBatchSchema = {
     batchOperationSchema('formatText', withoutDocumentId(docsFormatTextSchema)),
     batchOperationSchema('headerSet', withoutDocumentId(docsHeaderFooterSchema)),
     batchOperationSchema('footerSet', withoutDocumentId(docsHeaderFooterSchema)),
+    batchOperationSchema('pageSetupGet', withoutDocumentId(docsPageSetupGetSchema)),
+    batchOperationSchema('pageSetupUpdate', withoutDocumentId(docsPageSetupUpdateSchema)),
+    batchOperationSchema('bookmarksList', withoutDocumentId(docsBookmarksListSchema)),
+    batchOperationSchema('bookmarkCreate', withoutDocumentId(docsBookmarkCreateSchema)),
+    batchOperationSchema('bookmarkDelete', withoutDocumentId(docsBookmarkDeleteSchema)),
+    batchOperationSchema('namedRangesList', withoutDocumentId(docsNamedRangesListSchema)),
+    batchOperationSchema('namedRangeCreate', withoutDocumentId(docsNamedRangeCreateSchema)),
+    batchOperationSchema('namedRangeDelete', withoutDocumentId(docsNamedRangeDeleteSchema)),
+    batchOperationSchema('tableOfContentsList', withoutDocumentId(docsTableOfContentsListSchema)),
   ])).min(1).max(20).describe('Ordered list of validated Docs operations. documentCreate is excluded because batches target one existing document.'),
 }

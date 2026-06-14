@@ -4,6 +4,7 @@ const SlidesService = (() => {
     presentationGet: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     slideElementsList: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     elementGetText: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementGet: { class: 'read', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     presentationCreate: { class: 'write' },
     slideAdd: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     slideDuplicate: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
@@ -15,6 +16,11 @@ const SlidesService = (() => {
     slideNotes: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     textReplaceAll: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     elementFormatText: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementGeometryUpdate: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementTransformUpdate: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementAltTextSet: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementLinkSet: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
+    elementReorder: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     slideBackground: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     lineInsert: { class: 'write', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
     slideDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_PRESENTATION_IDS', params: ['presentationId'] }] },
@@ -28,6 +34,8 @@ const SlidesService = (() => {
     imageInsert: true, shapeInsert: true, tableInsert: true,
     slideElementsList: true, slideNotes: true, textReplaceAll: true,
     elementDelete: true, elementGetText: true, elementFormatText: true,
+    elementGet: true, elementGeometryUpdate: true, elementTransformUpdate: true,
+    elementAltTextSet: true, elementLinkSet: true, elementReorder: true,
     slideBackground: true, lineInsert: true,
   }
 
@@ -67,7 +75,8 @@ const SlidesService = (() => {
     slideDuplicate, slideMove, textBoxInsert, imageInsert, shapeInsert,
     tableInsert, slideElementsList, slideNotes, textReplaceAll,
     elementDelete, elementGetText, elementFormatText, slideBackground,
-    lineInsert,
+    lineInsert, elementGet, elementGeometryUpdate, elementTransformUpdate,
+    elementAltTextSet, elementLinkSet, elementReorder,
     batch: function(params) { return runBatch(handle)(params); },
   }
 
@@ -291,14 +300,52 @@ const SlidesService = (() => {
   }
 
   function elementToJSON(el) {
-    return {
+    const info = {
       objectId: el.getObjectId(),
       type: el.getPageElementType().toString(),
       left: el.getLeft(),
       top: el.getTop(),
       width: el.getWidth(),
       height: el.getHeight(),
+      rotation: safeCall(function() { return el.getRotation(); }, null),
+      title: safeCall(function() { return el.getTitle(); }, null),
+      description: safeCall(function() { return el.getDescription(); }, null),
+      link: elementLinkToJSON(el),
     };
+    return info;
+  }
+
+  function safeCall(fn, fallback) {
+    try { return fn(); } catch (e) { return fallback; }
+  }
+
+  function elementLinkToJSON(el) {
+    return safeCall(function() {
+      const target = linkTargetForElement(el);
+      const link = target && target.getLink ? target.getLink() : null;
+      if (!link) return null;
+      return {
+        url: safeCall(function() { return link.getUrl(); }, null),
+        slideId: safeCall(function() { return link.getSlideId(); }, null),
+        slideIndex: safeCall(function() { return link.getSlideIndex(); }, null),
+        type: safeCall(function() { return link.getLinkType().toString(); }, null),
+      };
+    }, null);
+  }
+
+  function linkTargetForElement(el) {
+    const candidates = [];
+    const type = el.getPageElementType();
+    try { if (type === SlidesApp.PageElementType.SHAPE && el.asShape) candidates.push(el.asShape()); } catch (e) {}
+    try { if (type === SlidesApp.PageElementType.IMAGE && el.asImage) candidates.push(el.asImage()); } catch (e) {}
+    try { if (type === SlidesApp.PageElementType.LINE && el.asLine) candidates.push(el.asLine()); } catch (e) {}
+    try { if (type === SlidesApp.PageElementType.VIDEO && el.asVideo) candidates.push(el.asVideo()); } catch (e) {}
+    candidates.push(el);
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      if (candidate && (candidate.getLink || candidate.setLinkUrl || candidate.removeLink)) return candidate;
+    }
+    return null;
   }
 
   function findElement(slide, objectId) {
@@ -306,6 +353,20 @@ const SlidesService = (() => {
       if (el.getObjectId() === objectId) return el;
     }
     return null;
+  }
+
+  function resolveElement(presentationId, slideIndex, objectId) {
+    const r = resolveSlide(presentationId, slideIndex);
+    if (r.err) return r;
+    const el = findElement(r.slide, objectId);
+    if (!el) return { err: 'NOT_FOUND', msg: `Element not found: ${objectId}` };
+    return { pres: r.pres, slide: r.slide, el };
+  }
+
+  function requireFiniteNumber(params, name) {
+    const value = Number(params[name]);
+    if (!isFinite(value)) throw new Error(`${name} must be a finite number`);
+    return value;
   }
 
   function resolveLineType(lineType) {
@@ -768,6 +829,21 @@ const SlidesService = (() => {
     );
   }
 
+  function elementGet(params) {
+    const id = requireParam(params, 'presentationId');
+    const slideIndex = requireParam(params, 'slideIndex');
+    const objectId = requireParam(params, 'objectId');
+
+    const r = resolveElement(id, slideIndex, objectId);
+    if (r.err) return err(r.err, r.msg);
+
+    return trap(
+      () => ({ slideIndex, element: elementToJSON(r.el) }),
+      'READ_FAILED',
+      (e) => `Could not read element: ${e.message}`
+    );
+  }
+
   function elementFormatText(params) {
     const id = requireParam(params, 'presentationId');
     const slideIndex = requireParam(params, 'slideIndex');
@@ -814,6 +890,154 @@ const SlidesService = (() => {
       },
       'FORMAT_FAILED',
       (e) => `Could not format element text: ${e.message}`
+    );
+  }
+
+  function elementGeometryUpdate(params) {
+    const id = requireParam(params, 'presentationId');
+    const slideIndex = requireParam(params, 'slideIndex');
+    const objectId = requireParam(params, 'objectId');
+
+    const r = resolveElement(id, slideIndex, objectId);
+    if (r.err) return err(r.err, r.msg);
+
+    return trap(
+      () => {
+        const changes = [];
+        if (params.left !== undefined) { r.el.setLeft(requireFiniteNumber(params, 'left')); changes.push('left'); }
+        if (params.top !== undefined) { r.el.setTop(requireFiniteNumber(params, 'top')); changes.push('top'); }
+        if (params.width !== undefined) {
+          const width = requireFiniteNumber(params, 'width');
+          if (width <= 0) throw new Error('width must be positive');
+          r.el.setWidth(width);
+          changes.push('width');
+        }
+        if (params.height !== undefined) {
+          const height = requireFiniteNumber(params, 'height');
+          if (height <= 0) throw new Error('height must be positive');
+          r.el.setHeight(height);
+          changes.push('height');
+        }
+        if (params.rotation !== undefined) { r.el.setRotation(requireFiniteNumber(params, 'rotation')); changes.push('rotation'); }
+        if (changes.length === 0) return err('BAD_REQUEST', 'Provide at least one geometry field to update');
+        return { slideIndex, changes, element: elementToJSON(r.el) };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not update element geometry: ${e.message}`
+    );
+  }
+
+  function elementTransformUpdate(params) {
+    const id = requireParam(params, 'presentationId');
+    const slideIndex = requireParam(params, 'slideIndex');
+    const objectId = requireParam(params, 'objectId');
+    const applyMode = optionalString(params, 'applyMode', 'ABSOLUTE');
+    const unit = optionalString(params, 'unit', 'PT');
+
+    if (applyMode !== 'ABSOLUTE' && applyMode !== 'RELATIVE') return err('BAD_REQUEST', 'applyMode must be ABSOLUTE or RELATIVE');
+    if (unit !== 'PT' && unit !== 'EMU') return err('BAD_REQUEST', 'unit must be PT or EMU');
+
+    const r = resolveElement(id, slideIndex, objectId);
+    if (r.err) return err(r.err, r.msg);
+
+    return trap(
+      () => {
+        const transform = {
+          scaleX: params.scaleX !== undefined ? requireFiniteNumber(params, 'scaleX') : 1,
+          scaleY: params.scaleY !== undefined ? requireFiniteNumber(params, 'scaleY') : 1,
+          shearX: params.shearX !== undefined ? requireFiniteNumber(params, 'shearX') : 0,
+          shearY: params.shearY !== undefined ? requireFiniteNumber(params, 'shearY') : 0,
+          translateX: params.translateX !== undefined ? requireFiniteNumber(params, 'translateX') : 0,
+          translateY: params.translateY !== undefined ? requireFiniteNumber(params, 'translateY') : 0,
+          unit,
+        };
+        Slides.Presentations.batchUpdate({
+          requests: [{ updatePageElementTransform: { objectId, applyMode, transform } }],
+        }, id);
+        const refreshed = resolveElement(id, slideIndex, objectId);
+        return { slideIndex, objectId, applyMode, transform, element: refreshed.el ? elementToJSON(refreshed.el) : elementToJSON(r.el) };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not update element transform: ${e.message}`
+    );
+  }
+
+  function elementAltTextSet(params) {
+    const id = requireParam(params, 'presentationId');
+    const slideIndex = requireParam(params, 'slideIndex');
+    const objectId = requireParam(params, 'objectId');
+
+    const r = resolveElement(id, slideIndex, objectId);
+    if (r.err) return err(r.err, r.msg);
+
+    return trap(
+      () => {
+        const changes = [];
+        if (params.title !== undefined) { r.el.setTitle(String(params.title)); changes.push('title'); }
+        if (params.description !== undefined) { r.el.setDescription(String(params.description)); changes.push('description'); }
+        if (changes.length === 0) return err('BAD_REQUEST', 'Provide title and/or description');
+        return { slideIndex, changes, element: elementToJSON(r.el) };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not set element alt text: ${e.message}`
+    );
+  }
+
+  function elementLinkSet(params) {
+    const id = requireParam(params, 'presentationId');
+    const slideIndex = requireParam(params, 'slideIndex');
+    const objectId = requireParam(params, 'objectId');
+    const clear = optionalBool(params, 'clear', false);
+    const hasUrl = params.linkUrl !== undefined;
+    const hasTargetSlide = params.targetSlideIndex !== undefined;
+    const choices = (clear ? 1 : 0) + (hasUrl ? 1 : 0) + (hasTargetSlide ? 1 : 0);
+    if (choices !== 1) return err('BAD_REQUEST', 'Provide exactly one of clear, linkUrl, or targetSlideIndex');
+
+    const r = resolveElement(id, slideIndex, objectId);
+    if (r.err) return err(r.err, r.msg);
+
+    return trap(
+      () => {
+        const target = linkTargetForElement(r.el);
+        if (!target) return err('BAD_REQUEST', `Element type does not support links: ${objectId}`);
+        if (clear) {
+          target.removeLink();
+        } else if (hasUrl) {
+          target.setLinkUrl(String(params.linkUrl));
+        } else {
+          const targetIndex = Number(params.targetSlideIndex);
+          if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= r.pres.getSlides().length) throw new Error('targetSlideIndex out of range');
+          target.setLinkSlide(r.pres.getSlides()[targetIndex]);
+        }
+        return { slideIndex, element: elementToJSON(r.el) };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not set element link: ${e.message}`
+    );
+  }
+
+  function elementReorder(params) {
+    const id = requireParam(params, 'presentationId');
+    const slideIndex = requireParam(params, 'slideIndex');
+    const objectId = requireParam(params, 'objectId');
+    const operation = requireParam(params, 'operation');
+
+    const r = resolveElement(id, slideIndex, objectId);
+    if (r.err) return err(r.err, r.msg);
+
+    return trap(
+      () => {
+        switch (operation) {
+          case 'BRING_FORWARD': r.el.bringForward(); break;
+          case 'BRING_TO_FRONT': r.el.bringToFront(); break;
+          case 'SEND_BACKWARD': r.el.sendBackward(); break;
+          case 'SEND_TO_BACK': r.el.sendToBack(); break;
+          default: return err('BAD_REQUEST', `Unknown z-order operation: ${operation}`);
+        }
+        return { slideIndex, operation, element: elementToJSON(r.el) };
+      },
+      'UPDATE_FAILED',
+      (e) => `Could not reorder element: ${e.message}`
     );
   }
 
