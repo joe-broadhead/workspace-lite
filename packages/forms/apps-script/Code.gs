@@ -2,6 +2,7 @@ const TOKEN_ENV_NAME = 'GOOGLE_WORKSPACE_FORMS_PROXY_TOKEN'
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.bootstrap === '1') {
+    if (isRateLimited(20, 1)) return respond(err('RATE_LIMITED', 'Too many bootstrap attempts. Try again in 60 seconds.'))
     return respond(bootstrapProxy(e, TOKEN_ENV_NAME))
   }
   return respond(ok({ status: 'healthy', version: '1.0.0', service: 'google-workspace-proxy-forms' }))
@@ -9,7 +10,7 @@ function doGet(e) {
 
 function clientInputErrorMessage_(ex) {
   const message = ex && ex.message ? String(ex.message) : ''
-  if (/^(Missing required parameter:|Invalid [A-Za-z0-9 _@.-]+:|Invalid [A-Za-z0-9 ]+ ID:|Invalid access or permission:|No changes specified|width must be positive|height must be positive|targetSlideIndex out of range)/.test(message)) return message
+  if (/^(Missing required parameter:|Invalid [A-Za-z0-9 _@.-]+:|Invalid [A-Za-z0-9 ]+ ID:|Invalid access or permission:|No changes specified)/.test(message)) return message
   if (/^[A-Za-z0-9_ .-]+ must be a finite number$/.test(message)) return message
   return null
 }

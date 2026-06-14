@@ -2,6 +2,7 @@ const TOKEN_ENV_NAME = 'GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN'
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.bootstrap === '1') {
+    if (isRateLimited(20, 1)) return respond(err('RATE_LIMITED', 'Too many bootstrap attempts. Try again in 60 seconds.'))
     return respond(bootstrapProxy(e, TOKEN_ENV_NAME))
   }
   return respond(ok({ status: 'healthy', version: '1.0.0', service: 'google-workspace-proxy-slides' }))

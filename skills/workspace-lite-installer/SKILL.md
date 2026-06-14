@@ -1,6 +1,6 @@
 ---
 name: workspace-lite-installer
-version: 1.0.0
+version: 0.1.0
 description: "workspace-lite installer/operator: Use when helping a user install, configure, push, deploy, redeploy, or troubleshoot the Workspace Lite Google Workspace MCP servers, Apps Script web apps, clasp, tokens, or OpenCode config."
 metadata:
   requires:
@@ -57,7 +57,7 @@ The shared template lives at `shared/apps-script/Auth.gs` — when changing `DEF
 
 The workspace-lite repo ships a `scripts/setup.sh` that handles initial setup. All `scripts/` paths below are relative to the repo root.
 
-1. Confirm prerequisites (`node` >= 16, `npm`, `clasp`):
+1. Confirm prerequisites (`node` >= 20, `npm`, `clasp`):
    ```bash
    node --version
    npm --version

@@ -132,7 +132,7 @@ const SheetsService = (() => {
     for (let i = 0; i < values.length; i++) {
       const row = Array.isArray(values[i]) ? values[i] : [];
       for (let j = 0; j < row.length; j++) {
-        if (typeof row[j] === 'string' && /^[=+\-@]/.test(row[j].trim())) {
+        if (typeof row[j] === 'string' && /^[=+\-@]/.test(row[j].replace(/^[\s\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/, ''))) {
           return err('BAD_REQUEST', `${action} values cannot start with formula metacharacters. Use sheets_set_formula for formulas.`);
         }
       }

@@ -106,6 +106,7 @@ const DocsService = (() => {
 
   function parseHttpsUrl(value) {
     const url = String(value || '').trim();
+    if (/^https:\/\/[^\s\/?#]*@/.test(url)) return null;
     const match = url.match(/^https:\/\/([^\s\/?#@:]+)(?::\d+)?(?:[\/?#]|$)/i);
     if (!match) return null;
     return { url: url, hostname: match[1].toLowerCase() };

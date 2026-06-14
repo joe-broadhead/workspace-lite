@@ -6,13 +6,7 @@ function policyError_(code, message) {
 
 function isActionConfirmed_(params) {
   if (!params) return false
-  const value = params.confirm !== undefined ? params.confirm : params.confirmation
-  if (value === true) return true
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase()
-    return normalized === 'true' || normalized === 'confirm' || normalized === 'confirmed'
-  }
-  return false
+  return params.confirm === true
 }
 
 function policyClassAllowed_(context, actionClass, policy) {
