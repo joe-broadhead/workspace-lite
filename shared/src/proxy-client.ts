@@ -66,6 +66,8 @@ const ACTION_TOKEN_CLASSES: Record<string, Record<string, TokenClass>> = {
     createDraftReplyAll: 'write',
     untrashMessage: 'write',
     untrashThread: 'write',
+    filtersCreate: 'write',
+    vacationUpdate: 'write',
     send: 'send',
     sendDraft: 'send',
     reply: 'send',
@@ -75,6 +77,7 @@ const ACTION_TOKEN_CLASSES: Record<string, Record<string, TokenClass>> = {
     trashThread: 'destructive',
     deleteMessage: 'destructive',
     deleteDraft: 'destructive',
+    filtersDelete: 'destructive',
   },
   sheets: {
     spreadsheetCreate: 'write',

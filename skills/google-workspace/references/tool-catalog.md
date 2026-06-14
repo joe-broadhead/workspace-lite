@@ -32,7 +32,7 @@
 | Quota | `drive_about` | none |
 | **Batch** | `drive_batch` | `operations` — array of `{action, params}`, up to 20. Same action names as individual tools. Executes sequentially; errors collected per-operation. |
 
-## Gmail — 33 tools
+## Gmail — 39 tools
 
 **Read:**
 | Tool | Params |
@@ -73,6 +73,16 @@
 | `gmail_star` / `gmail_unstar` | `messageId` |
 | `gmail_add_label` / `gmail_remove_label` | `messageId`, `labelName` |
 | `gmail_batch_modify` | `messageIds` (array), `addLabels?` (array), `removeLabels?` (array) — bulk label changes |
+
+**Settings:**
+| Tool | Params |
+|---|---|
+| `gmail_list_filters` | none |
+| `gmail_get_filter` | `filterId` |
+| `gmail_create_filter` | criteria: `from?`, `to?`, `subject?`, `query?`, `negatedQuery?`, `hasAttachment?`, `excludeChats?`, `size?`, `sizeComparison?` (`smaller`/`larger`); actions: `addLabels?`, `removeLabels?`, `forward?`; `idempotencyKey?`, `confirm?` |
+| `gmail_delete_filter` | `filterId`, `confirm` |
+| `gmail_get_vacation_responder` | none |
+| `gmail_update_vacation_responder` | `enableAutoReply?`, `responseSubject?`, `responseBodyPlainText?`, `responseBodyHtml?`, `restrictToContacts?`, `restrictToDomain?`, `startTime?`, `endTime?`, `clearStartTime?`, `clearEndTime?`, `confirm?` |
 
 **Trash:**
 | Tool | Params |

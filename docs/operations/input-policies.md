@@ -24,7 +24,7 @@ Fetched image responses must return a 2xx HTTP status, an `image/*` content type
 
 ## Email And Sharing Allowlists
 
-Gmail send/reply/forward actions can be restricted with recipient allowlists:
+Gmail send/reply/forward actions and forwarding filters can be restricted with recipient allowlists:
 
 | Property | Behavior |
 |---|---|
@@ -38,7 +38,7 @@ Drive public sharing is opt-in. Public access levels such as `ANYONE` and `ANYON
 | `ALLOW_PUBLIC_DRIVE_SHARING` | Enables public Drive sharing actions. |
 | `ALLOW_PUBLIC_SHARING` | Backward-compatible shared switch for public sharing. |
 
-Share and send classes still require `confirm=true` after explicit user approval.
+Share and send classes still require `confirm=true` after explicit user approval. Gmail forwarding filters and enabled vacation responder updates also require `confirm=true` because they can send or redirect future email.
 
 ## Formula Injection
 

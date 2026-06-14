@@ -5,6 +5,7 @@ import { registerGmailWriteTools } from './gmail-write.js'
 import { registerGmailDraftTools } from './gmail-drafts.js'
 import { registerGmailReplyTools } from './gmail-reply.js'
 import { registerGmailManageTools } from './gmail-manage.js'
+import { registerGmailSettingsTools } from './gmail-settings.js'
 import { registerGmailBatchTool } from './gmail-batch.js'
 
 export function registerGmailTools(server: ToolServer) {
@@ -14,5 +15,6 @@ export function registerGmailTools(server: ToolServer) {
   registerGmailDraftTools(server)
   registerGmailReplyTools(server)
   registerGmailManageTools(server)
+  registerGmailSettingsTools(server)
   registerGmailBatchTool(server)
 }

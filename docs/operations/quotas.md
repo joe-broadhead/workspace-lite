@@ -64,6 +64,7 @@ The proxy rejects requests before or immediately after bounded API calls when th
 | Message/draft body field | 100,000 characters |
 | Attachment bytes | 5,000,000 bytes |
 | `gmail_batch_modify` message IDs | 500 |
+| Gmail filters per account | 1,000 (Gmail API limit) |
 | Total response payload | 1,000,000 JSON characters |
 
 ### Calendar Proxy

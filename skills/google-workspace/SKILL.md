@@ -1,7 +1,7 @@
 ---
 name: google-workspace
 version: 1.0.0
-description: "Google Workspace automation: Drive (29 tools), Gmail (33), Calendar (15), Sheets (27), Slides (19), Docs (17), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
+description: "Google Workspace automation: Drive (29 tools), Gmail (39), Calendar (15), Sheets (27), Slides (19), Docs (17), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
 metadata:
   requires:
     bins: []
@@ -19,6 +19,8 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `
 | Draft reply | `gmail_create_draft_reply` (threaded) — never send without review |
 | Get attachment | `gmail_get_message` → `gmail_get_attachment` |
 | Bulk labels | `gmail_batch_modify` for mass archive/label/mark-read |
+| Manage filters | `gmail_list_filters` → `gmail_create_filter` / `gmail_delete_filter` |
+| Vacation reply | `gmail_get_vacation_responder` → `gmail_update_vacation_responder` |
 | Find files | `drive_search_files` (by name, fullText, mimeType) |
 | Read file | `drive_read_file` (returns content, truncated at 500KB) |
 | Export file | `drive_export_as` — PDF, DOCX, XLSX, CSV from Workspace files |
@@ -58,6 +60,7 @@ Read the relevant reference file before executing complex multi-tool workflows.
 
 - **Never send** email without explicit approval — always draft first
 - **Never delete/trash** files, emails, or events without confirmation
+- **Never create forwarding filters** or enable/change an enabled vacation responder without confirmation
 - **Never create** calendar events without suggesting a time and getting approval
 - **Never `sheets_delete_sheet`**, `sheets_clear_range`, or `sheets_delete_rows` without confirmation
 - **Never `drive_remove_parent`**, `drive_remove_editor` / `drive_remove_viewer` without confirmation

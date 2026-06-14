@@ -174,6 +174,12 @@ The `action` field in each operation uses the **same names as the individual too
 | `gmail_forward` | `forward` |
 | `gmail_get_attachment` | `attachmentGet` |
 | `gmail_batch_modify` | `batchModify` |
+| `gmail_list_filters` | `filtersList` |
+| `gmail_get_filter` | `filtersGet` |
+| `gmail_create_filter` | `filtersCreate` |
+| `gmail_delete_filter` | `filtersDelete` |
+| `gmail_get_vacation_responder` | `vacationGet` |
+| `gmail_update_vacation_responder` | `vacationUpdate` |
 
 ### Calendar
 

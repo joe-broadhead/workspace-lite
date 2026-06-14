@@ -9,6 +9,9 @@ const GmailService = (() => {
     listDrafts: { class: 'read' },
     getDraft: { class: 'read' },
     attachmentGet: { class: 'read' },
+    filtersList: { class: 'read' },
+    filtersGet: { class: 'read' },
+    vacationGet: { class: 'read' },
     markRead: { class: 'write' },
     markUnread: { class: 'write' },
     archive: { class: 'write' },
@@ -17,6 +20,8 @@ const GmailService = (() => {
     addLabel: { class: 'write' },
     removeLabel: { class: 'write' },
     batchModify: { class: 'write' },
+    filtersCreate: { class: 'write', recipientParams: ['forward'] },
+    vacationUpdate: { class: 'write' },
     createDraft: { class: 'write', allowDraftToken: true, recipientParams: ['to', 'cc', 'bcc'] },
     updateDraft: { class: 'write', allowDraftToken: true, recipientParams: ['to', 'cc', 'bcc'] },
     createDraftReply: { class: 'write', allowDraftToken: true },
@@ -32,6 +37,7 @@ const GmailService = (() => {
     trashThread: { class: 'destructive' },
     deleteMessage: { class: 'destructive' },
     deleteDraft: { class: 'destructive' },
+    filtersDelete: { class: 'destructive' },
     batch: { class: 'read' },
   }
 
@@ -44,7 +50,9 @@ const GmailService = (() => {
     sendDraft: true, reply: true, replyAll: true, forward: true,
     createDraftReply: true, createDraftReplyAll: true, trashMessage: true,
     untrashMessage: true, trashThread: true, untrashThread: true,
-    deleteMessage: true, batchModify: true,
+    deleteMessage: true, batchModify: true, filtersList: true,
+    filtersGet: true, filtersCreate: true, filtersDelete: true,
+    vacationGet: true, vacationUpdate: true,
   }
 
   const LIMITS = {
@@ -185,7 +193,11 @@ const GmailService = (() => {
     catch (e) {
       const correlationId = Utilities.getUuid();
       console.error('[gmail-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
-      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
+      let message = `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
+      if (typeof errorMsg === 'string') message = errorMsg;
+      if (typeof errorMsg === 'function') {
+        try { message = errorMsg(e) || message; } catch (_) { /* keep generic fallback */ }
+      }
       return err(errorCode, message, correlationId);
     }
   }
@@ -298,6 +310,145 @@ const GmailService = (() => {
       names.push(value);
     }
     return { ids: ids, names: names };
+  }
+
+  function hasParam(params, name) {
+    return Object.prototype.hasOwnProperty.call(params || {}, name);
+  }
+
+  function labelMapById() {
+    const labels = listGmailApiLabels();
+    const byId = {};
+    for (let i = 0; i < labels.length; i++) {
+      const label = labels[i];
+      if (label && label.id) byId[label.id] = label.name || label.id;
+    }
+    return byId;
+  }
+
+  function filterToJSON(filter, labelsById) {
+    const action = (filter && filter.action) || {};
+    const resultAction = {};
+    if (Array.isArray(action.addLabelIds)) {
+      resultAction.addLabelIds = action.addLabelIds;
+      resultAction.addLabels = action.addLabelIds.map(function(id) { return labelsById[id] || id; });
+    }
+    if (Array.isArray(action.removeLabelIds)) {
+      resultAction.removeLabelIds = action.removeLabelIds;
+      resultAction.removeLabels = action.removeLabelIds.map(function(id) { return labelsById[id] || id; });
+    }
+    if (action.forward) resultAction.forward = action.forward;
+    return {
+      id: filter && filter.id,
+      criteria: (filter && filter.criteria) || {},
+      action: resultAction,
+    };
+  }
+
+  function buildFilterResource(params) {
+    const criteria = {};
+    ['from', 'to', 'subject', 'query', 'negatedQuery'].forEach(function(name) {
+      const value = optionalString(params, name);
+      if (value) criteria[name] = value;
+    });
+    if (hasParam(params, 'hasAttachment')) criteria.hasAttachment = optionalBool(params, 'hasAttachment', false);
+    if (hasParam(params, 'excludeChats')) criteria.excludeChats = optionalBool(params, 'excludeChats', false);
+
+    const hasSize = hasParam(params, 'size');
+    if (hasSize) {
+      const size = optionalNumber(params, 'size');
+      if (!Number.isFinite(size) || size < 0 || Math.floor(size) !== size) return { error: err('BAD_REQUEST', 'size must be a non-negative integer') };
+      criteria.size = size;
+    }
+    const sizeComparison = optionalString(params, 'sizeComparison');
+    if (sizeComparison) {
+      if (sizeComparison !== 'smaller' && sizeComparison !== 'larger') return { error: err('BAD_REQUEST', 'sizeComparison must be smaller or larger') };
+      criteria.sizeComparison = sizeComparison;
+    }
+    if ((hasSize && !sizeComparison) || (!hasSize && sizeComparison)) return { error: err('BAD_REQUEST', 'size and sizeComparison must be provided together') };
+    if (Object.keys(criteria).length === 0) return { error: err('BAD_REQUEST', 'At least one filter criterion must be provided') };
+
+    const action = {};
+    const add = resolveGmailLabelIds(params.addLabels, true);
+    if (add.error) return { error: add.error };
+    if (add.ids.length > 0) action.addLabelIds = add.ids;
+
+    const remove = resolveGmailLabelIds(params.removeLabels, false);
+    if (remove.error) return { error: remove.error };
+    if (remove.ids.length > 0) action.removeLabelIds = remove.ids;
+
+    const forward = optionalString(params, 'forward');
+    if (forward) {
+      if (!isActionConfirmed_(params)) return { error: err('CONFIRMATION_REQUIRED', 'Creating a forwarding filter requires params.confirm=true after explicit user approval') };
+      action.forward = forward;
+    }
+
+    if (Object.keys(action).length === 0) return { error: err('BAD_REQUEST', 'At least one filter action must be provided') };
+    return { filter: { criteria: criteria, action: action } };
+  }
+
+  function vacationToJSON(settings) {
+    const result = {};
+    ['enableAutoReply', 'responseSubject', 'responseBodyPlainText', 'responseBodyHtml', 'restrictToContacts', 'restrictToDomain', 'startTime', 'endTime'].forEach(function(name) {
+      if (settings && settings[name] !== undefined && settings[name] !== null) result[name] = settings[name];
+    });
+    return result;
+  }
+
+  function normalizeVacationTime(params, name) {
+    if (!hasParam(params, name)) return { present: false };
+    const raw = params[name];
+    let value;
+    if (typeof raw === 'number') {
+      value = raw;
+    } else {
+      const text = String(raw || '').trim();
+      if (!text) return { error: err('BAD_REQUEST', name + ' must be an epoch milliseconds value or ISO datetime string') };
+      value = /^\d+$/.test(text) ? Number(text) : Date.parse(text);
+    }
+    if (!Number.isFinite(value) || value < 0) return { error: err('BAD_REQUEST', name + ' must be a valid non-negative time') };
+    return { present: true, value: String(Math.floor(value)) };
+  }
+
+  function buildVacationResource(params, current) {
+    const resource = vacationToJSON(current || {});
+    ['enableAutoReply', 'restrictToContacts', 'restrictToDomain'].forEach(function(name) {
+      if (hasParam(params, name)) resource[name] = optionalBool(params, name, false);
+    });
+    ['responseSubject', 'responseBodyPlainText', 'responseBodyHtml'].forEach(function(name) {
+      if (hasParam(params, name)) resource[name] = String(params[name] || '');
+    });
+
+    if (optionalBool(params, 'clearStartTime', false)) delete resource.startTime;
+    else {
+      const start = normalizeVacationTime(params, 'startTime');
+      if (start.error) return { error: start.error };
+      if (start.present) resource.startTime = start.value;
+    }
+
+    if (optionalBool(params, 'clearEndTime', false)) delete resource.endTime;
+    else {
+      const end = normalizeVacationTime(params, 'endTime');
+      if (end.error) return { error: end.error };
+      if (end.present) resource.endTime = end.value;
+    }
+
+    if (resource.startTime !== undefined && resource.endTime !== undefined && Number(resource.startTime) >= Number(resource.endTime)) {
+      return { error: err('BAD_REQUEST', 'startTime must be before endTime') };
+    }
+
+    if (resource.enableAutoReply === true) {
+      const subject = String(resource.responseSubject || '').trim();
+      const plain = String(resource.responseBodyPlainText || '').trim();
+      const html = String(resource.responseBodyHtml || '').trim();
+      if (!subject && !plain && !html) return { error: err('BAD_REQUEST', 'Enabling auto-reply requires responseSubject, responseBodyPlainText, or responseBodyHtml') };
+    }
+
+    return { resource: resource };
+  }
+
+  function sameVacationSettings(left, right) {
+    return JSON.stringify(vacationToJSON(left || {})) === JSON.stringify(vacationToJSON(right || {}));
   }
 
   function getAttachments(msg) {
@@ -843,6 +994,65 @@ const GmailService = (() => {
     }
   }
 
+  // ─── SETTINGS ───
+
+  function filtersList() {
+    return trap(function() {
+      const labelsById = labelMapById();
+      const response = Gmail.Users.Settings.Filters.list('me');
+      const filters = response && Array.isArray(response.filter) ? response.filter : [];
+      return filters.map(function(filter) { return filterToJSON(filter, labelsById); });
+    }, 'FILTERS_LIST_FAILED', function(e) { return e.message || 'Could not list Gmail filters.'; });
+  }
+
+  function filtersGet(params) {
+    const id = requireParam(params, 'filterId');
+    return trap(function() {
+      const labelsById = labelMapById();
+      const filter = Gmail.Users.Settings.Filters.get('me', id);
+      return { filter: filterToJSON(filter, labelsById) };
+    }, 'NOT_FOUND', function(e) { return e.message || `Filter not found: ${id}`; });
+  }
+
+  function filtersCreate(params) {
+    return withIdempotency('filtersCreate', params, function() { return trap(function() {
+      const built = buildFilterResource(params || {});
+      if (built.error) return built.error;
+      const created = Gmail.Users.Settings.Filters.create(built.filter, 'me');
+      return { filter: filterToJSON(created, labelMapById()) };
+    }, 'FILTER_CREATE_FAILED', function(e) { return e.message || 'Could not create Gmail filter.'; }); });
+  }
+
+  function filtersDelete(params) {
+    const id = requireParam(params, 'filterId');
+    return trap(function() {
+      Gmail.Users.Settings.Filters.remove('me', id);
+      return { deleted: true, filterId: id };
+    }, 'FILTER_DELETE_FAILED', function(e) { return e.message || `Could not delete Gmail filter: ${id}`; });
+  }
+
+  function vacationGet() {
+    return trap(function() {
+      return { vacation: vacationToJSON(Gmail.Users.Settings.getVacation('me') || {}) };
+    }, 'VACATION_GET_FAILED', function(e) { return e.message || 'Could not get Gmail vacation responder settings.'; });
+  }
+
+  function vacationUpdate(params) {
+    return trap(function() {
+      const current = Gmail.Users.Settings.getVacation('me') || {};
+      const built = buildVacationResource(params || {}, current);
+      if (built.error) return built.error;
+
+      const willAutoReply = built.resource.enableAutoReply === true;
+      if (willAutoReply && !sameVacationSettings(current, built.resource) && !isActionConfirmed_(params)) {
+        return err('CONFIRMATION_REQUIRED', 'Enabling or changing an enabled vacation responder requires params.confirm=true after explicit user approval');
+      }
+
+      const updated = Gmail.Users.Settings.updateVacation(built.resource, 'me');
+      return { vacation: vacationToJSON(updated || built.resource) };
+    }, 'VACATION_UPDATE_FAILED', function(e) { return e.message || 'Could not update Gmail vacation responder settings.'; });
+  }
+
   // ─── BATCH MODIFY ───
 
   function batchModify(params) {
@@ -911,7 +1121,8 @@ const GmailService = (() => {
     createDraft, updateDraft, deleteDraft, sendDraft, reply, replyAll,
     forward: forwardMsg, createDraftReply, createDraftReplyAll,
     trashMessage, untrashMessage, trashThread, untrashThread,
-    deleteMessage, batchModify, batch,
+    deleteMessage, filtersList, filtersGet, filtersCreate, filtersDelete,
+    vacationGet, vacationUpdate, batchModify, batch,
   }
 
   return { handle: handle, requestWeight: requestWeight };

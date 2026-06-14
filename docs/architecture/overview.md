@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 169 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 175 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
@@ -45,7 +45,7 @@ workspace-lite/
 │   │   │   ├── proxy.ts        # fetch() to Apps Script with token auth, 30s timeout
 │   │   │   └── tools/          # drive-list.ts, drive-read.ts, drive-write.ts, drive-manage.ts, drive-batch.ts
 │   │   └── apps-script/        # Auth.gs, Code.gs, Response.gs, DriveService.gs, .clasp.json
-│   ├── gmail/                  # 33 tools
+│   ├── gmail/                  # 39 tools
 │   ├── calendar/               # 15 tools
 │   ├── sheets/                 # 27 tools
 │   ├── slides/                 # 19 tools

@@ -680,6 +680,48 @@ export const gmailBatchModifySchema = {
   removeLabels: z.array(z.string()).optional().describe('Label names or IDs to remove.'),
 }
 
+export const gmailFilterIdSchema = z.string().min(1).max(256).describe('Gmail filter ID.')
+export const gmailFilterLabelSchema = z.array(z.string().min(1).max(225)).max(50)
+export const gmailVacationTimeSchema = z.union([
+  z.string().min(1).max(64),
+  z.number().int().nonnegative(),
+]).describe('Vacation responder time as epoch milliseconds or an ISO datetime string.')
+
+export const gmailGetFilterSchema = { filterId: gmailFilterIdSchema }
+
+export const gmailCreateFilterSchema = {
+  from: z.string().max(320).optional().describe('Filter sender criteria. Supports display name, local part, or email address.'),
+  to: z.string().max(320).optional().describe('Filter recipient criteria. Includes to, cc, and bcc headers.'),
+  subject: z.string().max(500).optional().describe('Case-insensitive subject phrase.'),
+  query: z.string().max(1500).optional().describe('Gmail search query criteria.'),
+  negatedQuery: z.string().max(1500).optional().describe('Gmail search query that must not match.'),
+  hasAttachment: z.boolean().optional().describe('Whether matching messages must have attachments.'),
+  excludeChats: z.boolean().optional().describe('Whether matching excludes chats.'),
+  size: z.number().int().nonnegative().optional().describe('RFC822 message size in bytes.'),
+  sizeComparison: z.enum(['smaller', 'larger']).optional().describe('Whether message size must be smaller or larger than size.'),
+  addLabels: gmailFilterLabelSchema.optional().describe('Gmail label names or IDs to add when a message matches.'),
+  removeLabels: gmailFilterLabelSchema.optional().describe('Gmail label names or IDs to remove when a message matches.'),
+  forward: gmailEmailSchema.optional().describe('Verified forwarding address to receive matching messages. Requires confirm=true.'),
+  idempotencyKey: idempotencyKeySchema,
+  ...confirmationSchema,
+}
+
+export const gmailDeleteFilterSchema = { filterId: gmailFilterIdSchema, ...confirmationSchema }
+
+export const gmailUpdateVacationResponderSchema = {
+  enableAutoReply: z.boolean().optional().describe('Whether Gmail automatically replies to messages.'),
+  responseSubject: z.string().max(1000).optional().describe('Optional text prepended to vacation response subjects.'),
+  responseBodyPlainText: z.string().max(100000).optional().describe('Plain text vacation response body.'),
+  responseBodyHtml: z.string().max(200000).optional().describe('HTML vacation response body. Gmail sanitizes this before storing.'),
+  restrictToContacts: z.boolean().optional().describe('Only send responses to contacts.'),
+  restrictToDomain: z.boolean().optional().describe('Only send responses inside the account domain, when supported.'),
+  startTime: gmailVacationTimeSchema.optional(),
+  endTime: gmailVacationTimeSchema.optional(),
+  clearStartTime: z.boolean().optional().describe('Clear the stored vacation responder start time.'),
+  clearEndTime: z.boolean().optional().describe('Clear the stored vacation responder end time.'),
+  ...confirmationSchema,
+}
+
 export const gmailBatchSchema = {
   operations: z.array(z.discriminatedUnion('action', [
     batchOperationSchema('profile'),
@@ -714,6 +756,12 @@ export const gmailBatchSchema = {
     batchOperationSchema('forward', gmailForwardSchema),
     batchOperationSchema('attachmentGet', gmailAttachmentGetSchema),
     batchOperationSchema('batchModify', gmailBatchModifySchema),
+    batchOperationSchema('filtersList'),
+    batchOperationSchema('filtersGet', gmailGetFilterSchema),
+    batchOperationSchema('filtersCreate', gmailCreateFilterSchema),
+    batchOperationSchema('filtersDelete', gmailDeleteFilterSchema),
+    batchOperationSchema('vacationGet'),
+    batchOperationSchema('vacationUpdate', gmailUpdateVacationResponderSchema),
   ])).min(1).max(20).describe('Ordered list of validated Gmail operations.'),
 }
 

@@ -72,6 +72,7 @@ describe('Apps Script proxy contracts', () => {
     const safetyChecks = [
       ['packages/drive/apps-script/DriveService.gs', "fileSetSharing: { class: 'share'"],
       ['packages/gmail/apps-script/GmailService.gs', "send: { class: 'send'"],
+      ['packages/gmail/apps-script/GmailService.gs', "filtersDelete: { class: 'destructive'"],
       ['packages/calendar/apps-script/CalendarService.gs', "deleteEvent: { class: 'destructive'"],
       ['packages/sheets/apps-script/SheetsService.gs', "rangeClear: { class: 'destructive'"],
       ['packages/slides/apps-script/SlidesService.gs', "slideDelete: { class: 'destructive'"],

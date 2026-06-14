@@ -27,7 +27,7 @@ Each service gets its own project with service-specific OAuth scopes:
 | Service | Project title | OAuth scopes |
 |---------|---------------|--------------|
 | Drive | Google Workspace Proxy - Drive | `drive`, `script.external_request` |
-| Gmail | Google Workspace Proxy - Gmail | `gmail.modify`, `script.send_mail`, `script.external_request` |
+| Gmail | Google Workspace Proxy - Gmail | `gmail.modify`, `gmail.settings.basic`, `script.send_mail`, `script.external_request` |
 | Calendar | Google Workspace Proxy - Calendar | `calendar`, `script.external_request` |
 | Sheets | Google Workspace Proxy - Sheets | `spreadsheets`, `script.external_request` |
 | Slides | Google Workspace Proxy - Slides | `presentations`, `script.external_request` |

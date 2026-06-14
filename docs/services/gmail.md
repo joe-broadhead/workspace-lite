@@ -38,6 +38,12 @@ Read, send, draft, label, search, and manage email threads and messages.
 | `gmail_forward` | Forward a message to new recipients (sends immediately). |
 | `gmail_get_attachment` | Download an attachment from a Gmail message by message ID and attachment ID. |
 | `gmail_batch_modify` | Bulk label changes on multiple messages at once. |
+| `gmail_list_filters` | List Gmail filters configured for the account. |
+| `gmail_get_filter` | Retrieve one Gmail filter by ID. |
+| `gmail_create_filter` | Create a Gmail filter using Gmail API criteria and actions. |
+| `gmail_delete_filter` | Permanently delete a Gmail filter by ID. |
+| `gmail_get_vacation_responder` | Read Gmail vacation responder settings. |
+| `gmail_update_vacation_responder` | Update Gmail vacation responder settings. |
 | `gmail_batch` | Execute up to 20 Gmail operations in a single round-trip. |
 
 ## Key Features
@@ -46,6 +52,7 @@ Read, send, draft, label, search, and manage email threads and messages.
 - **Rich search and filtering** — `search_messages` and `list_threads` support Gmail query syntax plus structured filters: `from`, `to`, `subject`, `before`/`after` dates, `isUnread`, `isStarred`, and `label`.
 - **Thread-level operations** — `trash_thread`, `untrash_thread`, and `get_thread` operate on entire conversations at once, matching Gmail's thread-centric model.
 - **Full label lifecycle** — `add_label` auto-creates labels that don't exist yet; `remove_label` detaches without deleting the label itself; `list_labels` shows all available labels.
+- **Settings tools** — `gmail_create_filter` exposes documented Gmail API filter criteria and resolves `addLabels` / `removeLabels` names to label IDs. `gmail_update_vacation_responder` preserves omitted settings and accepts ISO datetimes or epoch milliseconds for `startTime` / `endTime`.
 - **Batch operations** — Use `gmail_batch` to chain up to 20 Gmail operations in a single round-trip.
 
 ## Examples
@@ -90,11 +97,43 @@ gmail_add_label({ messageId: "<msg-id>", label: "Project/Alpha" })
 gmail_archive({ messageId: "<msg-id>" })
 ```
 
+**Create and clean up a temporary filter:**
+
+```pseudo
+gmail_create_filter({
+  from: "alerts@example.com",
+  query: "subject:(temporary validation)",
+  addLabels: ["STARRED"],
+  removeLabels: ["INBOX"],
+  idempotencyKey: "gmail-filter-validation-2026-06-14"
+})
+
+gmail_delete_filter({ filterId: "<filter-id>", confirm: true })
+```
+
+**Enable a scheduled vacation responder:**
+
+```pseudo
+gmail_update_vacation_responder({
+  enableAutoReply: true,
+  responseSubject: "Out of office",
+  responseBodyPlainText: "Thanks for your message. I will reply when I return.",
+  startTime: "2026-07-01T09:00:00-05:00",
+  endTime: "2026-07-08T09:00:00-05:00",
+  confirm: true
+})
+```
+
 ## Limits & Considerations
 
 - `gmail_send`, `gmail_reply`, `gmail_reply_all`, and `gmail_forward` send immediately — prefer draft variants for safety.
+- `gmail_create_filter` supports Gmail API filter criteria: `from`, `to`, `subject`, `query`, `negatedQuery`, `hasAttachment`, `excludeChats`, `size`, and `sizeComparison`. Actions are limited by Gmail API support to `addLabels`, `removeLabels`, and `forward`.
+- Forwarding filters can redirect future matching email. They require `confirm: true`, configured recipient allowlists are enforced against `forward`, and Gmail requires the forwarding address to already be verified in account settings.
+- `gmail_update_vacation_responder` requires `confirm: true` when enabling or changing an enabled responder because it can send future auto-replies. Always capture the previous vacation settings and restore them after live validation.
+- `gmail_delete_filter` permanently deletes the filter resource and requires confirmation. For live tests, create a temporary filter with a unique query marker and delete it afterward.
 - `gmail_delete_message` moves a message to trash; Gmail permanently removes trashed messages after its retention period. Use `gmail_untrash_message` before then to restore.
-- The Gmail API enforces daily usage quotas; batch operations help reduce API calls.
+- The Gmail API enforces daily usage quotas and a maximum of 1,000 filters per account; batch operations help reduce API calls.
 - Attachments are referenced in message responses but are not downloaded inline; use Drive tools to fetch attachment content.
 - Gmail search query syntax uses operators like `from:`, `subject:`, `label:`, `has:attachment`, `is:unread`, etc. Refer to Google's Gmail search documentation for the full syntax.
+- Settings tools use the Advanced Gmail service with the documented `https://www.googleapis.com/auth/gmail.settings.basic` scope. The service does not require `https://mail.google.com/`.
 - For retry and partial-success behavior of sends, draft replacement, and `idempotencyKey`, see [Mutation Safety](../operations/mutation-safety.md).
