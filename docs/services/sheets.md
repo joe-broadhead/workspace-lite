@@ -42,7 +42,7 @@ Create spreadsheets, manage sheets/tabs, read and write data, find and replace t
 
 ## Key Features
 
-- **Batch operations for compound workflows** — Use `sheets_batch` to chain up to 20 operations in a single round-trip. Combine `write_range`, `format_range`, `freeze_rows`, and `set_column_width` atomically to build styled, formatted sheets in one call.
+- **Batch operations for compound workflows** — Use `sheets_batch` to chain up to 20 operations in a single round-trip. Combine `write_range`, `format_range`, `freeze_rows`, and `set_column_width` sequentially to build styled, formatted sheets in one call. Batch execution is not atomic.
 - **Rich formatting surface** — `format_range` supports colors, fonts, alignment, number formatting, text wrapping, and customizable borders (style and color).
 - **Formula support** — `set_formula` writes formulas; `read_formulas` returns both raw formulas and computed display values for auditing.
 - **TextFinder search/replace** — `find_text` and `replace_text` expose documented Apps Script TextFinder options, including regex and formula text matching.

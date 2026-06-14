@@ -1,6 +1,6 @@
 {
   "name": "@workspace-lite/slides",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "Google Slides MCP server via Apps Script proxy",

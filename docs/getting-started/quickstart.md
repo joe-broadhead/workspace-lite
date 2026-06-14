@@ -3,7 +3,7 @@
 Verify your installation and learn the basic patterns in 5 examples.
 
 !!! tip "Prerequisites"
-    Complete the [installation](installation.md) first. All 7 MCP servers must be configured in OpenCode.
+    Complete the [installation](installation.md) first. Configure the MCP servers for the services you want to use; all 8 are needed for every example below.
 
 ---
 
@@ -251,13 +251,13 @@ Found 3 messages
 ```
 
 !!! tip "Draft-first safety"
-    `gmail_create_draft_reply` creates a draft but **does not send**. Review the draft in Gmail before calling `gmail_send_draft` to send it. This safety pattern is enforced by the agent skill &mdash; the LLM will never send email without explicit approval.
+    `gmail_create_draft_reply` creates a draft but **does not send**. Review the draft in Gmail before calling `gmail_send_draft` to send it. The agent skill instructs agents not to send email without explicit approval; direct tool callers must follow the same rule.
 
 ---
 
 ## 4. Search and Read a Drive File
 
-Find a document by name and read its contents.
+Find a text or markdown file by name and read its contents.
 
 **Step 1** &mdash; Search:
 
@@ -265,7 +265,7 @@ Find a document by name and read its contents.
 {
   "tool": "drive_search_files",
   "args": {
-    "query": "name contains 'Q2 Budget'"
+      "query": "name contains 'Q2 Notes'"
   }
 }
 ```
@@ -275,16 +275,16 @@ Find a document by name and read its contents.
 ```
 Found 1 result
 
-Q2 Budget Report (<spreadsheet-id>) — application/vnd.google-apps.spreadsheet — you
+Q2 Notes (<file-id>) — text/markdown — you
 ```
 
-**Step 2** &mdash; For a text/markdown file, read contents directly:
+**Step 2** &mdash; Read contents directly:
 
 ```json
 {
   "tool": "drive_read_file",
   "args": {
-    "fileId": "<spreadsheet-id>",
+    "fileId": "<file-id>",
     "mimeType": "text/plain"
   }
 }
@@ -296,7 +296,7 @@ Q2 Budget Report (<spreadsheet-id>) — application/vnd.google-apps.spreadsheet 
 {
   "tool": "drive_get_file",
   "args": {
-    "fileId": "<spreadsheet-id>"
+    "fileId": "<file-id>"
   }
 }
 ```
@@ -305,15 +305,15 @@ Q2 Budget Report (<spreadsheet-id>) — application/vnd.google-apps.spreadsheet 
 
 ```json
 {
-  "id": "<spreadsheet-id>",
-  "name": "Q2 Budget Report",
-  "mimeType": "application/vnd.google-apps.spreadsheet",
+  "id": "<file-id>",
+  "name": "Q2 Notes",
+  "mimeType": "text/markdown",
   "size": 24576,
   "createdTime": "2026-06-01T10:00:00Z",
   "modifiedTime": "2026-06-13T14:30:00Z",
   "owners": ["you@gmail.com"],
   "shared": false,
-  "webViewLink": "https://docs.google.com/spreadsheets/d/<spreadsheet-id>/edit"
+  "webViewLink": "https://drive.google.com/file/d/<file-id>/view"
 }
 ```
 

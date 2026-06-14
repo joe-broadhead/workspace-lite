@@ -18,7 +18,7 @@ MCP servers for Google Workspace
 
     ---
 
-    Install, deploy, and run your first tool in under 5 minutes.
+    Install, deploy through Apps Script, and run your first tool.
 
     [:octicons-arrow-right-24: Installation](getting-started/installation.md)
     [:octicons-arrow-right-24: Quickstart](getting-started/quickstart.md)
@@ -61,7 +61,7 @@ MCP servers for Google Workspace
 
     ---
 
-    Every tool signature, parameter, and expected output, per service plus batch reference.
+    Service tool listings, usage notes, examples, and batch action mappings.
 
     [:octicons-arrow-right-24: Drive](services/drive.md)
     [:octicons-arrow-right-24: Gmail](services/gmail.md)
@@ -72,6 +72,16 @@ MCP servers for Google Workspace
     [:octicons-arrow-right-24: Tasks](services/tasks.md)
     [:octicons-arrow-right-24: Forms](services/forms.md)
     [:octicons-arrow-right-24: Batch Operations](api/batch.md)
+
+-   :material-check-decagram:{ .lg .middle } __Project__
+
+    ---
+
+    Public release readiness, release process, contributing, changelog, and security policy.
+
+    [:octicons-arrow-right-24: Release Readiness](project/public-release.md)
+    [:octicons-arrow-right-24: Release Process](project/release-process.md)
+    [:octicons-arrow-right-24: Contributing](project/contributing.md)
 
 </div>
 
@@ -87,7 +97,7 @@ MCP servers for Google Workspace
 | :material-layers-triple:{ .middle } **Batch on all 8** | `{service}_batch` tools combine up to 20 operations in one round-trip. Sequential execution with per-op error collection. |
 | :material-arrange-bring-forward:{ .middle } **Auto-positioning** | Slides text boxes, images, shapes, and tables auto-position below existing elements. Override with explicit coordinates. |
 | :material-email-fast:{ .middle } **Draft-first email** | `gmail_create_draft`, `gmail_create_draft_reply`, `gmail_create_draft_reply_all` &mdash; review before sending. Never sends without explicit approval. |
-| :material-clock-fast:{ .middle } **Rate limiting** | 100 req/min per proxy via Apps Script `CacheService`. Shared across all instances of a deployment. |
+| :material-clock-fast:{ .middle } **Rate limiting** | 100 weighted units/minute per proxy via Apps Script `CacheService`. Shared across all instances of a deployment. |
 
 ---
 
@@ -100,6 +110,14 @@ npm install && npm run build
 ./scripts/setup.sh
 ```
 
-The setup script creates 8 Apps Script projects, pushes code, guides you through web app deployment, bootstraps auth tokens, and prints ready-to-paste OpenCode config.
+The setup script creates or reuses 8 Apps Script projects, pushes code, guides the manual web app deployments, bootstraps auth tokens, and prints OpenCode config.
 
 [:material-arrow-right: Full installation guide](getting-started/installation.md)
+
+---
+
+## Release Readiness
+
+This repository includes CI, strict docs builds, release workflow automation, contributor guidance, security policy, changelog, and deterministic safety validators.
+
+[:material-arrow-right: Public release checklist](project/public-release.md)

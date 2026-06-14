@@ -16,7 +16,7 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 | `slides_insert_image` | Insert an image from a public URL. |
 | `slides_insert_shape` | Insert a shape (rectangle, ellipse, arrow, star, cloud, flowchart, etc.). |
 | `slides_insert_table` | Insert a table from a 2D array of values. |
-| `slides_get_slide_elements` | List all elements on a slide with types, IDs, positions, dimensions, and full text. |
+| `slides_get_slide_elements` | List up to 200 elements on a slide with types, IDs, positions, dimensions, and text. |
 | `slides_get_element` | Get one element with geometry, rotation, alt text, and link metadata. |
 | `slides_get_element_text` | Read text from a specific shape or text element by object ID. |
 | `slides_delete_element` | Delete a page element from a slide by its object ID. |
@@ -35,7 +35,7 @@ Create presentations, manage slides, insert and format text, images, shapes, and
 ## Key Features
 
 - **Auto-positioning** — `insert_text_box`, `insert_image`, `insert_shape`, and `insert_table` all support `autoPosition: true` (the default). Elements stack automatically below existing content without manual coordinate calculation. Override with explicit `left`, `top`, `width`, `height` when needed.
-- **Rich element model** — `slides_get_slide_elements` returns every element on a slide with its type, object ID, bounding box, and full text content. Use `slides_get_element_text` to read one text element directly.
+- **Rich element model** — `slides_get_slide_elements` returns up to 200 elements on a slide with type, object ID, bounding box, and text content. Use `slides_get_element_text` to read one text element directly.
 - **Structural element editing** — Update exact geometry, affine transforms, alt text, links, and z-order for existing elements by object ID.
 - **15 shape types** — RECTANGLE, ROUND_RECTANGLE, ELLIPSE, TRIANGLE, ARROW_RIGHT, ARROW_LEFT, STAR_5, HEXAGON, CLOUD, FLOW_CHART_PROCESS, FLOW_CHART_DECISION, WAVE, CHEVRON, PENTAGON, TRAPEZOID.
 - **Text formatting on find** — `slides_format_text` searches within an element for specific text and applies formatting only to matches — no need to know character indices.

@@ -55,7 +55,7 @@ success "clasp and Node.js found"
 banner "clasp login"
 if [ "$DRY_RUN" -eq 1 ]; then
   warn "Skipping clasp login in dry run."
-elif ! clasp login --status &>/dev/null 2>&1; then
+elif ! clasp list &>/dev/null 2>&1; then
   echo "Logging into Google... A browser will open."
   clasp login
 fi
@@ -85,6 +85,7 @@ for svc in "${SERVICES[@]}"; do
     if [ -n "$existing_id" ] && [ "$existing_id" != "YOUR_SCRIPT_ID" ]; then
       warn "$svc already has a clasp project ($existing_id). Skipping creation."
       if [ "$DRY_RUN" -eq 0 ]; then
+        ensure_bootstrap_secret "$dir"
         cd "$dir" && clasp push --force 2>&1 | tail -1
       fi
       continue
@@ -143,7 +144,7 @@ banner "Deployment"
 echo ""
 echo "Each service needs a web app deployment. You'll need to do this ${#SERVICES[@]} times."
 echo "For each service below:"
-echo "  1. Run: cd packages/<service>/apps-script && clasp open"
+echo "  1. Open the Apps Script editor URL for the service"
 echo "  2. Deploy → New deployment → Type: Web app"
 echo "  3. Execute as: Me (USER_DEPLOYING)"
 echo "  4. Access: Anyone (anonymous)"
@@ -151,7 +152,13 @@ echo "  5. Copy the deployment URL"
 echo ""
 echo "Services to deploy:"
 for svc in "${SERVICES[@]}"; do
-  echo "  - $svc: cd packages/$svc/apps-script && clasp open"
+  clasp_file="$ROOT/packages/$svc/apps-script/.clasp.json"
+  script_id=$(grep -o '"scriptId"[[:space:]]*:[[:space:]]*"[^"]*"' "$clasp_file" 2>/dev/null | grep -o '"[^"]*"$' | tr -d '"' || true)
+  if [ -n "$script_id" ] && [ "$script_id" != "YOUR_SCRIPT_ID" ]; then
+    echo "  - $svc: https://script.google.com/d/$script_id/edit"
+  else
+    echo "  - $svc: create or configure packages/$svc/apps-script/.clasp.json first"
+  fi
 done
 echo ""
 
@@ -240,4 +247,4 @@ banner "Install skill"
 echo ""
 echo "  ln -sf \"$ROOT/skills/google-workspace\" ~/.config/opencode/skills/google-workspace"
 echo ""
-success "Setup complete. Restart OpenCode to use all 175 tools."
+success "Setup complete. Restart OpenCode to use all 218 tools."

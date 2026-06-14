@@ -22,6 +22,14 @@ function policyClassAllowed_(context, actionClass, policy) {
   return !!classes[actionClass]
 }
 
+function resolvePolicyClass_(action, params, policy) {
+  if (policy && typeof policy.classResolver === 'function') {
+    const resolved = policy.classResolver(params || {})
+    if (typeof resolved === 'string' && resolved) return resolved
+  }
+  return (policy && policy.class) || 'read'
+}
+
 function getPolicyList_(propertyName) {
   const raw = PropertiesService.getScriptProperties().getProperty(propertyName)
   if (!raw) return null
@@ -63,7 +71,12 @@ function enforcePolicyAllowlists_(action, params, policy) {
         value = check.defaultValue
       }
       const values = splitPolicyValues_(value)
-      if (values.length === 0) continue
+      if (values.length === 0) {
+        if (check.requiredWhenConfigured) {
+          return policyError_('ACTION_NOT_ALLOWED', 'Action ' + action + ' requires ' + names.join(' or ') + ' when ' + check.property + ' is configured')
+        }
+        continue
+      }
       for (let k = 0; k < values.length; k++) {
         if (!policyValueAllowed_(check.property, values[k])) {
           return policyError_('ACTION_NOT_ALLOWED', 'Action ' + action + ' is outside the configured ' + check.property + ' allowlist')
@@ -74,14 +87,14 @@ function enforcePolicyAllowlists_(action, params, policy) {
   return null
 }
 
-function enforceRecipientAllowlist_(action, params, policy) {
+function enforceRecipientAllowlist_(action, params, policy, actionClass) {
   const fields = policy && policy.recipientParams ? policy.recipientParams : []
   const recipientList = getPolicyList_('ALLOWED_EMAIL_RECIPIENTS')
   const domainList = getPolicyList_('ALLOWED_EMAIL_DOMAINS')
   const hasPolicy = (recipientList && recipientList.length > 0) || (domainList && domainList.length > 0)
   if (!hasPolicy) return null
   if (fields.length === 0) {
-    if (policy.requiresKnownRecipients) {
+    if (policy.requiresKnownRecipients && actionClass !== 'read' && actionClass !== 'write') {
       return policyError_('ACTION_NOT_ALLOWED', 'Action ' + action + ' cannot verify recipients against the configured email allowlist')
     }
     return null
@@ -92,7 +105,7 @@ function enforceRecipientAllowlist_(action, params, policy) {
     const values = splitPolicyValues_(params ? params[fields[i]] : undefined)
     for (let j = 0; j < values.length; j++) recipients.push(values[j].toLowerCase())
   }
-  if (recipients.length === 0 && policy.requiresKnownRecipients) {
+  if (recipients.length === 0 && policy.requiresKnownRecipients && actionClass !== 'read' && actionClass !== 'write') {
     return policyError_('ACTION_NOT_ALLOWED', 'Action ' + action + ' cannot verify recipients against the configured email allowlist')
   }
 
@@ -119,7 +132,7 @@ function enforceShareDefaults_(action, params, policy) {
 
 function enforceActionPolicy(action, params, policies) {
   const policy = policies[action] || { class: 'read' }
-  const actionClass = policy.class || 'read'
+  const actionClass = resolvePolicyClass_(action, params || {}, policy)
   const authContext = getAuthContext()
   if (!policyClassAllowed_(authContext, actionClass, policy)) {
     return policyError_('ACTION_NOT_ALLOWED', 'Action ' + action + ' requires ' + actionClass + ' authorization')
@@ -128,13 +141,13 @@ function enforceActionPolicy(action, params, policies) {
     return policyError_('CONFIRMATION_REQUIRED', 'Action ' + action + ' is ' + actionClass + ' and requires params.confirm=true after explicit user approval')
   }
   return enforcePolicyAllowlists_(action, params || {}, policy) ||
-    enforceRecipientAllowlist_(action, params || {}, policy) ||
+    enforceRecipientAllowlist_(action, params || {}, policy, actionClass) ||
     enforceShareDefaults_(action, params || {}, policy)
 }
 
-function actionWeightForPolicy(action, policies) {
+function actionWeightForPolicy(action, policies, params) {
   const policy = policies[action] || { class: 'read' }
-  switch (policy.class) {
+  switch (resolvePolicyClass_(action, params || {}, policy)) {
     case 'destructive': return 8
     case 'send': return 6
     case 'share': return 6
@@ -148,7 +161,7 @@ function requestWeightForPolicy(action, params, policies) {
   const operations = params && Array.isArray(params.operations) ? params.operations : []
   let total = 1
   for (let i = 0; i < operations.length; i++) {
-    total += actionWeightForPolicy(operations[i] && operations[i].action, policies)
+      total += actionWeightForPolicy(operations[i] && operations[i].action, policies, operations[i] && operations[i].params)
   }
   return Math.max(1, Math.min(total, 100))
 }

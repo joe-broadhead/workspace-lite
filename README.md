@@ -1,171 +1,144 @@
+# workspace-lite
+
+MCP servers for Google Workspace, backed by per-service Google Apps Script web app proxies.
+
+`workspace-lite` lets OpenCode-compatible agents work with Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms through local TypeScript MCP servers. The remote Google calls run inside Apps Script as the deploying user, so there is no OAuth dance per tool call.
+
+## Status
+
+Public-source release candidate. The source, docs, CI, release workflow, and safety validators are in place. A production deployment still requires the documented manual Apps Script web app deployment step for each service.
+
+## What You Get
+
+| Service | Tools | Batch | Highlights |
+|---|---:|---|---|
+| `drive` | 44 | Yes | Files, folders, permissions, sharing, comments, replies, revisions, shared drives, changes |
+| `gmail` | 39 | Yes | Search, read, drafts, send, replies, forwarding, labels, filters, vacation responder |
+| `calendar` | 22 | Yes | Events, free/busy, calendars, settings, Meet links, RSVP, colors, event moves |
+| `sheets` | 33 | Yes | Values, formulas, formatting, charts, sorting, validations, protections, row ops |
+| `slides` | 25 | Yes | Slides, text, images, shapes, tables, notes, backgrounds, geometry, links, z-order |
+| `docs` | 26 | Yes | Documents, paragraphs, headings, lists, tables, images, formatting, bookmarks, named ranges |
+| `tasks` | 13 | Yes | Task lists and tasks with create, update, move, delete, and clear-completed operations |
+| `forms` | 16 | Yes | Forms, settings, items, destinations, responses, and response deletion |
+| Total | 218 | All 8 | Dedicated MCP server and Apps Script proxy per service |
+
+## Architecture
+
+```text
+OpenCode or MCP client
+  <-> local TypeScript MCP server over stdio
+  <-> Apps Script web app over HTTPS with bearer token
+  <-> Google Workspace APIs as USER_DEPLOYING
 ```
-                      __                                 ___ __     
- _      ______  _____/ /___________  ____ _________     / (_) /____ 
-| | /| / / __ \/ ___/ //_/ ___/ __ \/ __ `/ ___/ _ \   / / / __/ _ \
-| |/ |/ / /_/ / /  / ,< (__  ) /_/ / /_/ / /__/  __/  / / / /_/  __/
-|__/|__/\____/_/  /_/|_/____/ .___/\__,_/\___/\___/  /_/_/\__/\___/ 
-                           /_/                                        
 
-    MCP servers for Google Workspace.
-    Apps Script runs as you. Zero OAuth per call.
-```
+Key properties:
 
-MCP servers exposing all Google Workspace services through Apps Script web app proxies. No OAuth dance per API call — Apps Script runs as **you**, using your Google identity automatically.
+- No service account required.
+- One Apps Script project per Google Workspace service.
+- One primary bearer token per service, with optional class-scoped tokens.
+- Risky actions are classified as `send`, `share`, or `destructive` and require explicit confirmation where appropriate.
+- Batch tools execute up to 20 same-service operations sequentially with per-operation results.
 
-```
-┌──────────┐   STDIO   ┌──────────────┐   HTTPS POST   ┌───────────────────┐
-│ opencode │◄─────────►│  MCP Server   │──────────────►│ Apps Script Web App│──► Workspace APIs
-│  (agent) │   JSON-RPC │  (local tsx)  │   JSON+token  │  script.google.com │
-└──────────┘            └──────────────┘               └───────────────────┘
-```
-
-- **MCP Server**: TypeScript process using `@modelcontextprotocol/sdk`, communicates via STDIO
-- **Apps Script Web App**: Deployed with `clasp`, runs as `USER_DEPLOYING` with bearer token auth
-- **Security**: HTTPS transport, 48-char random token, rate limiting, input validation
-
-## Packages
-
-| Package | Tools | Batch | Key capabilities |
-|---------|-------|-------|------------------|
-| `drive` | 44 | ✅ | Full Drive CRUD: list, search, read, create, update, copy, move, share, trash, permissions, parent management, folder paths, export, comments/replies, revisions, shared drives, changes |
-| `gmail` | 39 | ✅ | Search, read, send (draft-first), reply, forward, drafts, labels, threads, trash, attachments, batch modify, filters, vacation responder |
-| `calendar` | 22 | ✅ | List events, search, create/update/delete, free/busy, multi-calendar, settings, secondary calendars, Meet links, event move, colors, respond |
-| `sheets` | 33 | ✅ | Create/read/write/append, formulas, find/replace, protections, formatting, charts, sort, freeze, merge, notes, data validation, conditional formatting, row ops |
-| `slides` | 25 | ✅ | Create, add/delete/duplicate/move slides, text, images, shapes, tables, auto-position, notes, backgrounds, lines, element geometry/transforms, alt text, links, z-order |
-| `docs` | 26 | ✅ | Create/read, paragraphs, headings, lists, tables, images, page breaks, text formatting, headers/footers, JSON export, page setup, bookmarks, named ranges, tables of contents |
-| `tasks` | 13 | ✅ | Task lists and tasks: list/get/create/update/delete, move tasks, clear completed |
-| `forms` | 16 | ✅ | Create/manage forms, add/update/move/delete items, response destinations, response reads/deletes |
-| **Total** | **218** | all 8 | |
-
-## Quick Start (one-time setup)
+## Quick Start
 
 ### Prerequisites
 
-- **Node.js 20+**
-- **Google account** with Workspace access
-- **clasp** installed globally: `npm install -g @google/clasp`
-- **jq** (for token parsing): `brew install jq`
+| Requirement | Version |
+|---|---|
+| Node.js | 20 or newer |
+| Google account | Access to the Workspace services you plan to use |
+| clasp | Latest `@google/clasp` CLI |
 
-### 1. Clone and build
+Install dependencies and build:
 
 ```bash
 git clone https://github.com/joe-broadhead/workspace-lite.git
 cd workspace-lite
-npm install
+npm ci
 npm run build
 ```
 
-### 2. Run setup script
+Run the setup assistant:
 
 ```bash
-chmod +x scripts/setup.sh
 ./scripts/setup.sh
 ```
 
-The script will:
-1. Authenticate with clasp (opens browser once)
-2. Create 8 Apps Script projects (one per service)
-3. Push code to all projects
-4. Guide you through web app deployment (GUI step, 8×)
-5. Collect deployment URLs and bootstrap tokens
-6. Output ready-to-paste OpenCode config
+The setup script creates or reuses Apps Script projects, pushes proxy code, prints Apps Script editor URLs, guides the manual web app deployment step, bootstraps tokens, and prints OpenCode MCP config.
 
-### 3. Deploy web apps (GUI — required)
-
-For each service, the setup script will prompt you to:
-```bash
-cd packages/<service>/apps-script && clasp open
-```
-In the Apps Script editor that opens:
-- **Deploy → New deployment → Type: Web app**
-- **Execute as: Me (USER_DEPLOYING)**
-- **Access: Anyone (anonymous)**
-
-Paste each deployment URL back into the script. It auto-bootstraps tokens and generates your config.
-
-### 4. Install the agent skill
-
-```bash
-ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
-```
-
-### 5. Restart OpenCode
-
-Source the generated `.env` file (or copy exports to `.zshrc`), add the printed config to `opencode.jsonc`, restart.
-
-## Architecture
-
-Each MCP server is a standalone STDIO process that calls its own Apps Script web app proxy. The web apps run as `USER_DEPLOYING` — your identity, your permissions.
-
-```
-packages/drive/src/index.ts  →  Drive Proxy  →  DriveApp
-packages/gmail/src/index.ts  →  Gmail Proxy  →  GmailApp
-packages/calendar/src/index.ts → Calendar Proxy → CalendarApp
-packages/sheets/src/index.ts → Sheets Proxy → SpreadsheetApp
-packages/slides/src/index.ts → Slides Proxy → SlidesApp
-packages/docs/src/index.ts   →  Docs Proxy   →  DocumentApp
-packages/tasks/src/index.ts  → Tasks Proxy   →  Tasks API
-packages/forms/src/index.ts  → Forms Proxy   →  FormApp
-```
-
-All Apps Script proxies share identical auth, rate limiting, and response patterns.
-
-## Agent Skill
-
-The included `google-workspace` skill provides LLMs with tool catalogs, numbered workflows, and safety rules.
-
-```bash
-ln -sf "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
-```
-
-See `skills/google-workspace/SKILL.md` for the fast-start index and `references/` for deep dives.
+Full setup documentation: <https://joe-broadhead.github.io/workspace-lite/getting-started/installation/>
 
 ## Documentation
 
-Full docs at [workspace-lite docs](https://joe-broadhead.github.io/workspace-lite/):
+| Resource | Link |
+|---|---|
+| Docs site | <https://joe-broadhead.github.io/workspace-lite/> |
+| Installation | <https://joe-broadhead.github.io/workspace-lite/getting-started/installation/> |
+| Quickstart | <https://joe-broadhead.github.io/workspace-lite/getting-started/quickstart/> |
+| Architecture | <https://joe-broadhead.github.io/workspace-lite/architecture/overview/> |
+| Service guides | <https://joe-broadhead.github.io/workspace-lite/services/drive/> |
+| Security model | <https://joe-broadhead.github.io/workspace-lite/operations/security/> |
+| Release process | <https://joe-broadhead.github.io/workspace-lite/project/release-process/> |
 
-- [Installation](https://joe-broadhead.github.io/workspace-lite/getting-started/installation/)
-- [Quickstart](https://joe-broadhead.github.io/workspace-lite/getting-started/quickstart/)
-- [Service guides](https://joe-broadhead.github.io/workspace-lite/services/drive/)
-- [Architecture](https://joe-broadhead.github.io/workspace-lite/architecture/overview/)
-- [Agent workflows](https://joe-broadhead.github.io/workspace-lite/skill/workflows/)
+Build docs locally:
 
 ```bash
-mkdocs build --strict  # Build docs locally
-mkdocs serve            # Preview at http://localhost:8000
+python -m venv .venv
+. .venv/bin/activate
+pip install -r docs/requirements.txt
+mkdocs build --strict
+mkdocs serve
 ```
 
 ## Development
 
+Run the full local gate:
+
 ```bash
-npm run build        # Build all packages
-npm run typecheck    # Type-check all packages
-npm run lint         # Strict unused/type gate
-npm test             # Run repository tests
-npm run audit        # Fail on moderate+ npm advisories
-npm run validate:architecture  # Check service registry, action registry, and generated proxy shell
-npm run generate:proxy-shell   # Regenerate service Code.gs files from service metadata
+npm run validate
+npm run audit
+mkdocs build --strict
+git diff --check
 ```
 
-### Adding a new service
+Useful scripts:
 
-Copy from any existing package:
-```bash
-cp -r packages/sheets packages/new-service
-# Update package.json, appsscript.json, tsconfig.json
-# Create Service.gs following the SheetsService.gs pattern
-# Add schemas to shared/src/schemas.ts
-# Create tools in src/tools/
-```
+| Script | Purpose |
+|---|---|
+| `npm run build` | Build shared package and all service packages |
+| `npm run typecheck` | Type-check the repository |
+| `npm test` | Run Node test suite |
+| `npm run validate` | Run deterministic release gates |
+| `npm run generate:proxy-shell` | Regenerate service `Code.gs` shells from registry metadata |
+| `npm run docs:build` | Build MkDocs strictly |
+| `npm run docs:serve` | Preview docs locally |
 
-## Quotas
+## CI and Releases
 
-| Limit | Value |
-|-------|-------|
-| Apps Script execution | 6 min per request |
-| URL Fetch calls/day | 20,000 |
-| Rate limiting | 100 req/min per proxy |
+GitHub Actions workflows:
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `CI` | Pull requests and pushes to `main` | TypeScript, build, tests, validators, audit, docs strict build |
+| `Docs Deploy` | Docs changes on `main` or manual dispatch | Build and deploy MkDocs to GitHub Pages |
+| `Release` | Tags matching `v*.*.*` or manual dispatch | Validate release candidate and create a GitHub release archive |
+
+The first release target is `v0.0.0`. We will iterate `v0.0.x` until the project is ready for `v0.1.0`. See `docs/project/release-process.md` and `CHANGELOG.md`.
+
+## Security
+
+Never commit or paste `.env`, `.clasp.json`, `.clasprc.json`, `BootstrapSecret.gs`, bearer tokens, or private deployment details.
+
+Security docs:
+
+- `SECURITY.md`
+- `docs/operations/security.md`
+- `docs/operations/input-policies.md`
+
+## Contributing
+
+Read `CONTRIBUTING.md` before opening issues or pull requests. Public behavior changes should update docs and `CHANGELOG.md`.
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT. See `LICENSE`.

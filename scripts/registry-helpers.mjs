@@ -33,6 +33,13 @@ function doGet(e) {
   return respond(ok({ status: 'healthy', version: '${service.healthVersion}', service: '${service.proxyServiceName}' }))
 }
 
+function clientInputErrorMessage_(ex) {
+  const message = ex && ex.message ? String(ex.message) : ''
+  if (/^(Missing required parameter:|Invalid [A-Za-z0-9 _@.-]+:|Invalid [A-Za-z0-9 ]+ ID:|Invalid access or permission:|No changes specified|width must be positive|height must be positive|targetSlideIndex out of range)/.test(message)) return message
+  if (/^[A-Za-z0-9_ .-]+ must be a finite number$/.test(message)) return message
+  return null
+}
+
 function doPost(e) {
   var body
   if (e && e.postData && e.postData.contents && e.postData.contents.length > 1000000) {
@@ -55,6 +62,9 @@ function doPost(e) {
   try {
     return respond(${service.globalName}.handle(body.action, body.params || {}))
   } catch(ex) {
+    if (ex && ex.proxyError) return respond(ex.proxyError)
+    const clientInputMessage = clientInputErrorMessage_(ex)
+    if (clientInputMessage) return respond(err('BAD_REQUEST', clientInputMessage))
     const correlationId = Utilities.getUuid()
     console.error('[${service.key}-proxy] correlationId=%s action=%s error=%s', correlationId, body.action, ex && ex.message ? ex.message : String(ex))
     return respond(err('INTERNAL_ERROR', 'An internal error occurred. See Apps Script logs with correlationId ' + correlationId + '.', correlationId))

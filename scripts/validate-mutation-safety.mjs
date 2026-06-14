@@ -49,12 +49,26 @@ const updateDraft = gmail.slice(updateDraftStart, updateDraftEnd)
 if (!(updateDraft.indexOf('GmailApp.createDraft') < updateDraft.indexOf('draft.deleteDraft()'))) failures.push('Gmail updateDraft must create replacement before deleting original')
 if (!updateDraft.includes('rollbackFailed')) failures.push('Gmail updateDraft must report rollback/partial behavior')
 if (!gmail.includes('IDEMPOTENCY:gmail:')) failures.push('Gmail mutations must support idempotency replay')
+if (!gmail.includes("filtersCreate: { class: 'write', classResolver: gmailFilterPolicyClass_")) failures.push('Gmail forwarding filters must resolve to send authorization when forward is present')
+if (!gmail.includes("vacationUpdate: { class: 'write', classResolver: gmailVacationPolicyClass_")) failures.push('Gmail vacation responder updates must resolve send-capable modes dynamically')
+if (!gmail.includes("optionalString(params || {}, 'forward') ? 'send' : 'write'")) failures.push('Gmail filter policy resolver must treat forwarding as send-capable')
 
 const calendar = readFileSync('packages/calendar/apps-script/CalendarService.gs', 'utf8')
 if (!calendar.includes('function parseGuestEmails')) failures.push('Calendar createEvent must prevalidate guest emails before mutation')
 if (!calendar.includes('GUEST_ADD_FAILED')) failures.push('Calendar createEvent must surface guest add failures as partial success')
 if (!calendar.includes("withIdempotency('createEvent'")) failures.push('Calendar createEvent must support idempotency replay')
 if (!calendar.includes('IDEMPOTENCY:calendar:')) failures.push('Calendar mutations must support idempotency replay')
+if (!calendar.includes('classResolver: calendarNotificationPolicyClass_')) failures.push('Calendar notification-capable mutations must resolve send authorization dynamically')
+if (!calendar.includes("return value === 'all' || value === 'externalOnly' ? 'send' : 'write'")) failures.push('Calendar sendUpdates all/externalOnly must be classified as send')
+if (!calendar.includes("sendUpdates: sendUpdates || 'none'")) failures.push('Calendar Advanced Events calls must default sendUpdates to none')
+
+for (const name of ['calendarCreateEventSchema', 'calendarUpdateEventSchema', 'calendarMoveEventSchema']) {
+  const start = schemas.indexOf(`export const ${name}`)
+  const end = schemas.indexOf('\n}', start)
+  const block = start >= 0 && end >= 0 ? schemas.slice(start, end) : ''
+  if (!block.includes("sendUpdates: z.enum(['all', 'externalOnly', 'none'])")) failures.push(`shared/src/schemas.ts: ${name} must expose sendUpdates`)
+  if (!block.includes('...confirmationSchema')) failures.push(`shared/src/schemas.ts: ${name} must expose confirmation for notifying modes`)
+}
 
 const tasks = readFileSync('packages/tasks/apps-script/TasksService.gs', 'utf8')
 if (!tasks.includes("withIdempotency('tasklistsCreate'")) failures.push('Tasks tasklist create must support idempotency replay')

@@ -27,7 +27,7 @@ Manage files, folders, sharing permissions, and storage metadata in Google Drive
 | `drive_remove_viewer` | Remove a viewer from a file by email address. |
 | `drive_trash_file` | Move a file to trash (recoverable with `drive_untrash_file`). |
 | `drive_untrash_file` | Restore a file from trash. |
-| `drive_delete_file` | Permanently delete a file (moves to trash first, then deletes). |
+| `drive_delete_file` | Move a file to trash through the delete workflow. Permanent deletion requires emptying trash in Drive. |
 | `drive_add_parent` | Add a file to an additional parent folder without removing existing parents. |
 | `drive_remove_parent` | Remove a file from a specific parent folder. |
 | `drive_get_folder_path` | Get the full path from root to a file by walking parent folders. |
@@ -53,10 +53,10 @@ Manage files, folders, sharing permissions, and storage metadata in Google Drive
 
 ## Key Features
 
-- **Drive query syntax** — `drive_search_files` supports the full Google Drive search language (e.g., `name contains 'report'` or `mimeType = 'application/vnd.google-apps.folder'`).
+- **Drive query syntax** — `drive_search_files` uses `DriveApp.searchFiles` query syntax and normalizes common Drive API v3 fields such as `name`, `modifiedTime`, and `createdTime`.
 - **Granular permissions model** — Add/remove individual editors and viewers, or set broad sharing access levels (ANYONE, ANYONE_WITH_LINK, DOMAIN, PRIVATE) with VIEW, EDIT, COMMENT, or NONE permission.
 - **File export for Workspace types** — Use `drive_read_file` for text export or `drive_export_as` for PDF, Office formats, CSV, and other binary exports.
-- **Two-phase deletion** — `drive_trash_file` sends to trash (recoverable); `drive_delete_file` performs the repository's permanent-delete workflow.
+- **Trash/delete workflow** — `drive_trash_file` and `drive_delete_file` both move files to trash; permanent deletion requires emptying trash in Drive.
 - **Advanced collaboration** — Manage Drive comments and replies with documented Advanced Drive service methods.
 - **Revision and history reads** — List revisions and Drive changes without creating push/watch channels.
 - **Shared drive discovery** — List and inspect shared drive metadata, capabilities, and restrictions visible to the deploying user.
@@ -108,9 +108,9 @@ drive_export_as({
 
 ## Limits & Considerations
 
-- Drive query syntax has specific operator rules — `and`/`or` are lowercase, strings must be single-quoted.
+- Drive search syntax has specific operator rules — `and`/`or` are lowercase, strings must be single-quoted, and not every Drive API v3 query field is supported by `DriveApp.searchFiles`.
 - `drive_export_as` only works on Google Workspace formats (Docs, Sheets, Slides, etc.); binary files have no export representation.
-- `drive_delete_file` is destructive and cannot be undone after the trash step completes.
+- `drive_delete_file` moves the file to trash and is treated as destructive because trashed files may later be permanently removed by Drive retention or manual trash emptying. Use `drive_untrash_file` while the file is still recoverable.
 - `drive_delete_comment` and `drive_delete_reply` are destructive and require explicit confirmation.
 - Drive revision history is incomplete for some file types. Binary revisions can expose `keepForever`; Google Workspace editor files often expose less revision metadata and may reject revision metadata updates.
 - Shared drive results depend on account membership, admin policies, and per-drive capabilities. Some operations may be unavailable even when a shared drive is visible.

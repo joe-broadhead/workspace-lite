@@ -32,6 +32,14 @@ for (const token of ['function validateA1Range', 'function formulaInjectionError
 
 const drivePolicy = readFileSync('packages/drive/apps-script/Policy.gs', 'utf8')
 if (!drivePolicy.includes('ALLOW_PUBLIC_DRIVE_SHARING')) failures.push('Drive policy must keep public sharing opt-in')
+if (!drivePolicy.includes('requiredWhenConfigured')) failures.push('Policy helper must support required allowlist params when an allowlist is configured')
+const drive = readFileSync('packages/drive/apps-script/DriveService.gs', 'utf8')
+if (!drive.includes("const folderId = optionalString(params, 'folderId', 'root')")) failures.push('Drive fileList must default to the root folder, not global file enumeration')
+if (!drive.includes('DriveApp.getRootFolder().getFiles()')) failures.push('Drive fileList must list root folder files when folderId is omitted')
+if (!drive.includes('function driveFileAllowedByReadAllowlists')) failures.push('Drive search must filter results through configured file/folder allowlists')
+if (!drive.includes('if (driveFileAllowedByReadAllowlists(file)) results.push(fileToJSON(file))')) failures.push('Drive fileSearch must suppress results outside configured allowlists')
+if (!drive.includes("requiredWhenConfigured: true")) failures.push('Drive changes actions must require driveId when shared-drive allowlist is configured')
+if (!drive.includes("policyValueAllowed_('ALLOWED_DRIVE_SHARED_DRIVE_IDS', drive.id)")) failures.push('Drive sharedDrivesList must filter results by ALLOWED_DRIVE_SHARED_DRIVE_IDS')
 const gmailPolicy = readFileSync('packages/gmail/apps-script/Policy.gs', 'utf8')
 if (!gmailPolicy.includes('ALLOWED_EMAIL_DOMAINS')) failures.push('Gmail policy must support recipient domain allowlists')
 

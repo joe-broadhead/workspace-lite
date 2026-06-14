@@ -38,7 +38,7 @@ Create, search, update, and delete calendar events. Check availability across mu
 - **Event moves** — `calendar_move_event` moves events between calendars using the Calendar API, subject to ownership and ACL constraints.
 - **Partial field updates** — `update_event` accepts only the fields you want to change; omitted fields remain unchanged.
 - **Free/busy lookup** — `find_freebusy` scans across calendars to find open slots, making it easy to schedule without conflicts.
-- **Flexible guest management** — `create_event` accepts a comma-separated list of guest emails and automatically sends invitations.
+- **Flexible guest management** — `create_event` accepts a comma-separated list of guest emails. Guest notification emails are controlled by `sendUpdates`; `all` and `externalOnly` require confirmation and send-capable authorization.
 - **Batch operations** — Use `calendar_batch` to chain up to 20 calendar operations in a single round-trip.
 
 ## Examples
@@ -67,7 +67,9 @@ calendar_create_event({
   endTime: "2026-06-15T11:00:00-07:00",
   description: "Biweekly sprint planning session.",
   location: "Conference Room B",
-  guests: "alice@example.com,bob@example.com"
+  guests: "alice@example.com,bob@example.com",
+  sendUpdates: "all",
+  confirm: true
 })
 // Event created; invitations sent to Alice and Bob
 ```

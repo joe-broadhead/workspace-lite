@@ -20,8 +20,8 @@ const GmailService = (() => {
     addLabel: { class: 'write' },
     removeLabel: { class: 'write' },
     batchModify: { class: 'write' },
-    filtersCreate: { class: 'write', recipientParams: ['forward'] },
-    vacationUpdate: { class: 'write' },
+    filtersCreate: { class: 'write', classResolver: gmailFilterPolicyClass_, recipientParams: ['forward'] },
+    vacationUpdate: { class: 'write', classResolver: gmailVacationPolicyClass_ },
     createDraft: { class: 'write', allowDraftToken: true, recipientParams: ['to', 'cc', 'bcc'] },
     updateDraft: { class: 'write', allowDraftToken: true, recipientParams: ['to', 'cc', 'bcc'] },
     createDraftReply: { class: 'write', allowDraftToken: true },
@@ -183,6 +183,24 @@ const GmailService = (() => {
     if (params[name] === 'true') return true;
     if (params[name] === 'false') return false;
     return def;
+  }
+
+  function gmailFilterPolicyClass_(params) {
+    return optionalString(params || {}, 'forward') ? 'send' : 'write';
+  }
+
+  function gmailVacationPolicyClass_(params) {
+    const values = params || {};
+    const sendFields = [
+      'responseSubject', 'responseBodyPlainText', 'responseBodyHtml',
+      'restrictToContacts', 'restrictToDomain', 'startTime', 'endTime',
+      'clearStartTime', 'clearEndTime',
+    ];
+    if (optionalBool(values, 'enableAutoReply', false)) return 'send';
+    for (let i = 0; i < sendFields.length; i++) {
+      if (hasParam(values, sendFields[i])) return 'send';
+    }
+    return 'write';
   }
 
   function trap(fn, errorCode, errorMsg) {
@@ -1094,7 +1112,7 @@ const GmailService = (() => {
       const op = ops[i];
       const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
       if (invalid) { results.push(invalid); continue; }
-      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
+      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES, op.params || {});
       try {
         const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });

@@ -389,7 +389,9 @@ export const calendarCreateEventSchema = {
   location: z.string().max(500).optional().describe('Location.'),
   guests: emailListSchema.optional().describe('Comma-separated emails.'),
   createMeetLink: z.boolean().optional().describe('Create Google Meet conference data on the event through Calendar API conferenceData.'),
+  sendUpdates: z.enum(['all', 'externalOnly', 'none']).optional().describe('Calendar API sendUpdates option. Use all/externalOnly only after explicit user approval.'),
   idempotencyKey: idempotencyKeySchema,
+  ...confirmationSchema,
 }
 
 export const calendarUpdateEventSchema = {
@@ -401,6 +403,8 @@ export const calendarUpdateEventSchema = {
   startTime: isoDateTimeSchema.optional().describe('New start time ISO.'),
   endTime: isoDateTimeSchema.optional().describe('New end time ISO.'),
   createMeetLink: z.boolean().optional().describe('Add Google Meet conference data through Calendar API conferenceData.'),
+  sendUpdates: z.enum(['all', 'externalOnly', 'none']).optional().describe('Calendar API sendUpdates option. Use all/externalOnly only after explicit user approval.'),
+  ...confirmationSchema,
 }
 
 export const calendarMoveEventSchema = {
@@ -408,6 +412,7 @@ export const calendarMoveEventSchema = {
   calendarId: z.string().min(1).describe('Source calendar ID.'),
   destinationCalendarId: z.string().min(1).describe('Destination calendar ID.'),
   sendUpdates: z.enum(['all', 'externalOnly', 'none']).optional().describe('Calendar API sendUpdates option.'),
+  ...confirmationSchema,
 }
 
 export const calendarDeleteEventSchema = {

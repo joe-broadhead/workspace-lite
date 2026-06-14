@@ -208,7 +208,7 @@
 **Read:**
 | Tool | Params |
 |---|---|
-| `slides_get_slide_elements` | `presentationId`, `slideIndex` — returns all elements with types, IDs, positions, dimensions, full text |
+| `slides_get_slide_elements` | `presentationId`, `slideIndex` — returns up to 200 elements with types, IDs, positions, dimensions, text |
 | `slides_get_element` | `presentationId`, `slideIndex`, `objectId` — returns one element with geometry, rotation, alt text, and link metadata |
 | `slides_get_element_text` | `presentationId`, `slideIndex`, `objectId` — read text from one shape/text element |
 | `slides_get_slide_notes` | `presentationId`, `slideIndex`, `notes?` (provide to set, omit to get) |

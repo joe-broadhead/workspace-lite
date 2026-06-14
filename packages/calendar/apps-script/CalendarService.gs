@@ -13,9 +13,9 @@ const CalendarService = (() => {
     quickAdd: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'primary' }] },
     createCalendar: { class: 'write' },
     updateCalendar: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'] }] },
-    createEvent: { class: 'write', recipientParams: ['guests'], allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
-    updateEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
-    moveEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'] }, { property: 'ALLOWED_CALENDAR_IDS', params: ['destinationCalendarId'] }] },
+    createEvent: { class: 'write', classResolver: calendarNotificationPolicyClass_, recipientParams: ['guests'], allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    updateEvent: { class: 'write', classResolver: calendarNotificationPolicyClass_, requiresKnownRecipients: true, allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
+    moveEvent: { class: 'write', classResolver: calendarNotificationPolicyClass_, requiresKnownRecipients: true, allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'] }, { property: 'ALLOWED_CALENDAR_IDS', params: ['destinationCalendarId'] }] },
     respondToEvent: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     createEventSeries: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
     setEventColor: { class: 'write', allowlists: [{ property: 'ALLOWED_CALENDAR_IDS', params: ['calendarId'], defaultValue: 'default' }] },
@@ -139,6 +139,11 @@ const CalendarService = (() => {
     if (params[name] === 'true') return true;
     if (params[name] === 'false') return false;
     return def;
+  }
+
+  function calendarNotificationPolicyClass_(params) {
+    const value = optionalString(params || {}, 'sendUpdates', 'none');
+    return value === 'all' || value === 'externalOnly' ? 'send' : 'write';
   }
 
   function parseGuestEmails(guests) {
@@ -339,10 +344,18 @@ const CalendarService = (() => {
     return resource;
   }
 
-  function advancedEventOptionalArgs(params, guestList) {
+  function calendarSendUpdates(params, def) {
+    const value = optionalString(params || {}, 'sendUpdates', def || 'none');
+    if (value !== 'all' && value !== 'externalOnly' && value !== 'none') {
+      return { error: err('BAD_REQUEST', 'sendUpdates must be all, externalOnly, or none') };
+    }
+    return { value: value };
+  }
+
+  function advancedEventOptionalArgs(params, sendUpdates) {
     return {
       conferenceDataVersion: optionalBool(params, 'createMeetLink', false) ? 1 : 0,
-      sendUpdates: guestList && guestList.emails && guestList.emails.length > 0 ? 'all' : 'none',
+      sendUpdates: sendUpdates || 'none',
     };
   }
 
@@ -562,12 +575,14 @@ const CalendarService = (() => {
     if (guestList.error) return guestList.error;
     const dateRange = parseDateTimeRange(startTime, endTime);
     if (dateRange.error) return dateRange.error;
+    const sendUpdates = calendarSendUpdates(params, 'none');
+    if (sendUpdates.error) return sendUpdates.error;
 
     return withIdempotency('createEvent', params, function() { return trap(function() {
-      if (optionalBool(params, 'createMeetLink', false)) {
+      if (optionalBool(params, 'createMeetLink', false) || guestList.emails.length > 0 || sendUpdates.value !== 'none') {
         const targetCalendarId = calendarId || 'primary';
         const resource = buildAdvancedEventResource({ ...params, title: title, description: description, location: location }, dateRange, guestList);
-        const event = Calendar.Events.insert(resource, targetCalendarId, advancedEventOptionalArgs(params, guestList));
+        const event = Calendar.Events.insert(resource, targetCalendarId, advancedEventOptionalArgs(params, sendUpdates.value));
         return { event: eventResourceToJSON(event), addedGuests: guestList.emails, failedGuests: [] };
       }
 
@@ -613,9 +628,11 @@ const CalendarService = (() => {
   function updateEvent(params) {
     const id = requireParam(params, 'eventId');
     const calendarId = optionalString(params, 'calendarId');
+    const sendUpdates = calendarSendUpdates(params, 'none');
+    if (sendUpdates.error) return sendUpdates.error;
 
     return trap(function() {
-      if (optionalBool(params, 'createMeetLink', false)) {
+      if (optionalBool(params, 'createMeetLink', false) || params.sendUpdates !== undefined) {
         const targetCalendarId = calendarId || 'primary';
         let dateRange = null;
         if (params.startTime || params.endTime) {
@@ -626,7 +643,7 @@ const CalendarService = (() => {
           if (dateRange.error) return dateRange.error;
         }
         const resource = buildAdvancedEventResource(params, dateRange, null);
-        const event = Calendar.Events.patch(resource, targetCalendarId, eventIdForApi(id), advancedEventOptionalArgs(params, null));
+        const event = Calendar.Events.patch(resource, targetCalendarId, eventIdForApi(id), advancedEventOptionalArgs(params, sendUpdates.value));
         return { event: eventResourceToJSON(event) };
       }
 
@@ -658,9 +675,11 @@ const CalendarService = (() => {
     const destinationCalendarId = requireParam(params, 'destinationCalendarId');
     validateCalendarId(calendarId);
     validateCalendarId(destinationCalendarId);
+    const sendUpdates = calendarSendUpdates(params, 'none');
+    if (sendUpdates.error) return sendUpdates.error;
 
     return trap(function() {
-      const event = Calendar.Events.move(calendarId, eventIdForApi(id), destinationCalendarId, { sendUpdates: optionalString(params, 'sendUpdates', 'none') });
+      const event = Calendar.Events.move(calendarId, eventIdForApi(id), destinationCalendarId, { sendUpdates: sendUpdates.value });
       return { event: eventResourceToJSON(event), sourceCalendarId: calendarId, destinationCalendarId: destinationCalendarId };
     }, 'MOVE_FAILED', function(e) { return e.message || 'Could not move event'; });
   }
@@ -849,7 +868,7 @@ const CalendarService = (() => {
       const op = ops[i];
       const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
       if (invalid) { results.push(invalid); continue; }
-      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
+      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES, op.params || {});
       try {
         const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });

@@ -25,6 +25,17 @@ function relative(filePath) {
 
 const referenceAuth = sharedShellSource('Auth.gs')
 const referenceResponse = sharedShellSource('Response.gs')
+const proxyClient = fs.readFileSync(path.join(root, 'shared', 'src', 'proxy-client.ts'), 'utf8')
+
+for (const token of [
+  'function dynamicActionTokenClass',
+  "action === 'filtersCreate' && nonEmptyString(params?.forward)",
+  "action === 'vacationUpdate' && gmailVacationRequiresSend(params)",
+  "sendsCalendarUpdates(params)",
+  'const operationParams = (operation as { params?: unknown }).params',
+]) {
+  if (!proxyClient.includes(token)) failures.push(`shared/src/proxy-client.ts: missing semantic token routing guard ${token}`)
+}
 
 for (const service of services) {
   const servicePath = serviceFilePath(service, `${service.title}Service.gs`)
@@ -36,6 +47,7 @@ for (const service of services) {
   const expectedCode = renderProxyCode(service)
 
   if (code !== expectedCode) failures.push(`${relative(codePath)}: proxy shell is not generated from service-registry.json`)
+  if (!code.includes('clientInputErrorMessage_')) failures.push(`${relative(codePath)}: proxy shell must classify top-level input exceptions as BAD_REQUEST`)
   if (fs.readFileSync(authPath, 'utf8') !== referenceAuth) failures.push(`${relative(authPath)}: Auth.gs drifted from shared/apps-script/Auth.gs`)
   if (fs.readFileSync(responsePath, 'utf8') !== referenceResponse) failures.push(`${relative(responsePath)}: Response.gs drifted from shared/apps-script/Response.gs`)
 

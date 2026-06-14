@@ -4,7 +4,7 @@
 
 The `google-workspace` skill equips LLM agents with everything they need to automate Google Workspace through the Apps Script MCP servers. It's a self-contained knowledge pack with:
 
-- **Tool catalog** — exact signatures, parameter names, types, defaults, and descriptions for all 218 tools across Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms.
+- **Tool catalog** — compact parameter reference and descriptions for all 218 tools across Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms.
 - **Numbered workflows** — step-by-step tool sequences for common tasks (email triage, meeting prep, scheduling, spreadsheet creation, presentation building, data analysis).
 - **Safety rules** — guardrails that prevent agents from sending email without approval, deleting files without confirmation, or creating calendar events without user consent.
 - **Search syntax** — Gmail query operators, Drive search language, Calendar ISO formatting.
@@ -16,7 +16,7 @@ The `google-workspace` skill equips LLM agents with everything they need to auto
 skills/google-workspace/
 ├── SKILL.md                         # Fast-start index: quick patterns, critical rules, when to load references
 └── references/
-    ├── tool-catalog.md              # Complete tool listing with parameter tables
+    ├── tool-catalog.md              # Compact tool listing with parameter tables
     ├── workflows.md                 # Step-by-step workflows for 12+ common scenarios
     └── rules.md                     # Full safety rules, search syntax, parameter types
 ```
@@ -33,7 +33,7 @@ Agents read this file when the skill is loaded. For complex multi-tool workflows
 
 ### references/tool-catalog.md
 
-The authoritative tool dictionary. Organized by service (Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, Forms) with every tool's parameter signature. Groups tools by category (read, write, manage, format, organize) for easier scanning. This is the reference agents consult when they need exact parameter names, enum values, or type details.
+The compact tool dictionary. Organized by service (Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, Forms) with parameter summaries. Groups tools by category (read, write, manage, format, organize) for easier scanning. For exact schemas, use the MCP tool definitions or `shared/src/schemas.ts`.
 
 ### references/workflows.md
 
@@ -60,7 +60,7 @@ If the task is complex (multiple tools, multiple services, formatting-heavy), th
 
 | Trigger | Agent Action |
 |---|---|
-| Needs exact tool signatures | Reads `references/tool-catalog.md` |
+| Needs compact tool parameters | Reads `references/tool-catalog.md` |
 | Task matches a known pattern | Reads `references/workflows.md` (specific section) |
 | Needs safety rules or search syntax | Reads `references/rules.md` |
 
@@ -72,7 +72,7 @@ Each reference file is loaded on-demand to keep context small. The agent typical
 1. Agent receives task ("create a project tracker spreadsheet")
 2. Skill is loaded → agent sees quick-start table
 3. Agent recognizes "Build a Tracker" pattern → reads workflows.md
-4. Agent needs exact tool params → reads tool-catalog.md (Sheets section)
+4. Agent needs tool parameter guidance → reads tool-catalog.md (Sheets section)
 5. Agent executes:
    a. sheets_create_spreadsheet(name: "Q2 Project Tracker")
    b. sheets_batch([write headers, format, freeze, column widths])

@@ -1,6 +1,6 @@
 ---
 name: google-workspace
-version: 1.0.0
+version: 0.0.0
 description: "Google Workspace automation: Drive (44 tools), Gmail (39), Calendar (22), Sheets (33), Slides (25), Docs (26), Tasks (13), Forms (16). Use when the user asks to manage files, search email, draft replies, schedule meetings, create spreadsheets, analyze data, build presentations, write documents, manage tasks, or build forms."
 metadata:
   requires:
@@ -57,7 +57,7 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `
 
 | Reference | Load When |
 |-----------|-----------|
-| **[references/tool-catalog.md](references/tool-catalog.md)** | You need exact tool signatures, parameter names, or descriptions |
+| **[references/tool-catalog.md](references/tool-catalog.md)** | You need a compact tool list, parameter names, or descriptions |
 | **[references/workflows.md](references/workflows.md)** | User's request matches a common pattern (meeting prep, email triage, dashboard) |
 | **[references/rules.md](references/rules.md)** | You need safety rules, search syntax, or parameter formatting |
 

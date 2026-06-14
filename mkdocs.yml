@@ -117,6 +117,12 @@ nav:
       - Input Policies: operations/input-policies.md
       - Troubleshooting: operations/troubleshooting.md
       - Security: operations/security.md
+  - Project:
+      - Public Release Readiness: project/public-release.md
+      - Release Process: project/release-process.md
+      - Contributing: project/contributing.md
+      - Changelog: project/changelog.md
+      - Security Policy: project/security.md
 
 extra:
   generator: false

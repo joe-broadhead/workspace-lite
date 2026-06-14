@@ -1,6 +1,6 @@
 # Installation
 
-Complete setup of all 8 Google Workspace MCP servers &mdash; one-time, roughly 10 minutes.
+Complete setup of all 8 Google Workspace MCP servers, including the required manual Apps Script web app deployments.
 
 ## Prerequisites
 
@@ -8,14 +8,12 @@ Complete setup of all 8 Google Workspace MCP servers &mdash; one-time, roughly 1
 |-------------|-------------------|-------|
 | Node.js | 20+ | `node --version` |
 | clasp | latest | `npm install -g @google/clasp` |
-| jq | any | `brew install jq` |
 | Google account | &mdash; | With access to the Workspace services you plan to use |
 
 !!! tip "Verify prerequisites"
     ```bash
     node --version   # ≥ 20
     clasp --version  # any
-    jq --version     # any
     ```
 
 ---
@@ -56,13 +54,9 @@ The script automates:
 
 ## Step 3: Deploy Web Apps (GUI)
 
-The setup script pauses here. For each of the 8 services, it asks you to deploy manually:
+The setup script pauses here and prints an Apps Script editor URL for each of the 8 services, like `https://script.google.com/d/<script-id>/edit`.
 
-```bash
-cd packages/drive/apps-script && clasp open
-```
-
-In the Apps Script editor that opens:
+In each Apps Script editor:
 
 | Field | Value |
 |-------|-------|
@@ -113,7 +107,7 @@ Source the generated `.env` file (or copy exports to `.zshrc`):
 source .env
 ```
 
-Restart OpenCode. All 218 tools are now available.
+Restart OpenCode. When all 8 services are configured, all 218 tools are available.
 
 ---
 
@@ -141,13 +135,14 @@ For each service, two environment variables are required:
 1. Create each Apps Script project with `clasp create --type standalone`
 2. Push code with `clasp push`
 3. Deploy as web app manually (GUI) and copy the deployment URL
-4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and bootstrap the token:
+4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and write the bootstrapped token directly to your environment file:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>" | jq -r '.data.token'
+TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
-5. Set the environment variables in `.zshrc` or a `.env` file
+5. Set the matching `GOOGLE_WORKSPACE_<SERVICE>_PROXY_URL` in `.zshrc` or `.env`
 
 ### OpenCode Config (Manual)
 
@@ -228,7 +223,7 @@ curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&se
 
 | Phase | Description |
 |-------|-------------|
-| **Bootstrap** | `GET ?bootstrap=1` triggers one-time token generation. A 48-char random token is stored in `PropertiesService.getScriptProperties()` under `PROXY_AUTH_TOKEN`. The bootstrap endpoint returns the token and sets `PROXY_BOOTSTRAPPED=true`. |
+| **Bootstrap** | `GET ?bootstrap=1` triggers one-time token generation. The token is generated from `Utilities.getUuid()` plus a second UUID with dashes removed, stored in `PropertiesService.getScriptProperties()` under `PROXY_AUTH_TOKEN`, returned once, and then `PROXY_BOOTSTRAPPED=true` is set. |
 | **Storage** | Token lives in Apps Script properties &mdash; durable across deployments, survives code pushes. |
 | **Rotation** | Re-run bootstrap? The endpoint returns `FORBIDDEN` once bootstrapped. To rotate, manually clear script properties: **Project Settings &rarr; Script Properties** in the Apps Script editor, then re-bootstrap. |
 | **Usage** | Every `POST` request includes `token` in the JSON body. `Auth.gs` validates against the stored token. |

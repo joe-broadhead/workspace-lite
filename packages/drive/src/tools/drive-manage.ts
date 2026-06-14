@@ -95,7 +95,7 @@ export function registerDriveManageTools(server: ToolServer) {
 
   server.tool(
     'drive_delete_file',
-    'Permanently delete a file. Moves to trash first; permanent deletion from trash requires Drive API. WARNING: this action cannot be undone for the trash step.',
+    'Move a file to trash through the delete workflow. Permanent deletion requires emptying trash in Drive.',
     fileGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileDelete', args)

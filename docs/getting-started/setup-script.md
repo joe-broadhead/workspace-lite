@@ -106,17 +106,18 @@ Press Enter for services already configured. Paste the new deployment URL when p
 
 If you lost a token, clear the script properties in the Apps Script editor:
 
-1. Open the project: `cd packages/drive/apps-script && clasp open`
+1. Open the Apps Script editor URL from `scripts/setup.sh`, or open `https://script.google.com/d/<script-id>/edit` using the `scriptId` in `packages/<service>/apps-script/.clasp.json`
 2. **Project Settings** :material-arrow-right: **Script Properties**
 3. Delete both `PROXY_AUTH_TOKEN` and `PROXY_BOOTSTRAPPED`
 4. Read the setup key from the untracked `BootstrapSecret.gs` file or regenerate it with `scripts/setup.sh`
 5. Call the bootstrap endpoint again:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>" | jq -r '.data.token'
+TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
-Update the token in `.env` and re-source.
+Update the matching proxy URL in `.env` if it changed, then re-source.
 
 ### Scenario: Re-deploy after pushing code changes
 

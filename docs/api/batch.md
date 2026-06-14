@@ -392,4 +392,4 @@ Batch is most impactful for setup and formatting workflows where a large number 
 - **Maximum 20 operations per batch.** Exceeding this returns `BAD_REQUEST`.
 - Operations execute **sequentially** within the batch — not in parallel.
 - All operations in a batch must target the **same service** (there is no cross-service batching).
-- The overall batch call still counts as a single rate-limit token against the 100 req/min per-proxy limit.
+- A batch is charged by the sum of child operation weights against the 100 weighted units/minute per-proxy limit.

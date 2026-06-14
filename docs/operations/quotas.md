@@ -23,7 +23,7 @@ Each proxy applies its own rate limit, independent of Google API quotas:
 
 | Limit | Value |
 |---|---|
-| **Requests per minute** | 100 per proxy |
+| **Weighted units per minute** | 100 per proxy |
 | **Authenticated request cost** | Weighted by action risk and batch operations |
 | **Failed authentication attempts** | 20 per minute per supplied token/missing-token bucket |
 | **Reset window** | 60 seconds |
@@ -237,7 +237,7 @@ Batch operations share the 6-minute execution time budget and are charged by ope
 
 ## What Happens When Quotas Are Hit
 
-### Rate Limit (100 req/min proxy limit)
+### Rate Limit (100 weighted units/minute proxy limit)
 
 The proxy returns an error before any API call:
 

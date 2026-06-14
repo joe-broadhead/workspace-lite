@@ -169,7 +169,38 @@ const ACTION_TOKEN_CLASSES: Record<string, Record<string, TokenClass>> = {
 
 function actionTokenClass(service: string, action: string, params?: Record<string, unknown>): TokenClass {
   if (action === 'batch') return batchTokenClass(service, params)
+  const dynamic = dynamicActionTokenClass(service, action, params)
+  if (dynamic) return dynamic
   return ACTION_TOKEN_CLASSES[service]?.[action] ?? 'read'
+}
+
+function dynamicActionTokenClass(service: string, action: string, params?: Record<string, unknown>): TokenClass | undefined {
+  if (service === 'gmail') {
+    if (action === 'filtersCreate' && nonEmptyString(params?.forward)) return 'send'
+    if (action === 'vacationUpdate' && gmailVacationRequiresSend(params)) return 'send'
+  }
+  if (service === 'calendar') {
+    if ((action === 'createEvent' || action === 'updateEvent' || action === 'moveEvent') && sendsCalendarUpdates(params)) return 'send'
+  }
+  return undefined
+}
+
+function nonEmptyString(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function sendsCalendarUpdates(params?: Record<string, unknown>) {
+  return params?.sendUpdates === 'all' || params?.sendUpdates === 'externalOnly'
+}
+
+function gmailVacationRequiresSend(params?: Record<string, unknown>) {
+  if (!params) return false
+  if (params.enableAutoReply === true || params.enableAutoReply === 'true') return true
+  return [
+    'responseSubject', 'responseBodyPlainText', 'responseBodyHtml',
+    'restrictToContacts', 'restrictToDomain', 'startTime', 'endTime',
+    'clearStartTime', 'clearEndTime',
+  ].some((name) => Object.prototype.hasOwnProperty.call(params, name))
 }
 
 function batchTokenClass(service: string, params?: Record<string, unknown>): TokenClass {
@@ -178,7 +209,8 @@ function batchTokenClass(service: string, params?: Record<string, unknown>): Tok
   for (const operation of operations) {
     if (!operation || typeof operation !== 'object' || Array.isArray(operation)) continue
     const action = (operation as { action?: unknown }).action
-    if (typeof action === 'string') required.add(actionTokenClass(service, action))
+    const operationParams = (operation as { params?: unknown }).params
+    if (typeof action === 'string') required.add(actionTokenClass(service, action, isRecord(operationParams) ? operationParams : undefined))
   }
 
   const highRisk = ['send', 'share', 'destructive'].filter((tokenClass) => required.has(tokenClass as TokenClass))
@@ -188,6 +220,10 @@ function batchTokenClass(service: string, params?: Record<string, unknown>): Tok
   if (required.has('send')) return 'send'
   if (required.has('write')) return 'write'
   return 'read'
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function selectProxyToken(envPrefix: string, tokenClass: TokenClass) {
@@ -233,12 +269,6 @@ export function createProxyClient(service: string): ProxyClient {
         throw new Error('Proxy returned malformed response: expected JSON')
       }
       const data = validateProxyResponse(json)
-      if (!data.success) {
-        const error = data.error
-        if (!error) throw new Error('Proxy returned malformed response: error must be an object')
-        const correlation = error.correlationId ? ` (correlationId: ${error.correlationId})` : ''
-        throw new Error(`[${error.code}] ${error.message}${correlation}`)
-      }
       return data
     },
   }

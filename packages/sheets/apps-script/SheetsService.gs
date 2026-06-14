@@ -168,7 +168,7 @@ const SheetsService = (() => {
         const op = operations[i];
         const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
         if (invalid) { results.push(invalid); continue; }
-        operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
+        operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES, op.params || {});
         const opParams = op.params || {}
         if (!opParams.spreadsheetId) opParams.spreadsheetId = spreadsheetId
         try {

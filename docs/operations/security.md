@@ -98,12 +98,7 @@ If a token is compromised, exposed in logs, or you want to rotate as good practi
 
 ### Steps
 
-1. Open the Apps Script editor for the service:
-
-```bash
-cd packages/<service>/apps-script
-clasp open
-```
+1. Open the Apps Script editor URL from `scripts/setup.sh`, or open `https://script.google.com/d/<script-id>/edit` using the `scriptId` in `packages/<service>/apps-script/.clasp.json`.
 
 2. In the editor, go to **Project Settings** (gear icon) → **Script Properties**.
 
@@ -115,13 +110,14 @@ clasp open
 
 6. **Deploy a new version** of the web app if the deployment URL changes, then update `.env`.
 
-7. Bootstrap the new token with the setup key from the untracked `BootstrapSecret.gs` file:
+7. Bootstrap the new token with the setup key from the untracked `BootstrapSecret.gs` file, writing it directly to your environment file:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>" | jq -r '.data.token'
+TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
-8. Copy the token output to `GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN` in your `.env` file.
+8. Update the matching proxy URL in `.env` if it changed.
 
 9. Re-source your environment and restart OpenCode:
 

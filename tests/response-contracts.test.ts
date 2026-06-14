@@ -95,7 +95,7 @@ describe('createProxyClient', () => {
     assert.deepEqual(tokens, ['read-token', 'write-token', 'share-token', 'destructive-token', 'admin-token'])
   })
 
-  it('rejects HTTP errors, non-JSON bodies, malformed envelopes, and proxy errors', async () => {
+  it('rejects HTTP errors, non-JSON bodies, malformed envelopes, and returns proxy errors', async () => {
     setProxyEnv()
     globalThis.fetch = async () => new Response('unavailable', { status: 503, statusText: 'Service Unavailable' })
     await assert.rejects(() => createProxyClient('drive').callProxy('about'), /Proxy returned 503 Service Unavailable/)
@@ -107,7 +107,34 @@ describe('createProxyClient', () => {
     await assert.rejects(() => createProxyClient('drive').callProxy('about'), /must include data/)
 
     globalThis.fetch = async () => jsonResponse({ success: false, error: { code: 'INTERNAL_ERROR', message: 'failed', correlationId: 'abc' } })
-    await assert.rejects(() => createProxyClient('drive').callProxy('about'), /\[INTERNAL_ERROR\] failed \(correlationId: abc\)/)
+    assert.deepEqual(await createProxyClient('drive').callProxy('about'), {
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'failed', correlationId: 'abc' },
+    })
+  })
+
+  it('routes send-capable Gmail and Calendar modes to send tokens', async () => {
+    process.env.GOOGLE_WORKSPACE_GMAIL_PROXY_URL = 'https://script.example/gmail'
+    process.env.GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN = 'gmail-fallback'
+    process.env.GOOGLE_WORKSPACE_GMAIL_PROXY_WRITE_TOKEN = 'gmail-write'
+    process.env.GOOGLE_WORKSPACE_GMAIL_PROXY_SEND_TOKEN = 'gmail-send'
+    process.env.GOOGLE_WORKSPACE_CALENDAR_PROXY_URL = 'https://script.example/calendar'
+    process.env.GOOGLE_WORKSPACE_CALENDAR_PROXY_TOKEN = 'calendar-fallback'
+    process.env.GOOGLE_WORKSPACE_CALENDAR_PROXY_WRITE_TOKEN = 'calendar-write'
+    process.env.GOOGLE_WORKSPACE_CALENDAR_PROXY_SEND_TOKEN = 'calendar-send'
+
+    const tokens: string[] = []
+    globalThis.fetch = async (_input, init) => {
+      tokens.push(JSON.parse(String(init?.body)).token)
+      return jsonResponse({ success: true, data: { ok: true } })
+    }
+
+    await createProxyClient('gmail').callProxy('filtersCreate', { from: 'a@example.com', forward: 'b@example.com', confirm: true })
+    await createProxyClient('gmail').callProxy('vacationUpdate', { enableAutoReply: false })
+    await createProxyClient('calendar').callProxy('createEvent', { title: 'Sync', startTime: '2026-01-01T10:00:00Z', endTime: '2026-01-01T11:00:00Z', sendUpdates: 'all', confirm: true })
+    await createProxyClient('calendar').callProxy('batch', { operations: [{ action: 'moveEvent', params: { sendUpdates: 'externalOnly', confirm: true } }] })
+
+    assert.deepEqual(tokens, ['gmail-send', 'gmail-write', 'calendar-send', 'calendar-send'])
   })
 })
 

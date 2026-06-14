@@ -404,7 +404,7 @@ Line categories: `STRAIGHT`, `BENT`, `CURVED`. Line types: `SOLID`, `DOTTED`, `D
 ```
 1. docs_get_as_json → documentId
 ```
-Returns the complete document tree with all content, formatting, and structure via the Docs Advanced Service. Alternative to `docs_get_document` which returns text with paragraph breakdown.
+Returns the document tree with formatting and structure via the Docs Advanced Service, bounded by proxy response-size limits. Alternative to `docs_get_document` which returns text with paragraph breakdown.
 
 ### Format Existing Text
 

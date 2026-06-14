@@ -20,14 +20,13 @@
 curl -sL "https://script.google.com/macros/s/<deployment-id>/exec"
 
 # Expected output (healthy check):
-# {"success":true,"data":{"status":"healthy","version":"1.0.0","service":"google-workspace-proxy-drive"}}
+# {"success":true,"data":{"status":"healthy","version":"<health-version>","service":"google-workspace-proxy-drive"}}
 ```
 
 If this returns an error or no response, re-deploy:
 
 ```bash
-cd packages/<service>/apps-script
-clasp open
+open "https://script.google.com/d/<script-id>/edit"
 ```
 
 In the Apps Script editor: **Deploy → New deployment → Type: Web app → Execute as: Me → Access: Anyone (anonymous)**. Update the URL in your `.env` file.
@@ -39,8 +38,7 @@ In the Apps Script editor: **Deploy → New deployment → Type: Web app → Exe
 **Resolution:**
 
 ```bash
-cd packages/<service>/apps-script
-clasp open
+open "https://script.google.com/d/<script-id>/edit"
 ```
 
 In the Apps Script editor, run any function (e.g., `doGet`). Google will prompt you to authorize the required scopes. Accept the permissions. After authorization, re-deploy the web app to apply the new scopes.
@@ -69,8 +67,7 @@ Each service requires its own set of OAuth scopes:
 **Resolution (if you have access to the script):**
 
 ```bash
-cd packages/<service>/apps-script
-clasp open
+open "https://script.google.com/d/<script-id>/edit"
 ```
 
 In the Apps Script editor, go to **Project Settings → Script Properties** (gear icon). The token is stored under `PROXY_AUTH_TOKEN`. If it's missing or you need to regenerate:
@@ -81,7 +78,8 @@ In the Apps Script editor, go to **Project Settings → Script Properties** (gea
 4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and hit the bootstrap endpoint again:
 
 ```bash
-curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>" | jq -r '.data.token'
+TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
 5. Update the token in your `.env` file.
@@ -135,9 +133,9 @@ echo $GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN
 { "success": false, "error": { "code": "RATE_LIMITED", "message": "Too many requests. Try again in 60 seconds." } }
 ```
 
-**Causes:** The proxy received more than 100 requests in a 60-second window.
+**Causes:** The proxy received more than 100 weighted request units in a 60-second window.
 
-**Resolution:** Wait 60 seconds and retry. Reduce batch sizes or combine individual calls into `*_batch` operations to reduce round-trip count.
+**Resolution:** Wait 60 seconds and retry. Reduce batch size or operation risk. Batch tools reduce round trips, but they are still charged by the sum of child operation weights.
 
 ### INTERNAL_ERROR
 
@@ -149,12 +147,11 @@ echo $GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN
 
 - Unhandled exception in the Apps Script code.
 - Google API threw an unexpected error.
-- Action name was misspelled in a batch operation.
-- Missing required parameter for an action.
+- Action name was misspelled outside the registered tool surface.
 
 **Resolution:** Check the Apps Script logs:
 
-1. Open the script: `cd packages/<service>/apps-script && clasp open`
+1. Open the script at `https://script.google.com/d/<script-id>/edit`
 2. Go to **Executions** in the left sidebar
 3. Find the failed execution and expand the log
 
@@ -164,9 +161,9 @@ echo $GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN
 { "success": false, "error": { "code": "BAD_REQUEST", "message": "Invalid JSON body" } }
 ```
 
-**Causes:** Malformed JSON, missing required fields, or validation failure at the Zod schema layer.
+**Causes:** Malformed JSON, missing required fields, invalid resource ID formats, or validation failure at the Zod schema layer.
 
-**Resolution:** The MCP server validates parameters before sending to the proxy, so this error is rare in agent use. If it occurs, check the tool description for required parameters.
+**Resolution:** The MCP server validates most parameters before sending to the proxy. If this occurs, check the tool description for required parameters and ID formats.
 
 ### VALIDATION_ERROR
 
@@ -191,8 +188,7 @@ console.error('[drive-proxy] action=fileGet error=File not found: abc123');
 To view logs:
 
 ```bash
-cd packages/<service>/apps-script
-clasp open
+open "https://script.google.com/d/<script-id>/edit"
 ```
 
 In the Apps Script editor: **Executions** (left sidebar) → click on the failed execution → expand for full log.
@@ -234,7 +230,7 @@ Expected response (without token):
   "success": true,
   "data": {
     "status": "healthy",
-    "version": "1.0.0",
+    "version": "<health-version>",
     "service": "google-workspace-proxy-drive"
   }
 }

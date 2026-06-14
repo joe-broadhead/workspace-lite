@@ -1,6 +1,6 @@
 {
   "name": "@workspace-lite/tasks",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "Google Tasks MCP server via Apps Script proxy",

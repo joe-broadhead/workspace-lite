@@ -27,7 +27,12 @@ export function registerTool(
       inputSchema: def.schema,
     },
     async (args: Record<string, unknown>) => {
-      def.validate?.(args)
+      try {
+        def.validate?.(args)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Invalid tool input'
+        return formatResponse({ success: false, error: { code: 'BAD_REQUEST', message } })
+      }
       const result = await client.callProxy(def.action, args)
       if (def.format) return def.format(result)
       return formatResponse(result, {

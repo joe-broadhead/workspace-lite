@@ -7,7 +7,7 @@ Create, read, and programmatically build documents with paragraphs, headings, li
 | Tool Name | Description |
 |---|---|
 | `docs_create_document` | Create a new document with a given name. |
-| `docs_get_document` | Get document metadata including ID, name, URL, and full text content with paragraph breakdown. |
+| `docs_get_document` | Get document metadata plus paragraph text, bounded by proxy paragraph and character limits. |
 | `docs_insert_paragraph` | Insert a paragraph with optional text and heading level (NORMAL, HEADING1-HEADING6). |
 | `docs_update_paragraph` | Update an existing paragraph's text and/or heading level by index. |
 | `docs_delete_paragraph` | Delete a paragraph by index. |
@@ -21,7 +21,7 @@ Create, read, and programmatically build documents with paragraphs, headings, li
 | `docs_format_text` | Format text by search pattern — bold, italic, underline, strikethrough, font, size, colors, and links. |
 | `docs_set_header` | Set the document header text (empty string to clear). |
 | `docs_set_footer` | Set the document footer text (empty string to clear). |
-| `docs_get_as_json` | Get the full document as structured JSON with all content, formatting, and structure. |
+| `docs_get_as_json` | Get the document as structured JSON with formatting and structure, bounded by proxy response-size limits. |
 | `docs_get_page_setup` | Read page size and margins in points. |
 | `docs_update_page_setup` | Update page size and margins in points. |
 | `docs_list_bookmarks` | List bookmarks with IDs and paragraph positions when available. |
@@ -137,6 +137,7 @@ docs_update_paragraph({
 - The paragraph index model requires knowing the current structure. After inserting or deleting paragraphs, all subsequent indices shift. Use `docs_get_document` to inspect the current layout before indexed operations.
 - Images must be publicly accessible URLs; local file uploads are not supported directly.
 - `docs_set_text` replaces the entire document body — use with caution on existing documents. Prefer `insert_paragraph` and `replace_text` for targeted changes.
+- `docs_get_document` is limited to 500 paragraphs and 500,000 characters; `docs_get_as_json` is limited to a 1,000,000-character JSON payload.
 - `docs_delete_bookmark` and `docs_delete_named_range` require `confirm: true` because they remove document metadata.
 - Bookmarks and named ranges are anchored to paragraph indices. Use `docs_get_document`, `docs_list_bookmarks`, or `docs_list_named_ranges` after structural edits because indices can shift.
 - Google Docs table-of-contents elements can be inspected when already present, but Apps Script and the Docs API do not expose a supported creation method through this service surface.

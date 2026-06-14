@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release, for example v0.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Validate and create GitHub release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: release_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Validate release candidate
+        run: npm run validate
+
+      - name: Audit npm dependencies
+        run: npm run audit
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install docs dependencies
+        run: pip install -r docs/requirements.txt
+
+      - name: Build docs strictly
+        run: mkdocs build --strict --site-dir site
+
+      - name: Create release archive
+        run: |
+          mkdir -p release
+          git archive --format=tar.gz --prefix="workspace-lite-${{ steps.release_tag.outputs.tag }}/" -o "release/workspace-lite-${{ steps.release_tag.outputs.tag }}.tar.gz" "${{ steps.release_tag.outputs.tag }}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.release_tag.outputs.tag }}" \
+            "release/workspace-lite-${{ steps.release_tag.outputs.tag }}.tar.gz" \
+            --title "workspace-lite ${{ steps.release_tag.outputs.tag }}" \
+            --notes-file CHANGELOG.md

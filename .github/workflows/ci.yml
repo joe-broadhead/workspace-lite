@@ -1,47 +1,66 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  validate:
+    name: Validate Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       matrix:
         node-version: [20, 22]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run validate:manifests
-      - run: npm run validate:limits
-      - run: npm run validate:responses
-      - run: npm run validate:mutations
-      - run: npm run validate:inputs
-      - run: npm run validate:architecture
-      - run: npm run audit
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Validate TypeScript, tests, manifests, and policy checks
+        run: npm run validate
+
+      - name: Audit npm dependencies
+        run: npm run audit
+
+      - name: Check diff whitespace
+        run: git diff --check
 
   docs:
+    name: Docs
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - uses: actions/cache@v4
-        with:
-          key: ${{ runner.os }}-pip-mkdocs-${{ hashFiles('docs/requirements.txt') }}
-          path: ~/.cache/pip
-      - run: pip install -r docs/requirements.txt
-      - run: mkdocs build --strict
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install docs dependencies
+        run: pip install -r docs/requirements.txt
+
+      - name: Build docs strictly
+        run: mkdocs build --strict --site-dir site

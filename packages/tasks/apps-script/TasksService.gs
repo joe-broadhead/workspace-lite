@@ -394,7 +394,7 @@ const TasksService = (() => {
       const op = ops[i]
       const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS)
       if (invalid) { results.push(invalid); continue }
-      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES)
+      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES, op.params || {})
       try {
         const result = handleFn(op.action, op.params || {})
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error })

@@ -137,7 +137,7 @@ const DocsService = (() => {
         const op = operations[i];
         const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
         if (invalid) { results.push(invalid); continue; }
-        operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
+        operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES, op.params || {});
         const opParams = op.params || {};
         if (!opParams.documentId) opParams.documentId = documentId;
         try {

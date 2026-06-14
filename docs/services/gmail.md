@@ -10,7 +10,7 @@ Read, send, draft, label, search, and manage email threads and messages.
 | `gmail_search_messages` | Search messages by query, sender, recipient, subject, date range, label, or read/starred status. |
 | `gmail_list_threads` | List email threads with same filter options as `search_messages`. |
 | `gmail_get_message` | Retrieve full details of a single message (headers, body, attachments). |
-| `gmail_get_thread` | Retrieve a complete thread with all messages. |
+| `gmail_get_thread` | Retrieve a thread with messages, bounded by the 100-message proxy limit. |
 | `gmail_list_labels` | List all Gmail labels in the account. |
 | `gmail_send` | Send an email immediately. |
 | `gmail_create_draft` | Create a new draft without sending. |
@@ -48,7 +48,7 @@ Read, send, draft, label, search, and manage email threads and messages.
 
 ## Key Features
 
-- **Draft-first safety** — Always create a draft before sending. Use `create_draft`, `create_draft_reply`, or `create_draft_reply_all` to compose safely, review with `get_draft`, and only send with `send_draft` when ready. This prevents accidental sends.
+- **Draft-first safety** — Prefer `create_draft`, `create_draft_reply`, or `create_draft_reply_all` to compose safely, review with `get_draft`, and only send with `send_draft` when ready. Immediate send tools exist, but they should only be used with explicit approval.
 - **Rich search and filtering** — `search_messages` and `list_threads` support Gmail query syntax plus structured filters: `from`, `to`, `subject`, `before`/`after` dates, `isUnread`, `isStarred`, and `label`.
 - **Thread-level operations** — `trash_thread`, `untrash_thread`, and `get_thread` operate on entire conversations at once, matching Gmail's thread-centric model.
 - **Full label lifecycle** — `add_label` auto-creates labels that don't exist yet; `remove_label` detaches without deleting the label itself; `list_labels` shows all available labels.
@@ -91,7 +91,7 @@ gmail_search_messages({
 
 ```pseudo
 # Get a thread and apply a label
-gmail_add_label({ messageId: "<msg-id>", label: "Project/Alpha" })
+gmail_add_label({ messageId: "<msg-id>", labelName: "Project/Alpha" })
 
 # Remove from inbox while keeping the label
 gmail_archive({ messageId: "<msg-id>" })

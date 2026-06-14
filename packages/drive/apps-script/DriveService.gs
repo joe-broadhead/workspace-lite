@@ -37,8 +37,8 @@ var DriveService = (() => {
     revisionsGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     sharedDrivesList: { class: 'read' },
     sharedDrivesGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'] }] },
-    changesStartPageToken: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'] }] },
-    changesList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'] }] },
+    changesStartPageToken: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'], requiredWhenConfigured: true }] },
+    changesList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'], requiredWhenConfigured: true }] },
     folderCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['parentId'], defaultValue: 'root' }] },
     fileCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['parentId'], defaultValue: 'root' }] },
     fileCopy: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['destFolderId'] }] },
@@ -226,6 +226,22 @@ var DriveService = (() => {
     }
   }
 
+  function driveReadAllowlistsConfigured() {
+    return policyPropertyHasList_('ALLOWED_DRIVE_FILE_IDS') || policyPropertyHasList_('ALLOWED_DRIVE_FOLDER_IDS');
+  }
+
+  function driveFileAllowedByReadAllowlists(file) {
+    if (!driveReadAllowlistsConfigured()) return true;
+    if (policyPropertyHasList_('ALLOWED_DRIVE_FILE_IDS') && policyValueAllowed_('ALLOWED_DRIVE_FILE_IDS', file.getId())) return true;
+    if (policyPropertyHasList_('ALLOWED_DRIVE_FOLDER_IDS')) {
+      const parents = file.getParents();
+      while (parents.hasNext()) {
+        if (policyValueAllowed_('ALLOWED_DRIVE_FOLDER_IDS', parents.next().getId())) return true;
+      }
+    }
+    return false;
+  }
+
   function fileToJSON(f) {
     return {
       id: f.getId(),
@@ -382,7 +398,7 @@ var DriveService = (() => {
   }
 
   function fileList(params) {
-    const folderId = optionalString(params, 'folderId');
+    const folderId = optionalString(params, 'folderId', 'root');
     const pageSizeLimit = boundedPageSize(params, 'pageSize', 50);
     if (pageSizeLimit.error) return pageSizeLimit.error;
     const pageSize = pageSizeLimit.value;
@@ -391,15 +407,15 @@ var DriveService = (() => {
     if (pageToken > LIMITS.pageOffset) return limitExceeded('Drive page offset', pageToken, LIMITS.pageOffset);
 
     let files;
-    if (folderId) {
+    if (folderId === 'root') {
+      files = DriveApp.getRootFolder().getFiles();
+    } else {
       validateDriveId(folderId);
       try {
         files = DriveApp.getFolderById(folderId).getFiles();
       } catch(e) {
         return err('NOT_FOUND', `Folder not found: ${folderId}`);
       }
-    } else {
-      files = DriveApp.getFiles();
     }
 
     const allFiles = [];
@@ -429,10 +445,9 @@ var DriveService = (() => {
       const driveAppQuery = normalizeDriveAppQuery(query);
       const files = DriveApp.searchFiles(driveAppQuery);
       const results = [];
-      let count = 0;
-      while (files.hasNext() && count < maxResults) {
-        results.push(fileToJSON(files.next()));
-        count++;
+      while (files.hasNext() && results.length < maxResults) {
+        const file = files.next();
+        if (driveFileAllowedByReadAllowlists(file)) results.push(fileToJSON(file));
       }
       const warnings = driveAppQuery !== query ? ['Translated Drive API v3 query fields to DriveApp query fields.'] : undefined;
       return ok(results, { hasMore: files.hasNext() }, warnings);
@@ -967,7 +982,10 @@ var DriveService = (() => {
         pageToken: optionalString(params, 'pageToken'),
         q: optionalString(params, 'query'),
       });
-      return ok({ drives: (result.drives || []).map(sharedDriveToJSON) }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
+      const drives = (result.drives || []).filter(function(drive) {
+        return !policyPropertyHasList_('ALLOWED_DRIVE_SHARED_DRIVE_IDS') || policyValueAllowed_('ALLOWED_DRIVE_SHARED_DRIVE_IDS', drive.id);
+      });
+      return ok({ drives: drives.map(sharedDriveToJSON) }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
     }, 'SHARED_DRIVES_FAILED', function(e) { return e.message || 'Could not list shared drives.'; });
   }
 
@@ -1026,7 +1044,7 @@ var DriveService = (() => {
       const op = ops[i];
       const invalid = validateBatchOperation_(op, i, BATCH_ACTIONS);
       if (invalid) { results.push(invalid); continue; }
-      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES);
+      operationWeight += actionWeightForPolicy(op.action, ACTION_POLICIES, op.params || {});
       try {
         const result = handleFn(op.action, op.params || {});
         results.push({ index: i, action: op.action, success: result.success, data: result.success ? result.data : undefined, error: result.success ? undefined : result.error });

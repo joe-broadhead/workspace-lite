@@ -1,6 +1,6 @@
 {
   "name": "@workspace-lite/sheets",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "description": "Google Sheets MCP server via Apps Script proxy",
   "type": "module",
