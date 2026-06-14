@@ -43,7 +43,7 @@ The proxy rejects requests before or immediately after bounded API calls when th
 
 | Limit | Value |
 |---|---:|
-| Page size (`drive_list_files`, `drive_search_files`) | 100 |
+| Page size (`drive_list_files`, `drive_search_files`, comment/reply/revision/shared-drive/change lists) | 100 |
 | Maximum page offset | 5,000 |
 | Folder entries returned by `drive_list_folders` | 200 |
 | Text returned by `drive_read_file` | 500,000 characters |

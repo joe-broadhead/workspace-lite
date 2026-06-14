@@ -83,7 +83,7 @@ MCP servers for Google Workspace
 |---------|--------|
 | :material-shield-key:{ .middle } **Bearer token auth** | One-time bootstrap per service. Token stored in Apps Script properties. No OAuth refresh loops, no service accounts. |
 | :material-package-variant-closed:{ .middle } **8 services** | Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, Forms &mdash; every service has a dedicated MCP server and Apps Script proxy. |
-| :material-counter:{ .middle } **175 tools** | Drive&nbsp;(29), Gmail&nbsp;(39), Calendar&nbsp;(15), Sheets&nbsp;(27), Slides&nbsp;(19), Docs&nbsp;(17), Tasks&nbsp;(13), Forms&nbsp;(16). |
+| :material-counter:{ .middle } **190 tools** | Drive&nbsp;(44), Gmail&nbsp;(39), Calendar&nbsp;(15), Sheets&nbsp;(27), Slides&nbsp;(19), Docs&nbsp;(17), Tasks&nbsp;(13), Forms&nbsp;(16). |
 | :material-layers-triple:{ .middle } **Batch on all 8** | `{service}_batch` tools combine up to 20 operations in one round-trip. Sequential execution with per-op error collection. |
 | :material-arrange-bring-forward:{ .middle } **Auto-positioning** | Slides text boxes, images, shapes, and tables auto-position below existing elements. Override with explicit coordinates. |
 | :material-email-fast:{ .middle } **Draft-first email** | `gmail_create_draft`, `gmail_create_draft_reply`, `gmail_create_draft_reply_all` &mdash; review before sending. Never sends without explicit approval. |

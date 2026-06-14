@@ -8,7 +8,7 @@
       "globalName": "DriveService",
       "tokenEnvName": "GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN",
       "proxyServiceName": "google-workspace-proxy-drive",
-      "toolCount": 29,
+      "toolCount": 44,
       "advancedServices": [
         { "userSymbol": "Drive", "version": "v3", "serviceId": "drive" }
       ],

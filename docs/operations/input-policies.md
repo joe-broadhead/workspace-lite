@@ -40,6 +40,16 @@ Drive public sharing is opt-in. Public access levels such as `ANYONE` and `ANYON
 
 Share and send classes still require `confirm=true` after explicit user approval. Gmail forwarding filters and enabled vacation responder updates also require `confirm=true` because they can send or redirect future email.
 
+Drive file, folder, and shared-drive actions can be scoped with resource allowlists:
+
+| Property | Behavior |
+|---|---|
+| `ALLOWED_DRIVE_FILE_IDS` | Restricts file-scoped read/write/comment/revision actions to listed file IDs. |
+| `ALLOWED_DRIVE_FOLDER_IDS` | Restricts folder-scoped list/create/move/parent actions to listed folder IDs. |
+| `ALLOWED_DRIVE_SHARED_DRIVE_IDS` | Restricts shared-drive metadata and shared-drive change-token actions to listed shared drive IDs. |
+
+Drive comment and reply deletion require `confirm=true` after explicit user approval.
+
 ## Formula Injection
 
 Formula injection is blocked in generic Sheets value-writing tools. `rangeWrite` and `rowsAppend` reject string cell values beginning with formula metacharacters: `=`, `+`, `-`, or `@`.

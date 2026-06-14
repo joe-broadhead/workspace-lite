@@ -1,6 +1,6 @@
 # Architecture Overview
 
-How the 175 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
+How the 190 tools flow from an agent prompt to a Google Workspace mutation &mdash; and back.
 
 ---
 
@@ -39,7 +39,7 @@ workspace-lite/
 │       ├── response.ts         # ProxyResponse interface, format helpers
 │       └── index.ts            # Barrel exports
 ├── packages/
-│   ├── drive/                  # 29 tools
+│   ├── drive/                  # 44 tools
 │   │   ├── src/
 │   │   │   ├── index.ts        # MCP server entry: McpServer + StdioServerTransport
 │   │   │   ├── proxy.ts        # fetch() to Apps Script with token auth, 30s timeout

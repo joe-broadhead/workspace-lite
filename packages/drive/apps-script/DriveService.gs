@@ -30,6 +30,15 @@ var DriveService = (() => {
     fileGetPermissions: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     fileExportAs: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     commentsList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    commentsGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    repliesList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    repliesGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    revisionsList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    revisionsGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    sharedDrivesList: { class: 'read' },
+    sharedDrivesGet: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'] }] },
+    changesStartPageToken: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'] }] },
+    changesList: { class: 'read', allowlists: [{ property: 'ALLOWED_DRIVE_SHARED_DRIVE_IDS', params: ['driveId'] }] },
     folderCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['parentId'], defaultValue: 'root' }] },
     fileCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['parentId'], defaultValue: 'root' }] },
     fileCopy: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['destFolderId'] }] },
@@ -38,6 +47,10 @@ var DriveService = (() => {
     fileUpdateContent: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     fileAddParent: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'] }] },
     commentCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    commentsUpdate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    repliesCreate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    repliesUpdate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    revisionsUpdate: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     fileUntrash: { class: 'write', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     fileSetSharing: { class: 'share', blockPublicSharing: true, allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     fileAddEditor: { class: 'share', recipientParams: ['email'], requiresKnownRecipients: true, allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
@@ -47,6 +60,8 @@ var DriveService = (() => {
     fileRemoveParent: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }, { property: 'ALLOWED_DRIVE_FOLDER_IDS', params: ['folderId'] }] },
     fileTrash: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     fileDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    commentsDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
+    repliesDelete: { class: 'destructive', allowlists: [{ property: 'ALLOWED_DRIVE_FILE_IDS', params: ['fileId'] }] },
     batch: { class: 'read' },
   }
 
@@ -59,7 +74,12 @@ var DriveService = (() => {
     fileRemoveEditor: true, fileRemoveViewer: true, fileAddParent: true,
     fileRemoveParent: true, folderPath: true, fileTrash: true,
     fileUntrash: true, fileDelete: true, fileExportAs: true,
-    commentsList: true, commentCreate: true,
+    commentsList: true, commentsGet: true, commentCreate: true,
+    commentsUpdate: true, commentsDelete: true, repliesList: true,
+    repliesCreate: true, repliesGet: true, repliesUpdate: true,
+    repliesDelete: true, revisionsList: true, revisionsGet: true,
+    revisionsUpdate: true, sharedDrivesList: true, sharedDrivesGet: true,
+    changesStartPageToken: true, changesList: true,
   }
 
   const LIMITS = {
@@ -140,7 +160,10 @@ var DriveService = (() => {
     fileSetSharing, fileAddEditor, fileAddViewer, fileRemoveEditor,
     fileRemoveViewer, fileAddParent, fileRemoveParent, folderPath,
     fileTrash, fileUntrash, fileDelete, fileExportAs, commentsList,
-    commentCreate, batch,
+    commentsGet, commentCreate, commentsUpdate, commentsDelete,
+    repliesList, repliesCreate, repliesGet, repliesUpdate, repliesDelete,
+    revisionsList, revisionsGet, revisionsUpdate, sharedDrivesList,
+    sharedDrivesGet, changesStartPageToken, changesList, batch,
   }
 
   function handle(action, params) {
@@ -247,6 +270,97 @@ var DriveService = (() => {
     const arr = [];
     while (it.hasNext()) arr.push(it.next());
     return arr;
+  }
+
+  function commentToJSON(c) {
+    if (!c) return null;
+    return {
+      id: c.id || c.commentId || null,
+      content: c.content || null,
+      htmlContent: c.htmlContent || null,
+      author: userToJSON(c.author),
+      createdTime: c.createdTime || null,
+      modifiedTime: c.modifiedTime || null,
+      resolved: c.resolved || false,
+      deleted: c.deleted || false,
+      anchor: c.anchor ? String(c.anchor) : null,
+      quotedFileContent: c.quotedFileContent || null,
+      repliesCount: c.replies ? (Array.isArray(c.replies) ? c.replies.length : 0) : 0,
+      replies: c.replies ? c.replies.map(replyToJSON) : undefined,
+    };
+  }
+
+  function replyToJSON(r) {
+    if (!r) return null;
+    return {
+      id: r.id || r.replyId || null,
+      content: r.content || null,
+      htmlContent: r.htmlContent || null,
+      author: userToJSON(r.author),
+      createdTime: r.createdTime || null,
+      modifiedTime: r.modifiedTime || null,
+      action: r.action || null,
+      deleted: r.deleted || false,
+    };
+  }
+
+  function revisionToJSON(r) {
+    if (!r) return null;
+    return {
+      id: r.id || null,
+      mimeType: r.mimeType || null,
+      modifiedTime: r.modifiedTime || null,
+      keepForever: r.keepForever || false,
+      published: r.published || false,
+      publishedOutsideDomain: r.publishedOutsideDomain || false,
+      publishAuto: r.publishAuto || false,
+      size: r.size || null,
+      originalFilename: r.originalFilename || null,
+      lastModifyingUser: userToJSON(r.lastModifyingUser),
+    };
+  }
+
+  function sharedDriveToJSON(d) {
+    if (!d) return null;
+    return {
+      id: d.id || null,
+      name: d.name || null,
+      colorRgb: d.colorRgb || null,
+      backgroundImageLink: d.backgroundImageLink || null,
+      createdTime: d.createdTime || null,
+      hidden: d.hidden || false,
+      capabilities: d.capabilities || undefined,
+      restrictions: d.restrictions || undefined,
+    };
+  }
+
+  function changeToJSON(c) {
+    if (!c) return null;
+    return {
+      type: c.type || null,
+      time: c.time || null,
+      removed: c.removed || false,
+      fileId: c.fileId || null,
+      driveId: c.driveId || null,
+      file: c.file ? {
+        id: c.file.id || null,
+        name: c.file.name || null,
+        mimeType: c.file.mimeType || null,
+        trashed: c.file.trashed || false,
+        modifiedTime: c.file.modifiedTime || null,
+      } : undefined,
+      drive: c.drive ? sharedDriveToJSON(c.drive) : undefined,
+    };
+  }
+
+  function userToJSON(user) {
+    if (!user) return null;
+    return {
+      displayName: user.displayName || null,
+      emailAddress: user.emailAddress || null,
+      permissionId: user.permissionId || null,
+      photoLink: user.photoLink || null,
+    };
   }
 
   // ── About ──
@@ -680,21 +794,32 @@ var DriveService = (() => {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
     return trap(function() {
-      const result = Drive.Comments.list(id, { fields: 'comments', pageSize: 100 });
+      const pageSizeLimit = boundedPageSize(params, 'pageSize', 100);
+      if (pageSizeLimit.error) return pageSizeLimit.error;
+      const optionalArgs = {
+        fields: 'comments(id,content,htmlContent,author,createdTime,modifiedTime,resolved,deleted,anchor,quotedFileContent,replies),nextPageToken',
+        pageSize: pageSizeLimit.value,
+        pageToken: optionalString(params, 'pageToken'),
+        includeDeleted: optionalBool(params, 'includeDeleted', false),
+      };
+      const result = Drive.Comments.list(id, optionalArgs);
       const comments = (result.comments || []).map(function(c) {
-        return {
-          id: c.commentId,
-          content: c.content,
-          author: c.author ? (c.author.displayName || c.author.emailAddress || null) : null,
-          createdTime: c.createdTime || null,
-          modifiedTime: c.modifiedTime || null,
-          resolved: c.resolved || false,
-          anchor: c.anchor ? String(c.anchor) : null,
-          repliesCount: c.replies ? (Array.isArray(c.replies) ? c.replies.length : 0) : 0,
-        };
+        const comment = commentToJSON(c);
+        if (comment && comment.replies) delete comment.replies;
+        return comment;
       });
-      return { fileId: id, comments: comments };
+      return ok({ fileId: id, comments: comments }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
     }, 'COMMENTS_FAILED', function(e) { return e.message || `Could not list comments for file: ${id}`; });
+  }
+
+  function commentsGet(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    validateDriveId(id);
+    return trap(function() {
+      const comment = Drive.Comments.get(id, commentId, { fields: '*', includeDeleted: optionalBool(params, 'includeDeleted', false) });
+      return { fileId: id, comment: commentToJSON(comment) };
+    }, 'COMMENT_FAILED', function(e) { return e.message || `Could not get comment: ${commentId}`; });
   }
 
   function commentCreate(params) {
@@ -705,15 +830,188 @@ var DriveService = (() => {
       const comment = Drive.Comments.create({ content: content, anchor: JSON.stringify({ r: 'head' }) }, id, { fields: '*' });
       return {
         fileId: id,
-        comment: {
-          id: comment.commentId,
-          content: comment.content,
-          author: comment.author ? (comment.author.displayName || comment.author.emailAddress || null) : null,
-          createdTime: comment.createdTime || null,
-          anchor: comment.anchor ? String(comment.anchor) : null,
-        },
+        comment: commentToJSON(comment),
       };
     }, 'COMMENT_FAILED', function(e) { return e.message || `Could not add comment to file: ${id}`; }); });
+  }
+
+  function commentsUpdate(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    validateDriveId(id);
+    return trap(function() {
+      const patch = {};
+      if (params.content !== undefined) patch.content = String(params.content);
+      if (params.resolved !== undefined) patch.resolved = optionalBool(params, 'resolved', false);
+      if (Object.keys(patch).length === 0) return err('BAD_REQUEST', 'Provide content or resolved to update a comment.');
+      const comment = Drive.Comments.update(patch, id, commentId, { fields: '*' });
+      return { fileId: id, comment: commentToJSON(comment) };
+    }, 'COMMENT_UPDATE_FAILED', function(e) { return e.message || `Could not update comment: ${commentId}`; });
+  }
+
+  function commentsDelete(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    validateDriveId(id);
+    return trap(function() {
+      Drive.Comments.remove(id, commentId);
+      return { deleted: true, fileId: id, commentId: commentId };
+    }, 'COMMENT_DELETE_FAILED', function(e) { return e.message || `Could not delete comment: ${commentId}`; });
+  }
+
+  function repliesList(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    validateDriveId(id);
+    return trap(function() {
+      const pageSizeLimit = boundedPageSize(params, 'pageSize', 100);
+      if (pageSizeLimit.error) return pageSizeLimit.error;
+      const result = Drive.Replies.list(id, commentId, {
+        fields: 'replies(id,content,htmlContent,author,createdTime,modifiedTime,action,deleted),nextPageToken',
+        pageSize: pageSizeLimit.value,
+        pageToken: optionalString(params, 'pageToken'),
+        includeDeleted: optionalBool(params, 'includeDeleted', false),
+      });
+      return ok({ fileId: id, commentId: commentId, replies: (result.replies || []).map(replyToJSON) }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
+    }, 'REPLIES_FAILED', function(e) { return e.message || `Could not list replies for comment: ${commentId}`; });
+  }
+
+  function repliesCreate(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    const content = requireParam(params, 'content');
+    validateDriveId(id);
+    return withIdempotency('repliesCreate', params, function() { return trap(function() {
+      const reply = Drive.Replies.create({ content: content }, id, commentId, { fields: '*' });
+      return { fileId: id, commentId: commentId, reply: replyToJSON(reply) };
+    }, 'REPLY_FAILED', function(e) { return e.message || `Could not create reply for comment: ${commentId}`; }); });
+  }
+
+  function repliesGet(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    const replyId = requireParam(params, 'replyId');
+    validateDriveId(id);
+    return trap(function() {
+      const reply = Drive.Replies.get(id, commentId, replyId, { fields: '*', includeDeleted: optionalBool(params, 'includeDeleted', false) });
+      return { fileId: id, commentId: commentId, reply: replyToJSON(reply) };
+    }, 'REPLY_FAILED', function(e) { return e.message || `Could not get reply: ${replyId}`; });
+  }
+
+  function repliesUpdate(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    const replyId = requireParam(params, 'replyId');
+    const content = requireParam(params, 'content');
+    validateDriveId(id);
+    return trap(function() {
+      const reply = Drive.Replies.update({ content: content }, id, commentId, replyId, { fields: '*' });
+      return { fileId: id, commentId: commentId, reply: replyToJSON(reply) };
+    }, 'REPLY_UPDATE_FAILED', function(e) { return e.message || `Could not update reply: ${replyId}`; });
+  }
+
+  function repliesDelete(params) {
+    const id = requireParam(params, 'fileId');
+    const commentId = requireParam(params, 'commentId');
+    const replyId = requireParam(params, 'replyId');
+    validateDriveId(id);
+    return trap(function() {
+      Drive.Replies.remove(id, commentId, replyId);
+      return { deleted: true, fileId: id, commentId: commentId, replyId: replyId };
+    }, 'REPLY_DELETE_FAILED', function(e) { return e.message || `Could not delete reply: ${replyId}`; });
+  }
+
+  function revisionsList(params) {
+    const id = requireParam(params, 'fileId');
+    validateDriveId(id);
+    return trap(function() {
+      const pageSizeLimit = boundedPageSize(params, 'pageSize', 100);
+      if (pageSizeLimit.error) return pageSizeLimit.error;
+      const result = Drive.Revisions.list(id, {
+        fields: 'revisions(id,mimeType,modifiedTime,keepForever,published,publishedOutsideDomain,publishAuto,size,originalFilename,lastModifyingUser),nextPageToken',
+        pageSize: pageSizeLimit.value,
+        pageToken: optionalString(params, 'pageToken'),
+      });
+      return ok({ fileId: id, revisions: (result.revisions || []).map(revisionToJSON) }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
+    }, 'REVISIONS_FAILED', function(e) { return e.message || `Could not list revisions for file: ${id}`; });
+  }
+
+  function revisionsGet(params) {
+    const id = requireParam(params, 'fileId');
+    const revisionId = requireParam(params, 'revisionId');
+    validateDriveId(id);
+    return trap(function() {
+      const revision = Drive.Revisions.get(id, revisionId, { fields: '*' });
+      return { fileId: id, revision: revisionToJSON(revision) };
+    }, 'REVISION_FAILED', function(e) { return e.message || `Could not get revision: ${revisionId}`; });
+  }
+
+  function revisionsUpdate(params) {
+    const id = requireParam(params, 'fileId');
+    const revisionId = requireParam(params, 'revisionId');
+    validateDriveId(id);
+    return trap(function() {
+      if (params.keepForever === undefined) return err('BAD_REQUEST', 'Provide keepForever to update revision metadata.');
+      const revision = Drive.Revisions.update({ keepForever: optionalBool(params, 'keepForever', false) }, id, revisionId, { fields: '*' });
+      return { fileId: id, revision: revisionToJSON(revision) };
+    }, 'REVISION_UPDATE_FAILED', function(e) { return e.message || `Could not update revision: ${revisionId}`; });
+  }
+
+  function sharedDrivesList(params) {
+    return trap(function() {
+      const pageSizeLimit = boundedPageSize(params, 'pageSize', 100);
+      if (pageSizeLimit.error) return pageSizeLimit.error;
+      const result = Drive.Drives.list({
+        fields: 'drives(id,name,colorRgb,backgroundImageLink,createdTime,hidden,capabilities,restrictions),nextPageToken',
+        pageSize: pageSizeLimit.value,
+        pageToken: optionalString(params, 'pageToken'),
+        q: optionalString(params, 'query'),
+      });
+      return ok({ drives: (result.drives || []).map(sharedDriveToJSON) }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
+    }, 'SHARED_DRIVES_FAILED', function(e) { return e.message || 'Could not list shared drives.'; });
+  }
+
+  function sharedDrivesGet(params) {
+    const driveId = requireParam(params, 'driveId');
+    validateDriveId(driveId);
+    return trap(function() {
+      const drive = Drive.Drives.get(driveId, { fields: '*' });
+      return { drive: sharedDriveToJSON(drive) };
+    }, 'SHARED_DRIVE_FAILED', function(e) { return e.message || `Could not get shared drive: ${driveId}`; });
+  }
+
+  function changesStartPageToken(params) {
+    const driveId = optionalString(params, 'driveId');
+    if (driveId) validateDriveId(driveId);
+    return trap(function() {
+      const result = Drive.Changes.getStartPageToken({
+        driveId: driveId,
+        supportsAllDrives: true,
+        fields: 'startPageToken',
+      });
+      return { startPageToken: result.startPageToken, driveId: driveId || null };
+    }, 'CHANGES_TOKEN_FAILED', function(e) { return e.message || 'Could not get Drive changes start page token.'; });
+  }
+
+  function changesList(params) {
+    const pageToken = requireParam(params, 'pageToken');
+    const driveId = optionalString(params, 'driveId');
+    if (driveId) validateDriveId(driveId);
+    return trap(function() {
+      const pageSizeLimit = boundedPageSize(params, 'pageSize', 100);
+      if (pageSizeLimit.error) return pageSizeLimit.error;
+      const optionalArgs = {
+        fields: 'changes(type,time,removed,fileId,driveId,file(id,name,mimeType,trashed,modifiedTime),drive(id,name,colorRgb,backgroundImageLink,createdTime,hidden,capabilities,restrictions)),newStartPageToken,nextPageToken',
+        pageSize: pageSizeLimit.value,
+        driveId: driveId,
+        includeItemsFromAllDrives: optionalBool(params, 'includeItemsFromAllDrives', true),
+        restrictToMyDrive: optionalBool(params, 'restrictToMyDrive', false),
+        spaces: optionalString(params, 'spaces', 'drive'),
+        supportsAllDrives: true,
+      };
+      const result = Drive.Changes.list(pageToken, optionalArgs);
+      return ok({ changes: (result.changes || []).map(changeToJSON), newStartPageToken: result.newStartPageToken || null }, { nextPageToken: result.nextPageToken, hasMore: !!result.nextPageToken });
+    }, 'CHANGES_FAILED', function(e) { return e.message || 'Could not list Drive changes.'; });
   }
 
   // ── Batch ──

@@ -34,6 +34,21 @@ Manage files, folders, sharing permissions, and storage metadata in Google Drive
 | `drive_export_as` | Export a Google Workspace file (Docs, Sheets, Slides) in a format like PDF, DOCX, XLSX, CSV. |
 | `drive_get_comments` | List comments on a Drive file. |
 | `drive_add_comment` | Add a head-anchored comment to a Drive file. |
+| `drive_get_comment` | Get a specific Drive comment by ID. |
+| `drive_update_comment` | Update comment content or resolved state. |
+| `drive_delete_comment` | Delete a Drive comment. |
+| `drive_list_replies` | List replies on a Drive comment. |
+| `drive_create_reply` | Create a reply on a Drive comment. |
+| `drive_get_reply` | Get a specific Drive comment reply. |
+| `drive_update_reply` | Update a Drive comment reply. |
+| `drive_delete_reply` | Delete a Drive comment reply. |
+| `drive_list_revisions` | List Drive file revisions. |
+| `drive_get_revision` | Get a specific Drive revision. |
+| `drive_update_revision` | Update revision metadata such as `keepForever` where supported. |
+| `drive_list_shared_drives` | List shared drives visible to the deploying user. |
+| `drive_get_shared_drive` | Get shared drive metadata and capabilities. |
+| `drive_get_start_page_token` | Get a start page token for Drive changes. |
+| `drive_list_changes` | List Drive changes from a start or next page token. |
 | `drive_batch` | Execute up to 20 Drive operations in a single round-trip. |
 
 ## Key Features
@@ -42,6 +57,9 @@ Manage files, folders, sharing permissions, and storage metadata in Google Drive
 - **Granular permissions model** — Add/remove individual editors and viewers, or set broad sharing access levels (ANYONE, ANYONE_WITH_LINK, DOMAIN, PRIVATE) with VIEW, EDIT, COMMENT, or NONE permission.
 - **File export for Workspace types** — Use `drive_read_file` for text export or `drive_export_as` for PDF, Office formats, CSV, and other binary exports.
 - **Two-phase deletion** — `drive_trash_file` sends to trash (recoverable); `drive_delete_file` performs the repository's permanent-delete workflow.
+- **Advanced collaboration** — Manage Drive comments and replies with documented Advanced Drive service methods.
+- **Revision and history reads** — List revisions and Drive changes without creating push/watch channels.
+- **Shared drive discovery** — List and inspect shared drive metadata, capabilities, and restrictions visible to the deploying user.
 - **Batch operations** — Use `drive_batch` to chain up to 20 Drive operations in a single round-trip.
 
 ## Examples
@@ -93,6 +111,10 @@ drive_export_as({
 - Drive query syntax has specific operator rules — `and`/`or` are lowercase, strings must be single-quoted.
 - `drive_export_as` only works on Google Workspace formats (Docs, Sheets, Slides, etc.); binary files have no export representation.
 - `drive_delete_file` is destructive and cannot be undone after the trash step completes.
+- `drive_delete_comment` and `drive_delete_reply` are destructive and require explicit confirmation.
+- Drive revision history is incomplete for some file types. Binary revisions can expose `keepForever`; Google Workspace editor files often expose less revision metadata and may reject revision metadata updates.
+- Shared drive results depend on account membership, admin policies, and per-drive capabilities. Some operations may be unavailable even when a shared drive is visible.
+- `drive_list_changes` reads from caller-provided page tokens and does not manage push/watch channel lifecycle.
 - File listing and searching are paginated; use `page` and `pageSize` parameters to navigate large result sets.
-- Shared drive (Team Drive) support is not included in this surface; operations target "My Drive" and shared-with-me files.
+- Comments, replies, revisions, shared drives, and changes are paginated by the Drive API; use returned page tokens to continue.
 - For retry and partial-success behavior of `drive_move_file`, create/copy/share tools, and `idempotencyKey`, see [Mutation Safety](../operations/mutation-safety.md).

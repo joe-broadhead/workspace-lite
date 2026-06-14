@@ -136,7 +136,22 @@ The `action` field in each operation uses the **same names as the individual too
 | `drive_get_folder_path` | `folderPath` |
 | `drive_export_as` | `fileExportAs` |
 | `drive_get_comments` | `commentsList` |
+| `drive_get_comment` | `commentsGet` |
 | `drive_add_comment` | `commentCreate` |
+| `drive_update_comment` | `commentsUpdate` |
+| `drive_delete_comment` | `commentsDelete` |
+| `drive_list_replies` | `repliesList` |
+| `drive_create_reply` | `repliesCreate` |
+| `drive_get_reply` | `repliesGet` |
+| `drive_update_reply` | `repliesUpdate` |
+| `drive_delete_reply` | `repliesDelete` |
+| `drive_list_revisions` | `revisionsList` |
+| `drive_get_revision` | `revisionsGet` |
+| `drive_update_revision` | `revisionsUpdate` |
+| `drive_list_shared_drives` | `sharedDrivesList` |
+| `drive_get_shared_drive` | `sharedDrivesGet` |
+| `drive_get_start_page_token` | `changesStartPageToken` |
+| `drive_list_changes` | `changesList` |
 
 ### Gmail
 

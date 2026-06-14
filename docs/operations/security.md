@@ -151,10 +151,10 @@ Your environment contains two values per service:
 | `GOOGLE_WORKSPACE_*_PROXY_URL` | Low. The URL is public but useless without the token. |
 | `GOOGLE_WORKSPACE_*_PROXY_TOKEN` | **Critical.** Primary bearer token and fallback when a class-scoped token is not configured. |
 | `GOOGLE_WORKSPACE_*_PROXY_READ_TOKEN` | Optional read-only token. |
-| `GOOGLE_WORKSPACE_*_PROXY_WRITE_TOKEN` | Optional token for non-destructive mutations, including Gmail filters and vacation responder settings. |
+| `GOOGLE_WORKSPACE_*_PROXY_WRITE_TOKEN` | Optional token for non-destructive mutations, including Drive comment/reply/revision updates and Gmail filters/vacation responder settings. |
 | `GOOGLE_WORKSPACE_*_PROXY_SEND_TOKEN` | Optional token for Gmail send, reply, and forward actions. |
 | `GOOGLE_WORKSPACE_*_PROXY_SHARE_TOKEN` | Optional token for Drive sharing actions. |
-| `GOOGLE_WORKSPACE_*_PROXY_DESTRUCTIVE_TOKEN` | Optional token for trash/delete/clear actions. |
+| `GOOGLE_WORKSPACE_*_PROXY_DESTRUCTIVE_TOKEN` | Optional token for trash/delete/clear actions, including Drive comment and reply deletion. |
 | `GOOGLE_WORKSPACE_*_PROXY_ADMIN_TOKEN` | Optional broad fallback for mixed high-risk batches or full operational access. |
 
 ### Best Practices

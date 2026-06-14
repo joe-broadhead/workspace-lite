@@ -45,10 +45,10 @@ Keys are scoped by service and action. Reusing the same key for a different acti
 
 | Service | Non-idempotent operation | Idempotency support | Guidance |
 |---|---|---|---|
-| Drive | `drive_create_folder`, `drive_create_file`, `drive_copy_file`, `drive_add_comment` | `idempotencyKey` | Always provide a key when retrying after client timeout or network failure. Without a key, search by name/parent or comment content before retrying. |
+| Drive | `drive_create_folder`, `drive_create_file`, `drive_copy_file`, `drive_add_comment`, `drive_create_reply` | `idempotencyKey` | Always provide a key when retrying after client timeout or network failure. Without a key, search by name/parent, comment content, or reply content before retrying. |
 | Drive | `drive_set_sharing`, `drive_add_editor`, `drive_add_viewer` | `idempotencyKey` | These are repeat-tolerant but still accept keys so client retries can return the original response. |
 | Drive | `drive_move_file` | Compensating, no key required | Retry only after checking parents if the previous response was unavailable. The operation adds the destination before removing old parents. |
-| Drive | `drive_update_metadata`, `drive_update_content`, `drive_add_parent`, `drive_remove_parent`, `drive_trash_file`, `drive_untrash_file`, `drive_delete_file` | No key | These mutate existing resources. Retry only after reading current metadata, content, parents, or trash state. Destructive actions require confirmation. |
+| Drive | `drive_update_metadata`, `drive_update_content`, `drive_add_parent`, `drive_remove_parent`, `drive_trash_file`, `drive_untrash_file`, `drive_delete_file`, comment/reply updates and deletes, `drive_update_revision` | No key | These mutate existing resources. Retry only after reading current metadata, content, parents, trash state, comment/reply state, or revision state. Destructive actions require confirmation. |
 | Gmail | `gmail_send`, `gmail_send_draft`, `gmail_reply`, `gmail_reply_all`, `gmail_forward` | `idempotencyKey` | Always provide a key if an automatic retry is possible. Without a key, do not retry blindly because messages may be sent twice. |
 | Gmail | `gmail_create_draft`, `gmail_create_draft_reply`, `gmail_create_draft_reply_all`, `gmail_update_draft` | `idempotencyKey` | Provide a key to avoid duplicate drafts. For `gmail_update_draft` partial responses, inspect both draft IDs. |
 | Gmail | `gmail_create_filter` | `idempotencyKey` | Provide a key to avoid duplicate filters. Forwarding filters also require confirmation and recipient allowlists when configured. |

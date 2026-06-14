@@ -20,7 +20,8 @@
 - `drive_add_parent` adds file to additional folder without removing existing parents — files can exist in multiple folders
 - `drive_remove_parent` removes file from one parent folder — does NOT delete the file
 - `drive_get_folder_path` walks parent folders to root and returns full path
-- `drive_get_comments` / `drive_add_comment` — comments are head-anchored (appear at top of file)
+- `drive_get_comments` / `drive_add_comment` / `drive_create_reply` — new comments are head-anchored; replies attach to a comment ID
+- `drive_list_revisions` and `drive_list_changes` expose partial Drive history; Drive does not provide complete audit history for every file type
 - `sheets_batch_get` reads multiple ranges in one API call — pass `ranges` array of A1 strings
 - `sheets_insert_rows` / `sheets_delete_rows` — rows shift down/up; startPosition is 1-based
 - `sheets_set_data_validation` — common types: VALUE_IN_LIST, CHECKBOX, NUMBER_BETWEEN, TEXT_IS_VALID_EMAIL, CUSTOM_FORMULA
@@ -47,7 +48,7 @@
 ## Never
 
 - Never `gmail_send`, `gmail_reply`, `gmail_reply_all`, `gmail_forward` without explicit approval
-- Never `drive_trash_file`, `drive_delete_file`, `gmail_trash_message`, `gmail_delete_message`, `calendar_delete_event` without confirmation
+- Never `drive_trash_file`, `drive_delete_file`, `drive_delete_comment`, `drive_delete_reply`, `gmail_trash_message`, `gmail_delete_message`, `calendar_delete_event` without confirmation
 - Never `drive_remove_editor`, `drive_remove_viewer`, `drive_remove_parent`, `drive_set_sharing` (change) without confirmation
 - Never `calendar_create_event` or `calendar_create_event_series` without suggesting time and getting approval
 - Never `drive_add_editor` or `drive_set_sharing` (new share) without confirmation

@@ -11,6 +11,7 @@ for (const name of [
   'fileAddEditorSchema',
   'fileAddViewerSchema',
   'driveCommentCreateSchema',
+  'driveReplyCreateSchema',
   'calendarCreateEventSchema',
   'calendarCreateEventSeriesSchema',
   'calendarQuickAddSchema',

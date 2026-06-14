@@ -160,12 +160,110 @@ export const driveExportAsSchema = {
 
 export const driveCommentsListSchema = {
   fileId: driveIdSchema.describe('Drive file ID to get comments for.'),
+  pageSize: z.number().int().min(1).max(100).default(100).optional().describe('Max comments.'),
+  pageToken: z.string().optional().describe('Next page token from a previous response.'),
+  includeDeleted: z.boolean().optional().describe('Include deleted comments when supported.'),
 }
 
 export const driveCommentCreateSchema = {
   fileId: driveIdSchema.describe('Drive file ID to comment on.'),
   content: z.string().min(1).describe('Comment text content.'),
   idempotencyKey: idempotencyKeySchema,
+}
+
+export const driveCommentGetSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  includeDeleted: z.boolean().optional().describe('Include deleted comment metadata when supported.'),
+}
+
+export const driveCommentUpdateSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  content: z.string().min(1).optional().describe('Replacement comment content.'),
+  resolved: z.boolean().optional().describe('Set comment resolved state.'),
+}
+
+export const driveCommentDeleteSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  ...confirmationSchema,
+}
+
+export const driveRepliesListSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  pageSize: z.number().int().min(1).max(100).default(100).optional().describe('Max replies.'),
+  pageToken: z.string().optional().describe('Next page token from a previous response.'),
+  includeDeleted: z.boolean().optional().describe('Include deleted replies when supported.'),
+}
+
+export const driveReplyCreateSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  content: z.string().min(1).describe('Reply text content.'),
+  idempotencyKey: idempotencyKeySchema,
+}
+
+export const driveReplyGetSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  replyId: z.string().min(1).describe('Drive reply ID.'),
+  includeDeleted: z.boolean().optional().describe('Include deleted reply metadata when supported.'),
+}
+
+export const driveReplyUpdateSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  replyId: z.string().min(1).describe('Drive reply ID.'),
+  content: z.string().min(1).describe('Replacement reply content.'),
+}
+
+export const driveReplyDeleteSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  commentId: z.string().min(1).describe('Drive comment ID.'),
+  replyId: z.string().min(1).describe('Drive reply ID.'),
+  ...confirmationSchema,
+}
+
+export const driveRevisionsListSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  pageSize: z.number().int().min(1).max(100).default(100).optional().describe('Max revisions.'),
+  pageToken: z.string().optional().describe('Next page token from a previous response.'),
+}
+
+export const driveRevisionGetSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  revisionId: z.string().min(1).describe('Drive revision ID.'),
+}
+
+export const driveRevisionUpdateSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  revisionId: z.string().min(1).describe('Drive revision ID.'),
+  keepForever: z.boolean().optional().describe('Whether to keep this binary revision forever, where Drive API supports it.'),
+}
+
+export const driveSharedDrivesListSchema = {
+  pageSize: z.number().int().min(1).max(100).default(100).optional().describe('Max shared drives.'),
+  pageToken: z.string().optional().describe('Next page token from a previous response.'),
+  query: z.string().optional().describe('Shared drive query string.'),
+}
+
+export const driveSharedDriveGetSchema = {
+  driveId: driveIdSchema.describe('Shared drive ID.'),
+}
+
+export const driveChangesStartPageTokenSchema = {
+  driveId: driveIdSchema.optional().describe('Shared drive ID. Omit for My Drive changes.'),
+}
+
+export const driveChangesListSchema = {
+  pageToken: z.string().min(1).describe('Start or next page token returned by drive_get_start_page_token or drive_list_changes.'),
+  pageSize: z.number().int().min(1).max(100).default(100).optional().describe('Max changes.'),
+  driveId: driveIdSchema.optional().describe('Shared drive ID.'),
+  includeItemsFromAllDrives: z.boolean().optional().describe('Include My Drive and shared drive items. Defaults to true.'),
+  restrictToMyDrive: z.boolean().optional().describe('Restrict changes to My Drive.'),
+  spaces: z.string().optional().describe('Comma-separated spaces to query, default drive.'),
 }
 
 export const driveBatchSchema = {
@@ -198,7 +296,22 @@ export const driveBatchSchema = {
     batchOperationSchema('fileDelete', fileGetSchema),
     batchOperationSchema('fileExportAs', driveExportAsSchema),
     batchOperationSchema('commentsList', driveCommentsListSchema),
+    batchOperationSchema('commentsGet', driveCommentGetSchema),
     batchOperationSchema('commentCreate', driveCommentCreateSchema),
+    batchOperationSchema('commentsUpdate', driveCommentUpdateSchema),
+    batchOperationSchema('commentsDelete', driveCommentDeleteSchema),
+    batchOperationSchema('repliesList', driveRepliesListSchema),
+    batchOperationSchema('repliesCreate', driveReplyCreateSchema),
+    batchOperationSchema('repliesGet', driveReplyGetSchema),
+    batchOperationSchema('repliesUpdate', driveReplyUpdateSchema),
+    batchOperationSchema('repliesDelete', driveReplyDeleteSchema),
+    batchOperationSchema('revisionsList', driveRevisionsListSchema),
+    batchOperationSchema('revisionsGet', driveRevisionGetSchema),
+    batchOperationSchema('revisionsUpdate', driveRevisionUpdateSchema),
+    batchOperationSchema('sharedDrivesList', driveSharedDrivesListSchema),
+    batchOperationSchema('sharedDrivesGet', driveSharedDriveGetSchema),
+    batchOperationSchema('changesStartPageToken', driveChangesStartPageTokenSchema),
+    batchOperationSchema('changesList', driveChangesListSchema),
   ])).min(1).max(20).describe('Ordered list of validated Drive operations.'),
 }
 

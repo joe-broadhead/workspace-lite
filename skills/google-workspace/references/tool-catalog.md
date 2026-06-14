@@ -1,6 +1,6 @@
 # Tool Catalog
 
-## Drive — 29 tools
+## Drive — 44 tools
 
 | Category | Tool | Params |
 |---|---|---|
@@ -26,6 +26,18 @@
 | Remove people | `drive_remove_editor` / `drive_remove_viewer` | `fileId`, `email` |
 | Comments | `drive_get_comments` | `fileId` — returns id, content, author, createdTime, resolved |
 | Add comment | `drive_add_comment` | `fileId`, `content` — head-anchored comment |
+| Get comment | `drive_get_comment` | `fileId`, `commentId` |
+| Update comment | `drive_update_comment` | `fileId`, `commentId`, `content?`, `resolved?` |
+| Delete comment | `drive_delete_comment` | `fileId`, `commentId`, `confirm` |
+| List replies | `drive_list_replies` | `fileId`, `commentId`, `pageSize?`, `pageToken?` |
+| Create reply | `drive_create_reply` | `fileId`, `commentId`, `content`, `idempotencyKey?` |
+| Get reply | `drive_get_reply` | `fileId`, `commentId`, `replyId` |
+| Update reply | `drive_update_reply` | `fileId`, `commentId`, `replyId`, `content` |
+| Delete reply | `drive_delete_reply` | `fileId`, `commentId`, `replyId`, `confirm` |
+| Revisions | `drive_list_revisions` / `drive_get_revision` | `fileId`, `revisionId?` |
+| Update revision | `drive_update_revision` | `fileId`, `revisionId`, `keepForever` |
+| Shared drives | `drive_list_shared_drives` / `drive_get_shared_drive` | `pageSize?`, `pageToken?`, `query?`, `driveId` |
+| Changes | `drive_get_start_page_token` / `drive_list_changes` | `driveId?`, then `pageToken`, `pageSize?` |
 | Trash | `drive_trash_file` | `fileId` |
 | Restore | `drive_untrash_file` | `fileId` |
 | Delete | `drive_delete_file` | `fileId` |

@@ -183,9 +183,10 @@ Adds a file to an additional parent folder without removing existing parents. A 
 
 ```
 1. drive_get_comments → fileId
-2. Optionally drive_add_comment → fileId, content:"Looks good"
+2. drive_get_comment → fileId, commentId if you need full detail
+3. Optionally drive_create_reply → fileId, commentId, content:"Looks good"
 ```
-Comments are head-anchored (appear at the top of the file).
+New comments are head-anchored. Replies attach to a specific comment ID. Deleting comments or replies requires confirmation.
 
 ### Meeting Debrief
 
