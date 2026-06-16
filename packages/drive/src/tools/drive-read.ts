@@ -10,6 +10,7 @@ export function registerDriveReadTools(server: ToolServer) {
     fileGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'File metadata retrieved successfully.',
         hint: 'Use drive_read_file to read file content.',
@@ -23,6 +24,7 @@ export function registerDriveReadTools(server: ToolServer) {
     fileExportSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileExport', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const content = data.content as string || ''
       const truncated = data.truncated ? '\n\n[Content was truncated at 500KB]' : ''
@@ -41,6 +43,7 @@ export function registerDriveReadTools(server: ToolServer) {
     folderGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('folderGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Folder metadata retrieved successfully.',
         hint: 'Use drive_list_folders to list folder contents.',
@@ -54,6 +57,7 @@ export function registerDriveReadTools(server: ToolServer) {
     fileGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileGetPermissions', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return {
         content: [{
@@ -70,6 +74,7 @@ export function registerDriveReadTools(server: ToolServer) {
     driveFolderPathSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('folderPath', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const pathStr = (data.pathString as string) || ''
       const path = (data.path as Array<Record<string, unknown>>) || []
@@ -84,6 +89,7 @@ export function registerDriveReadTools(server: ToolServer) {
     driveCommentsListSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('commentsList', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const comments = (data.comments as Array<Record<string, unknown>>) || []
       const text = `Comments on ${data.fileId} (${comments.length}):\n\n` +

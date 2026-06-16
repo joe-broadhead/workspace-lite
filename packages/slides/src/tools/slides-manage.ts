@@ -15,6 +15,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesCreatePresentationSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('presentationCreate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Presentation created.',
         hint: 'Use slides_add_slide to add content.',
@@ -28,6 +29,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesPresentationGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('presentationGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Presentation metadata retrieved.',
         hint: 'Use slides_get_slide_elements to inspect individual slides.',
@@ -41,6 +43,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesAddSlideSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideAdd', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Slide added.' })
     },
   )
@@ -51,6 +54,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesSlideIndexSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideDelete', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Slide deleted.' })
     },
   )
@@ -61,6 +65,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesSlideIndexSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideDuplicate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Slide duplicated.' })
     },
   )
@@ -71,6 +76,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesMoveSlideSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideMove', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Slide moved.' })
     },
   )
@@ -81,6 +87,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesReplaceAllTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('textReplaceAll', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return formatResponse(result, {
         summary: `Replaced ${data.replacements || 0} occurrence(s).`,
@@ -94,6 +101,7 @@ export function registerSlidesManageTools(server: ToolServer) {
     slidesBackgroundSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideBackground', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Slide background set.' })
     },
   )

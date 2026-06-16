@@ -3,7 +3,7 @@ import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import {
   fileSetSharingSchema, fileAddEditorSchema, fileAddViewerSchema,
   fileRemoveEditorSchema, fileRemoveViewerSchema, fileGetSchema,
-  driveCommentCreateSchema,
+  fileTrashSchema, fileUntrashSchema, driveCommentCreateSchema,
 } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -14,6 +14,7 @@ export function registerDriveManageTools(server: ToolServer) {
     fileSetSharingSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileSetSharing', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Sharing settings updated successfully.',
       })
@@ -26,6 +27,7 @@ export function registerDriveManageTools(server: ToolServer) {
     fileAddEditorSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileAddEditor', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Editor added successfully.',
       })
@@ -38,6 +40,7 @@ export function registerDriveManageTools(server: ToolServer) {
     fileAddViewerSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileAddViewer', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Viewer added successfully.',
       })
@@ -50,6 +53,7 @@ export function registerDriveManageTools(server: ToolServer) {
     fileRemoveEditorSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileRemoveEditor', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Editor removed successfully.',
       })
@@ -62,6 +66,7 @@ export function registerDriveManageTools(server: ToolServer) {
     fileRemoveViewerSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileRemoveViewer', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Viewer removed successfully.',
       })
@@ -71,9 +76,10 @@ export function registerDriveManageTools(server: ToolServer) {
   server.tool(
     'drive_trash_file',
     'Move a file to trash. Can be restored with drive_untrash_file.',
-    fileGetSchema,
+    fileTrashSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileTrash', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'File moved to trash.',
         hint: 'Use drive_untrash_file to restore within 30 days.',
@@ -84,9 +90,10 @@ export function registerDriveManageTools(server: ToolServer) {
   server.tool(
     'drive_untrash_file',
     'Restore a file from trash.',
-    fileGetSchema,
+    fileUntrashSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileUntrash', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'File restored from trash.',
       })
@@ -99,6 +106,7 @@ export function registerDriveManageTools(server: ToolServer) {
     fileGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileDelete', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'File deleted (moved to trash).',
         hint: 'For permanent deletion, empty trash in drive.google.com.',
@@ -112,6 +120,7 @@ export function registerDriveManageTools(server: ToolServer) {
     driveCommentCreateSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('commentCreate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Comment added successfully.',
         hint: 'Use drive_get_comments to list all comments.',

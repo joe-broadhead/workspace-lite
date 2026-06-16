@@ -1,4 +1,4 @@
-import { formatList, formatBytes } from '@workspace-lite/shared'
+import { formatResponse, formatList, formatBytes } from '@workspace-lite/shared'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
 import { fileListSchema, fileSearchSchema, folderListSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
@@ -10,6 +10,7 @@ export function registerDriveListTools(server: ToolServer) {
     {},
     async () => {
       const result = await callProxy('about')
+      if (!result.success) return formatResponse(result)
       const d = result.data as Record<string, unknown>
       return {
         content: [{
@@ -26,6 +27,7 @@ export function registerDriveListTools(server: ToolServer) {
     fileListSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileList', args)
+      if (!result.success) return formatResponse(result)
       return formatList(result, {
         itemsKey: 'items',
         noun: 'file',
@@ -44,6 +46,7 @@ export function registerDriveListTools(server: ToolServer) {
     fileSearchSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('fileSearch', args)
+      if (!result.success) return formatResponse(result)
       return formatList(result, {
         itemsKey: 'items',
         noun: 'result',
@@ -63,6 +66,7 @@ export function registerDriveListTools(server: ToolServer) {
     async (args: Record<string, unknown>) => {
       const action = args.folderId ? 'folderList' : 'folderListRoot'
       const result = await callProxy(action, args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const folderList = (data.folders as Array<Record<string, unknown>>) || []
       const fileList = (data.files as Array<Record<string, unknown>>) || []

@@ -146,6 +146,7 @@ const SheetsService = (() => {
       return result && typeof result.success === 'boolean' ? result : ok(result);
     }
     catch (e) {
+      if (e && e.proxyError) return e.proxyError;
       const correlationId = Utilities.getUuid();
       console.error('[sheets-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
       const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;

@@ -16,6 +16,7 @@ export function registerFormsResponseTools(server: ToolServer) {
   server.tool('forms_list_responses', 'List recent Google Form responses with concise answer metadata. Response content is capped by the proxy.', formsListResponsesSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('responsesList', args)
+      if (!result.success) return formatResponse(result)
       return formatList(result, {
         itemsKey: 'items',
         noun: 'response',

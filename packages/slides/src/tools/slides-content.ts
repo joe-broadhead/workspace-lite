@@ -14,6 +14,7 @@ export function registerSlidesContentTools(server: ToolServer) {
     slidesInsertTextBoxSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('textBoxInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Text box inserted.' })
     },
   )
@@ -24,6 +25,7 @@ export function registerSlidesContentTools(server: ToolServer) {
     slidesInsertImageSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('imageInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Image inserted.' })
     },
   )
@@ -34,6 +36,7 @@ export function registerSlidesContentTools(server: ToolServer) {
     slidesInsertShapeSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('shapeInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Shape inserted.' })
     },
   )
@@ -44,6 +47,7 @@ export function registerSlidesContentTools(server: ToolServer) {
     slidesInsertTableSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('tableInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Table inserted.' })
     },
   )
@@ -54,6 +58,7 @@ export function registerSlidesContentTools(server: ToolServer) {
     slidesInsertLineSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('lineInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Line inserted.' })
     },
   )

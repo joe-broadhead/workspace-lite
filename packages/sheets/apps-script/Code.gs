@@ -21,6 +21,12 @@ function doPost(e) {
     return respond(err('LIMIT_EXCEEDED', 'request bytes limit exceeded: max 1000000'))
   }
   try { body = JSON.parse(e.postData.contents) } catch(_) { return respond(err('BAD_REQUEST', 'Invalid JSON body')) }
+
+  if (body && body.setupKey) {
+    if (isRateLimited(20, 1)) return respond(err('RATE_LIMITED', 'Too many bootstrap attempts. Try again in 60 seconds.'))
+    return respond(bootstrapProxy({ parameter: { setupKey: body.setupKey } }, TOKEN_ENV_NAME))
+  }
+
   if (!validateRequest(body)) {
     if (isAuthFailureRateLimited(body && body.token)) {
       return respond(err('RATE_LIMITED', 'Too many failed authentication attempts. Try again in 60 seconds.'))

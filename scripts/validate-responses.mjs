@@ -40,6 +40,7 @@ for (const service of services) {
   if (!source.includes('const response = batchResponse_(results, operationWeight);') || !source.includes('JSON.stringify(response)')) failures.push(`${serviceFile}: batch response envelope must be size-capped`)
   if (source.includes('message: ex.message || String(ex)')) failures.push(`${serviceFile}: raw internal exception message returned in batch response`)
   if (/return\s+err\([^\n]*(?:e|ex)\.message/.test(source)) failures.push(`${serviceFile}: raw exception message returned to client`)
+  if (/typeof\s+errorMsg\s*===?\s*['"]function['"]/.test(source)) failures.push(`${serviceFile}: trap must not invoke function errorMsg callbacks that may leak exception messages`)
   if (/success:\s*true[^\n{]*nextPageToken/.test(source)) failures.push(`${serviceFile}: pagination must be nested under pagination`)
 
   if (!policy.includes('function batchResponse_')) failures.push(`${policyFile}: missing batchResponse_ partial success helper`)

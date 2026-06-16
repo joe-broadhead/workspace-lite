@@ -1,4 +1,4 @@
-import { formatList } from '@workspace-lite/shared'
+import { formatResponse, formatList } from '@workspace-lite/shared'
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
 import { registerTool } from '@workspace-lite/shared/tool-helpers'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
@@ -17,6 +17,7 @@ export function registerFormsItemTools(server: ToolServer) {
   server.tool('forms_list_items', 'List items in a Google Form with concise metadata and supported item-specific fields.', formsListItemsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('itemsList', args)
+      if (!result.success) return formatResponse(result)
       return formatList(result, {
         itemsKey: 'items',
         noun: 'item',

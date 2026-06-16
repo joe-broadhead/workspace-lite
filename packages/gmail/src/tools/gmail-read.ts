@@ -1,4 +1,5 @@
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
+import { formatResponse } from '@workspace-lite/shared'
 import { gmailAttachmentGetSchema, gmailGetMessageSchema, gmailGetThreadSchema } from '@workspace-lite/shared/schemas'
 import { callProxy } from '../proxy.js'
 
@@ -6,6 +7,7 @@ export function registerGmailReadTools(server: ToolServer) {
   server.tool('gmail_get_message', 'Get full details of a Gmail message by ID. Returns subject, from, to, cc, bcc, date, body, attachments.', gmailGetMessageSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('getMessage', args)
+      if (!result.success) return formatResponse(result)
       const msg = (result.data as Record<string, unknown>)?.message as Record<string, unknown>
       return { content: [{ type: 'text' as const, text: [`Subject: ${msg?.subject}`, `From: ${msg?.from}`, `To: ${msg?.to}`, msg?.cc ? `CC: ${msg.cc}` : '', `Date: ${msg?.date}`, `Unread: ${msg?.isUnread} | Starred: ${msg?.isStarred}`, '', msg?.body || ''].filter(Boolean).join('\n') }] }
     })
@@ -14,6 +16,7 @@ export function registerGmailReadTools(server: ToolServer) {
     gmailAttachmentGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('attachmentGet', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const text = data.text as string | undefined
       const base64 = data.base64 as string | undefined
@@ -29,6 +32,7 @@ export function registerGmailReadTools(server: ToolServer) {
   server.tool('gmail_get_thread', 'Get a complete Gmail thread by ID with all messages.', gmailGetThreadSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('getThread', args)
+      if (!result.success) return formatResponse(result)
       const thread = (result.data as Record<string, unknown>)?.thread as Record<string, unknown>
       const messages = (thread?.messages as Array<Record<string, unknown>>) || []
       const text = [`Thread: ${thread?.firstMessageSubject}`, `${thread?.messageCount} messages — Unread: ${thread?.isUnread}`, '', ...messages.map((m, i) => [`--- Message ${i + 1} ---`, `From: ${m.from} | Date: ${m.date}`, '', m.body].join('\n'))].join('\n')

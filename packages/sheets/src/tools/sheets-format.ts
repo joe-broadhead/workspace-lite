@@ -15,6 +15,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsFormatRangeSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeFormat', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Formatting applied.' })
     },
   )
@@ -25,6 +26,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsMergeCellsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeMerge', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Cells merged.' })
     },
   )
@@ -35,6 +37,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsMergeCellsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeUnmerge', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Cells unmerged.' })
     },
   )
@@ -45,6 +48,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsSetColumnWidthSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('columnWidth', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Column width set.' })
     },
   )
@@ -55,6 +59,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsFreezeRowsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('freezeRows', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: args.numRows === 0 ? 'Rows unfrozen.' : 'Rows frozen.' })
     },
   )
@@ -65,6 +70,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsSortRangeSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeSort', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Range sorted.' })
     },
   )
@@ -75,6 +81,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsSetNoteSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('noteSet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Note updated.' })
     },
   )
@@ -85,6 +92,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsConditionalFormatSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('conditionalFormatGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Conditional formatting rules retrieved.' })
     },
   )
@@ -95,6 +103,7 @@ export function registerSheetsFormatTools(server: ToolServer) {
     sheetsDataValidationSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('dataValidationSet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Data validation set.' })
     },
   )

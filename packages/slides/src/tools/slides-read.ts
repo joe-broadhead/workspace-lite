@@ -4,6 +4,7 @@ import {
   slidesGetElementTextSchema,
 } from '@workspace-lite/shared/schemas'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
+import { formatResponse } from '@workspace-lite/shared'
 import { callProxy } from '../proxy.js'
 
 export function registerSlidesReadTools(server: ToolServer) {
@@ -13,6 +14,7 @@ export function registerSlidesReadTools(server: ToolServer) {
     slidesSlideIndexSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideElementsList', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const elements = data.elements as Array<Record<string, unknown>> || []
       const lines = elements.map((el: Record<string, unknown>) =>
@@ -32,6 +34,7 @@ export function registerSlidesReadTools(server: ToolServer) {
     slidesGetElementTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementGetText', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return { content: [{ type: 'text' as const, text: `Text for element ${data.objectId} on slide ${data.slideIndex}:\n\n${data.text || ''}` }] }
     },
@@ -43,6 +46,7 @@ export function registerSlidesReadTools(server: ToolServer) {
     slidesSlideNotesSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('slideNotes', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       if (args.notes !== undefined) {
         return { content: [{ type: 'text' as const, text: `Speaker notes updated on slide ${data.slideIndex}.` }] }
@@ -57,6 +61,7 @@ export function registerSlidesReadTools(server: ToolServer) {
     slidesDeleteElementSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementDelete', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return {
         content: [{ type: 'text' as const, text: `Deleted element ${data.objectId} from slide ${data.slideIndex}.` }],
@@ -70,6 +75,7 @@ export function registerSlidesReadTools(server: ToolServer) {
     slidesFormatTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementFormatText', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return {
         content: [{ type: 'text' as const, text: `Formatted ${data.formattedCount} occurrence(s) of "${args.findText}" in element ${data.objectId} on slide ${data.slideIndex}.` }],

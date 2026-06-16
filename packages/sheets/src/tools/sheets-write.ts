@@ -15,6 +15,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsRangeWriteSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeWrite', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Values written.' })
     },
   )
@@ -25,6 +26,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsAppendRowsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rowsAppend', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Rows appended.' })
     },
   )
@@ -35,6 +37,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsClearRangeSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeClear', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Range cleared.' })
     },
   )
@@ -45,6 +48,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsSetFormulaSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('formulaSet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Formula set.' })
     },
   )
@@ -55,6 +59,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsReplaceTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('textReplace', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return formatResponse(result, { summary: `Replaced ${data.replacements ?? 0} occurrence(s).` })
     },
@@ -66,6 +71,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsProtectRangeSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeProtect', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Range protected.' })
     },
   )
@@ -76,6 +82,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsProtectSheetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('sheetProtect', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Sheet protected.' })
     },
   )
@@ -86,6 +93,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsRemoveProtectionSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('protectionRemove', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Protection removed.' })
     },
   )
@@ -96,6 +104,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsInsertRowsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rowsInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Rows inserted.' })
     },
   )
@@ -106,6 +115,7 @@ export function registerSheetsWriteTools(server: ToolServer) {
     sheetsDeleteRowsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rowsDelete', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Rows deleted.' })
     },
   )

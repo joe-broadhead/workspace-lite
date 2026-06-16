@@ -21,6 +21,7 @@ export function registerGmailManageTools(server: ToolServer) {
     gmailBatchModifySchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('batchModify', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Batch modify executed.' })
     })
 }

@@ -207,7 +207,7 @@ else
     setup_key=$(read_bootstrap_secret "$dir")
     echo "→ Bootstrapping $svc..."
 
-    response=$(curl -sL "${url}?bootstrap=1&setupKey=${setup_key}" 2>/dev/null || echo '{"success":false}')
+    response=$(curl -sL -X POST -H 'Content-Type: application/json' -d "{\"setupKey\":\"${setup_key}\"}" "${url}" 2>/dev/null || echo '{"success":false}')
     token=$(echo "$response" | grep -o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"')
 
     if [ -z "$token" ]; then

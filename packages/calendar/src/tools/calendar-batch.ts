@@ -10,6 +10,7 @@ export function registerCalendarBatchTool(server: ToolServer) {
     calendarBatchSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('batch', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Batch executed.' })
     },
   )

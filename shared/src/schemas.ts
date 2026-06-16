@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 function isEmailAddress(value: string) {
   if (value.length > 320) return false
-  return /^[^\s@,<>\"]+@[^\s@,<>\"]+\.[^\s@,<>\"]+$/.test(value)
+  return /^[^\s@,<>"]+@[^\s@,<>"]+\.[^\s@,<>"]+$/.test(value)
 }
 
 const emailAddressSchema = z.string().max(320).refine(isEmailAddress, 'Invalid email address')
@@ -58,6 +58,18 @@ export const fileSearchSchema = {
 
 export const fileGetSchema = {
   fileId: driveIdSchema.describe('Drive file ID.'),
+  ...confirmationSchema,
+}
+
+export const fileTrashSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  idempotencyKey: idempotencyKeySchema,
+  ...confirmationSchema,
+}
+
+export const fileUntrashSchema = {
+  fileId: driveIdSchema.describe('Drive file ID.'),
+  idempotencyKey: idempotencyKeySchema,
   ...confirmationSchema,
 }
 
@@ -298,8 +310,8 @@ export const driveBatchSchema = {
     batchOperationSchema('fileAddParent', driveAddParentSchema),
     batchOperationSchema('fileRemoveParent', driveRemoveParentSchema),
     batchOperationSchema('folderPath', driveFolderPathSchema),
-    batchOperationSchema('fileTrash', fileGetSchema),
-    batchOperationSchema('fileUntrash', fileGetSchema),
+    batchOperationSchema('fileTrash', fileTrashSchema),
+    batchOperationSchema('fileUntrash', fileUntrashSchema),
     batchOperationSchema('fileDelete', fileGetSchema),
     batchOperationSchema('fileExportAs', driveExportAsSchema),
     batchOperationSchema('commentsList', driveCommentsListSchema),
