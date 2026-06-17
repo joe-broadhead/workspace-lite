@@ -26,7 +26,7 @@
     "build:packages": "tsc -b packages/drive packages/gmail packages/calendar packages/sheets packages/slides packages/docs packages/tasks packages/forms",
     "build:drive": "cd packages/drive && npm run build",
     "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
-    "lint": "eslint shared/src packages/*/src tests scripts --ext .ts,.mjs",
+    "lint": "eslint shared/src packages/drive/src packages/gmail/src packages/calendar/src packages/sheets/src packages/slides/src packages/docs/src packages/tasks/src packages/forms/src tests scripts --ext .ts,.mjs",
     "test": "tsx --test tests/*.test.ts",
     "audit": "npm audit --audit-level=moderate",
     "validate": "npm run typecheck && npm run build && npm test && npm run validate:manifests && npm run validate:limits && npm run validate:responses && npm run validate:mutations && npm run validate:inputs && npm run validate:architecture",

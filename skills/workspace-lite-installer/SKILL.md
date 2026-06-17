@@ -8,6 +8,7 @@ metadata:
       - node
       - npm
       - clasp
+      - curl
 ---
 
 # Workspace Lite Installer
@@ -57,11 +58,12 @@ The shared template lives at `shared/apps-script/Auth.gs` — when changing `DEF
 
 The workspace-lite repo ships a `scripts/setup.sh` that handles initial setup. All `scripts/` paths below are relative to the repo root.
 
-1. Confirm prerequisites (`node` >= 20, `npm`, `clasp`):
+1. Confirm prerequisites (`node` >= 20, `npm`, `clasp`, `curl`):
    ```bash
    node --version
    npm --version
    clasp --version
+   curl --version
    ```
 2. If `clasp` is missing, install it:
    ```bash
@@ -281,7 +283,7 @@ Then restart OpenCode so MCP processes inherit the new environment.
 powershell -ExecutionPolicy Bypass -File .\skills\workspace-lite-installer\scripts\persist-env.ps1 -EnvFile .\.env
 ```
 
-This persists variables at the Windows User scope so native OpenCode, PowerShell, and cmd can inherit them after restart. If `.env` was edited on Windows, keep it LF line-ending clean; CRLF can confuse bash `source`.
+This persists variables at the Windows User scope so native OpenCode, PowerShell, and cmd can inherit them after restart. The deployment helper scripts normalize CRLF when reading `.env`; still prefer leaving `.env` as LF to keep manual `source .env` behavior predictable.
 
 ## Installing Repo Skills into OpenCode
 

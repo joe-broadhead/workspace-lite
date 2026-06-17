@@ -8,7 +8,7 @@
 
 | Phase | Actions |
 |-------|---------|
-| **Prerequisites check** | Verifies `clasp` and `node` are installed |
+| **Prerequisites check** | Verifies `clasp`, `node`, and `curl` are installed |
 | **clasp login** | Opens browser for Google authentication (once) |
 | **Build** | `npm ci && npm run build` when `package-lock.json` is present; compiles shared package and all 8 services |
 | **Project creation** | Reuses an existing project with the expected title, or runs `clasp create --type standalone` for each missing service |

@@ -11,6 +11,7 @@ Complete setup of all 8 Google Workspace MCP servers, including the required man
 |-------------|-------------------|-------|
 | Node.js | 20+ | `node --version` |
 | clasp | latest | `npm install -g @google/clasp` |
+| curl | any modern version | Included with macOS and Git Bash; used for token bootstrap |
 | Google account | &mdash; | With access to the Workspace services you plan to use |
 
 Windows users should run setup from Git Bash or MSYS2. Native PowerShell can run
@@ -21,6 +22,7 @@ environment.
     ```bash
     node --version   # ≥ 20
     clasp --version  # any
+    curl --version
     ```
 
 ---

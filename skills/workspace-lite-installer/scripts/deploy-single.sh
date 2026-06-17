@@ -20,7 +20,17 @@ if [ ! -d "$REPO/packages/$SVC/apps-script" ]; then
   exit 1
 fi
 
-source "$REPO/.env"
+load_env() {
+  local env_file="$1"
+  local sanitized_env
+  sanitized_env=$(mktemp)
+  tr -d '\r' < "$env_file" > "$sanitized_env"
+  # shellcheck source=/dev/null
+  source "$sanitized_env"
+  rm -f "$sanitized_env"
+}
+
+load_env "$REPO/.env"
 cd "$REPO/packages/$SVC/apps-script"
 
 echo "=== Deploying $SVC ==="
@@ -36,7 +46,7 @@ if [ -z "$V" ]; then
 fi
 echo "Version: $V"
 
-env_var="GOOGLE_WORKSPACE_$(echo $SVC | tr '[:lower:]' '[:upper:]')_PROXY_URL"
+env_var="GOOGLE_WORKSPACE_$(echo "$SVC" | tr '[:lower:]' '[:upper:]')_PROXY_URL"
 env_url="${!env_var}"
 if [ -z "$env_url" ]; then
   echo "ERROR: $env_var is not set in .env"

@@ -14,7 +14,17 @@ if [ ! -f "$REPO/.env" ]; then
   exit 1
 fi
 
-source "$REPO/.env"
+load_env() {
+  local env_file="$1"
+  local sanitized_env
+  sanitized_env=$(mktemp)
+  tr -d '\r' < "$env_file" > "$sanitized_env"
+  # shellcheck source=/dev/null
+  source "$sanitized_env"
+  rm -f "$sanitized_env"
+}
+
+load_env "$REPO/.env"
 SERVICES=(drive gmail calendar sheets slides docs tasks forms)
 ISSUES=0
 
@@ -24,7 +34,7 @@ printf "%-10s %-8s %-55s %s\n" "-------" "-------" "----------------------------
 for svc in "${SERVICES[@]}"; do
   cd "$REPO/packages/$svc/apps-script"
 
-  env_var="GOOGLE_WORKSPACE_$(echo $svc | tr '[:lower:]' '[:upper:]')_PROXY_URL"
+  env_var="GOOGLE_WORKSPACE_$(echo "$svc" | tr '[:lower:]' '[:upper:]')_PROXY_URL"
   env_url="${!env_var}"
   if [ -z "$env_url" ]; then
     printf "%-10s %-8s %-55s %s\n" "$svc" "????" "<unset>" "ENV_VAR_MISSING"
@@ -46,6 +56,7 @@ for svc in "${SERVICES[@]}"; do
     ISSUES=$((ISSUES + 1))
   else
     dep_ver=$(echo "$dep_line" | sed -n 's/.*\(@[0-9][0-9]*\).*/\1/p')
+    # shellcheck disable=SC2001
     dep_desc=$(echo "$dep_line" | sed 's/^[^@]*@[0-9][0-9]*[ ]*[- ][ ]*//')
     printf "%-10s %-8s %-55s %s\n" "$svc" "$dep_ver" "$env_id" "$dep_desc"
   fi
