@@ -10,6 +10,7 @@ Complete setup of all 8 Google Workspace MCP servers, including the required man
 | Requirement | Version / Command | Notes |
 |-------------|-------------------|-------|
 | Node.js | 20+ | `node --version` |
+| npm | Bundled with Node.js | `npm --version` |
 | clasp | latest | `npm install -g @google/clasp` |
 | curl | any modern version | Included with macOS and Git Bash; used for token bootstrap |
 | Google account | &mdash; | With access to the Workspace services you plan to use |
@@ -21,6 +22,7 @@ environment.
 !!! tip "Verify prerequisites"
     ```bash
     node --version   # ≥ 20
+    npm --version
     clasp --version  # any
     curl --version
     ```

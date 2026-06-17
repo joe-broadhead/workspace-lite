@@ -145,14 +145,18 @@ if ! command -v node &>/dev/null; then
   echo "Node.js is required. Install Node 20+ from https://nodejs.org"
   exit 1
 fi
+if ! command -v npm &>/dev/null; then
+  echo "npm is required. Install Node.js 20+ with npm from https://nodejs.org"
+  exit 1
+fi
 if ! command -v curl &>/dev/null; then
   echo "curl is required for token bootstrap. Install curl or run setup from a shell that provides it."
   exit 1
 fi
 if [ "$DRY_RUN" -eq 1 ]; then
-  success "Node.js and curl found; clasp check skipped"
+  success "Node.js, npm, and curl found; clasp check skipped"
 else
-  success "clasp, Node.js, and curl found"
+  success "clasp, Node.js, npm, and curl found"
 fi
 
 # ── clasp login ──
