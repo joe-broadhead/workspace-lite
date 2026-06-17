@@ -49,9 +49,9 @@ if [ -z "$env_id" ]; then
   exit 1
 fi
 
-echo "Deploying version $V to $env_id..."
-if ! clasp deploy -i "$env_id" -V "$V" -d "$MSG" 2>&1 | tail -1; then
-  echo "ERROR: clasp deploy failed for $SVC"
+echo "Redeploying version $V to $env_id..."
+if ! clasp redeploy "$env_id" -V "$V" -d "$MSG" 2>&1 | tail -1; then
+  echo "ERROR: clasp redeploy failed for $SVC"
   exit 1
 fi
 

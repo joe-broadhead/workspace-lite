@@ -40,6 +40,8 @@ The bootstrap flow:
 4. The proxy validates the setup key in constant time, generates the token, stores it, marks bootstrap complete, and returns the token.
 5. The user stores the token as an environment variable such as `GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN`.
 
+If bootstrap was consumed before the token reached `.env`, setup can call the same endpoint with `{"setupKey":"<bootstrap-setup-key>","rotate":true}`. Rotation validates the setup key, deletes the previous primary token, generates a replacement, marks bootstrap complete again, and returns the new token once.
+
 The primary token defaults to the `read,draft` authorization classes. Operators can set `PROXY_AUTH_TOKEN_CLASSES` or service-specific tokens such as `PROXY_WRITE_TOKEN`, `PROXY_SEND_TOKEN`, `PROXY_SHARE_TOKEN`, `PROXY_DESTRUCTIVE_TOKEN`, and `PROXY_ADMIN_TOKEN` in Script Properties when they need broader action classes. MCP servers prefer matching environment variables such as `GOOGLE_WORKSPACE_DRIVE_PROXY_WRITE_TOKEN` or `GOOGLE_WORKSPACE_GMAIL_PROXY_SEND_TOKEN` for higher-risk actions, then fall back to `GOOGLE_WORKSPACE_<SERVICE>_PROXY_ADMIN_TOKEN`, then the primary `GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN`.
 
 ## Token Transmission

@@ -23,7 +23,7 @@
   "scripts": {
     "build": "npm run build:shared && npm run build:packages",
     "build:shared": "cd shared && npm run build",
-    "build:packages": "tsc -b packages/*",
+    "build:packages": "tsc -b packages/drive packages/gmail packages/calendar packages/sheets packages/slides packages/docs packages/tasks packages/forms",
     "build:drive": "cd packages/drive && npm run build",
     "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
     "lint": "eslint shared/src packages/*/src tests scripts --ext .ts,.mjs",
@@ -39,7 +39,7 @@
     "generate:proxy-shell": "node scripts/generate-proxy-shell.mjs",
     "docs:build": "mkdocs build --strict",
     "docs:serve": "mkdocs serve",
-    "clean": "rm -rf packages/*/dist shared/dist packages/*/*.tsbuildinfo shared/*.tsbuildinfo *.tsbuildinfo",
+    "clean": "node scripts/clean.mjs",
     "dev:drive": "cd packages/drive && npm run dev",
     "install:deps": "npm install",
     "deploy:drive": "cd packages/drive/apps-script && clasp push",

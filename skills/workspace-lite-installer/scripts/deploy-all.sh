@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy all 8 workspace-lite services: push, version, and deploy to existing .env deployment IDs.
+# Deploy all 8 workspace-lite services: push, version, and redeploy existing .env deployment IDs.
 # Usage: ./deploy-all.sh /path/to/workspace-lite "Deploy message"
 set -euo pipefail
 
@@ -51,9 +51,9 @@ for svc in "${SERVICES[@]}"; do
     exit 1
   fi
 
-  echo "  Deploying version $V to $env_id..."
-  if ! clasp deploy -i "$env_id" -V "$V" -d "$MSG" 2>&1 | tail -1; then
-    echo "  ERROR: clasp deploy failed for $svc"
+  echo "  Redeploying version $V to $env_id..."
+  if ! clasp redeploy "$env_id" -V "$V" -d "$MSG" 2>&1 | tail -1; then
+    echo "  ERROR: clasp redeploy failed for $svc"
     exit 1
   fi
 

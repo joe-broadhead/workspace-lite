@@ -8,7 +8,21 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Setup-key-gated token rotation for recovery when one-time bootstrap was consumed before `.env` was written.
+- Windows Git Bash installation guidance and a PowerShell helper for persisting generated `.env` variables.
+
+### Changed
+
+- `build:packages` now uses an explicit TypeScript project list instead of shell glob expansion.
+- `scripts/setup.sh` now reuses existing Apps Script projects by title, handles clasp v3 manifest creation behavior, skips already-bootstrapped `.env` entries, and can recover missing tokens through explicit rotation.
+- Deployment helper scripts now use `clasp redeploy` for in-place deployment refreshes.
+
+### Fixed
+
+- First-time setup no longer creates duplicate Apps Script projects on aborted-run retries.
+- Windows Git Bash builds no longer fail because `tsc -b packages/*` was passed as a literal glob.
 
 ## 0.0.0 - 2026-06-15
 

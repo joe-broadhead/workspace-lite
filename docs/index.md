@@ -132,7 +132,7 @@ flowchart LR
     ```bash
     git clone https://github.com/joe-broadhead/workspace-lite.git
     cd workspace-lite
-    ./scripts/setup.sh --dry-run
+    bash ./scripts/setup.sh --dry-run
     ```
 
 === "Deploy"
@@ -140,7 +140,7 @@ flowchart LR
     ```bash
     git clone https://github.com/joe-broadhead/workspace-lite.git
     cd workspace-lite
-    ./scripts/setup.sh
+    bash ./scripts/setup.sh
     ```
 
 === "Agent skills"

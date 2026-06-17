@@ -94,32 +94,22 @@ The `{env:VAR_NAME}` syntax tells OpenCode to resolve the value from the shell e
 
 ## Rotating Tokens
 
-If a token is compromised, exposed in logs, or you want to rotate as good practice:
+If a token is compromised, exposed in logs, lost during setup, or you want to rotate as good practice:
 
 ### Steps
 
-1. Open the Apps Script editor URL from `scripts/setup.sh`, or open `https://script.google.com/d/<script-id>/edit` using the `scriptId` in `packages/<service>/apps-script/.clasp.json`.
+1. Read the setup key from the untracked `BootstrapSecret.gs` file.
 
-2. In the editor, go to **Project Settings** (gear icon) → **Script Properties**.
-
-3. Delete the property `PROXY_BOOTSTRAPPED`.
-
-4. Delete the property `PROXY_AUTH_TOKEN`.
-
-5. If you use class-scoped tokens, also delete any affected `PROXY_READ_TOKEN`, `PROXY_WRITE_TOKEN`, `PROXY_SEND_TOKEN`, `PROXY_SHARE_TOKEN`, `PROXY_DESTRUCTIVE_TOKEN`, or `PROXY_ADMIN_TOKEN` properties.
-
-6. **Deploy a new version** of the web app if the deployment URL changes, then update `.env`.
-
-7. Bootstrap the new token with the setup key from the untracked `BootstrapSecret.gs` file, writing it directly to your environment file:
+2. Rotate the primary token with the setup key, writing the returned token directly to your environment file:
 
 ```bash
-TOKEN_RESPONSE="$(curl -sL -X POST -H 'Content-Type: application/json' -d '{"setupKey":"<bootstrap-setup-key>"}' "https://script.google.com/macros/s/<deployment-id>/exec")"
+TOKEN_RESPONSE="$(curl -sL -X POST -H 'Content-Type: application/json' -d '{"setupKey":"<bootstrap-setup-key>","rotate":true}' "https://script.google.com/macros/s/<deployment-id>/exec")"
 TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
-8. Update the matching proxy URL in `.env` if it changed.
+3. Update the matching proxy URL in `.env` if it changed.
 
-9. Re-source your environment and restart OpenCode:
+4. Re-source your environment and restart OpenCode:
 
 ```bash
 source ~/.zshrc
@@ -127,7 +117,7 @@ source ~/.zshrc
 ```
 
 !!! warning "Token rotation breaks existing connections"
-    The old token stops working immediately when you delete `PROXY_AUTH_TOKEN` from script properties. Plan rotation during a maintenance window.
+    The old primary token stops working immediately after rotation. Plan rotation during a maintenance window.
 
 ### Why Rotate?
 

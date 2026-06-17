@@ -4,8 +4,8 @@ The skills encode repeatable workflows so agents can move quickly while preservi
 
 ## Installation
 
-1. Run `./scripts/setup.sh --dry-run` to preview dependencies, project creation, deployment steps, and generated config.
-2. Run `./scripts/setup.sh` when ready.
+1. Run `bash ./scripts/setup.sh --dry-run` to preview dependencies, project creation, deployment steps, and generated config.
+2. Run `bash ./scripts/setup.sh` when ready.
 3. Review Google OAuth scopes and create each Apps Script web app deployment in the Apps Script GUI.
 4. Paste each `/exec` deployment URL back into setup.
 5. Let setup bootstrap tokens and print MCP server configuration.
@@ -13,7 +13,7 @@ The skills encode repeatable workflows so agents can move quickly while preservi
 ## Deployment Refresh
 
 1. Confirm `.env` contains the service deployment URLs and tokens.
-2. Run `skills/workspace-lite-installer/scripts/deploy-single.sh <service>` for one service, or `deploy-all.sh` for every service.
+2. Run `skills/workspace-lite-installer/scripts/deploy-single.sh <repo> <service> "<message>"` for one service, or `deploy-all.sh <repo> "<message>"` for every service.
 3. Use `verify-deployments.sh` to check health endpoints.
 4. Re-run a simple read-only tool for the affected service.
 

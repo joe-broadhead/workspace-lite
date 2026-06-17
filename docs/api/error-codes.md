@@ -16,7 +16,7 @@ All errors follow a consistent JSON structure:
 
 | Code | Meaning | Resolution |
 |------|---------|------------|
-| `UNAUTHORIZED` | Invalid or missing request token | Check `*_PROXY_TOKEN` env var; re-bootstrap if token was lost |
+| `UNAUTHORIZED` | Invalid or missing request token | Check `*_PROXY_TOKEN` env var; rotate with the setup key if the token was lost |
 | `BAD_REQUEST` | Missing required parameter or invalid JSON body | Check parameter names and types against the tool schema |
 | `LIMIT_EXCEEDED` | Request, response, batch, date-window, attachment, export, range, or scan limit exceeded | Reduce page size, date window, range size, batch size, or payload size and retry |
 | `NOT_FOUND` | Resource (file, email, event, spreadsheet, slide, document) not found | Verify the ID is correct and the resource exists |

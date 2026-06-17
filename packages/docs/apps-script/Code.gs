@@ -24,7 +24,8 @@ function doPost(e) {
 
   if (body && body.setupKey) {
     if (isRateLimited(20, 1)) return respond(err('RATE_LIMITED', 'Too many bootstrap attempts. Try again in 60 seconds.'))
-    return respond(bootstrapProxy({ parameter: { setupKey: body.setupKey } }, TOKEN_ENV_NAME))
+    const setupEvent = { parameter: { setupKey: body.setupKey } }
+    return respond(body.rotate === true ? rotateProxy(setupEvent, TOKEN_ENV_NAME) : bootstrapProxy(setupEvent, TOKEN_ENV_NAME))
   }
 
   if (!validateRequest(body)) {
