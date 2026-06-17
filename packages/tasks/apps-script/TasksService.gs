@@ -379,7 +379,7 @@ const TasksService = (() => {
       if (e && e.proxyError) return e.proxyError
       const correlationId = Utilities.getUuid()
       console.error('[tasks-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e))
-      const message = typeof errorMsg === 'function' ? errorMsg(e) : (typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`)
+      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`
       return err(errorCode, message, correlationId)
     }
   }

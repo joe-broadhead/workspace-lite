@@ -34,11 +34,12 @@ After `v0.1.0`, increment versions as follows:
 2. Confirm `package.json` version matches the release version when the release represents a code baseline.
 3. Confirm all workspace package versions match the intended release tag without the leading `v`.
 4. Run `npm run validate`.
-5. Run `npm run audit`.
-6. Run `mkdocs build --strict`.
-7. Run `git diff --check`.
-8. Confirm no secrets or local deployment files are tracked.
-9. Commit the release-prep changes.
+5. Run `npm run lint`.
+6. Run `npm run audit`.
+7. Run `mkdocs build --strict`.
+8. Run `git diff --check`.
+9. Confirm no secrets or local deployment files are tracked.
+10. Commit the release-prep changes.
 
 ## Tagging
 

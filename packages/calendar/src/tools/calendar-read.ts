@@ -7,6 +7,7 @@ export function registerCalendarReadTools(server: ToolServer) {
   server.tool('calendar_get_event', 'Get full details of a calendar event.', calendarGetEventSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('getEvent', args)
+      if (!result.success) return formatResponse(result)
       const ev = (result.data as Record<string, unknown>)?.event as Record<string, unknown>
       const guests = (ev?.guests as Array<Record<string, string>>) || []
       return { content: [{ type: 'text' as const, text: [`Title: ${ev?.title}`, `When: ${ev?.start} → ${ev?.end}`, ev?.location ? `Where: ${ev.location}` : '', ev?.isAllDay ? '(All day)' : '', ev?.description ? `\n${ev.description}` : '', guests.length ? `\nGuests:\n${guests.map(g => `  ${g.email} — ${g.status}`).join('\n')}` : ''].filter(Boolean).join('\n') }] }

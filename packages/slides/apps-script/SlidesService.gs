@@ -105,7 +105,7 @@ const SlidesService = (() => {
 
   function getPolicyList(propertyName) {
     const raw = PropertiesService.getScriptProperties().getProperty(propertyName);
-    return raw ? raw.split(',').map(function(value) { return value.trim().toLowerCase(); }).filter(Boolean) : [];
+    return raw ? raw.split(',').map(function(value) { return value.trim(); }).filter(Boolean) : [];
   }
 
   function isAllowedHost(host, propertyNames) {
@@ -114,7 +114,7 @@ const SlidesService = (() => {
     if (allowlist.length === 0) return true;
     const normalized = String(host || '').toLowerCase();
     for (let i = 0; i < allowlist.length; i++) {
-      const allowed = allowlist[i].replace(/^\*\./, '');
+      const allowed = String(allowlist[i]).toLowerCase().replace(/^\*\./, '');
       if (normalized === allowed || normalized.endsWith('.' + allowed)) return true;
     }
     return false;
@@ -123,7 +123,10 @@ const SlidesService = (() => {
   function fetchImageBlob(imageUrl, hostProperties) {
     const parsed = parseHttpsUrl(imageUrl);
     if (!parsed) return { error: err('BAD_REQUEST', 'imageUrl must use https and be a valid URL') };
-    if (!isAllowedHost(parsed.hostname, hostProperties)) return { error: err('ACTION_NOT_ALLOWED', 'imageUrl host is outside the configured allowlist') };
+    if (!isAllowedHost(parsed.hostname, hostProperties)) {
+      const propertyHint = hostProperties.join(' or ');
+      return { error: err('ACTION_NOT_ALLOWED', 'imageUrl host is outside the configured allowlist. Update the ' + propertyHint + ' script property to allow this image host.') };
+    }
 
     const response = UrlFetchApp.fetch(parsed.url, { muteHttpExceptions: true, followRedirects: true });
     const status = response.getResponseCode();
@@ -155,6 +158,7 @@ const SlidesService = (() => {
       return result && typeof result.success === 'boolean' ? result : ok(result);
     }
     catch (e) {
+      if (e && e.proxyError) return e.proxyError;
       const correlationId = Utilities.getUuid();
       console.error('[slides-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
       const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;

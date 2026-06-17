@@ -32,7 +32,7 @@ open "https://script.google.com/d/<script-id>/edit"
 
 In the Apps Script editor: **Deploy → New deployment → Select type: Web app → Execute as: Me → Who has access: Anyone**. Update the URL in your `.env` file.
 
-Do not use `clasp deploy` as the replacement for the GUI deployment step during installation. It can create a deployment record that still returns a Google access-denied HTML page when used as the public web app URL. After a user-created web app deployment exists, `clasp deploy -i <deployment-id> -V <version>` is appropriate for refreshing that same URL.
+Do not use `clasp deploy` as the replacement for the GUI deployment step during installation. It can create a deployment record that still returns a Google access-denied HTML page when used as the public web app URL. After a user-created web app deployment exists, `clasp redeploy <deployment-id> -V <version>` is appropriate for refreshing that same URL.
 
 ### Scopes Not Authorized
 
@@ -73,26 +73,23 @@ Each service requires its own set of OAuth scopes:
 open "https://script.google.com/d/<script-id>/edit"
 ```
 
-In the Apps Script editor, go to **Project Settings → Script Properties** (gear icon). The token is stored under `PROXY_AUTH_TOKEN`. If it's missing or you need to regenerate:
+The token is stored under `PROXY_AUTH_TOKEN`. If it is missing locally but bootstrap has already completed, rotate it with the setup key:
 
-1. Delete the property `PROXY_BOOTSTRAPPED`.
-2. Delete the property `PROXY_AUTH_TOKEN`.
-3. Re-deploy the web app (new deployment required if the URL changed).
-4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and hit the bootstrap endpoint again:
+1. Read the setup key from the generated, untracked `BootstrapSecret.gs` file.
+2. Hit the rotation endpoint:
 
 ```bash
-TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$(curl -sL -X POST -H 'Content-Type: application/json' -d '{"setupKey":"<bootstrap-setup-key>","rotate":true}' "https://script.google.com/macros/s/<deployment-id>/exec")"
 TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
-5. Update the token in your `.env` file.
-6. Restart OpenCode or re-source your environment.
+3. Restart OpenCode or re-source your environment.
 
 ### Already Bootstrapped
 
 **Symptom:** Bootstrap endpoint returns `"FORBIDDEN: Bootstrap has already been completed."`
 
-This is expected — the bootstrap endpoint is single-use by design. If you need the token, check the Apps Script script properties as described above. The token is there; it's just not retrievable via the bootstrap endpoint after the first use.
+This is expected for bootstrap itself. If the token is not in `.env`, rerun `./scripts/setup.sh` and accept the rotation prompt, or call the rotation endpoint shown above.
 
 ---
 

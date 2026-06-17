@@ -13,6 +13,7 @@ export function registerSlidesStructureTools(server: ToolServer) {
     slidesElementGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Element retrieved.' })
     },
   )
@@ -23,6 +24,7 @@ export function registerSlidesStructureTools(server: ToolServer) {
     slidesElementGeometrySchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementGeometryUpdate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Element geometry updated.' })
     },
   )
@@ -33,6 +35,7 @@ export function registerSlidesStructureTools(server: ToolServer) {
     slidesElementTransformSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementTransformUpdate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Element transform updated.' })
     },
   )
@@ -43,6 +46,7 @@ export function registerSlidesStructureTools(server: ToolServer) {
     slidesElementAltTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementAltTextSet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Element alt text updated.' })
     },
   )
@@ -53,6 +57,7 @@ export function registerSlidesStructureTools(server: ToolServer) {
     slidesElementLinkSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementLinkSet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Element link updated.' })
     },
   )
@@ -63,6 +68,7 @@ export function registerSlidesStructureTools(server: ToolServer) {
     slidesElementReorderSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('elementReorder', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Element z-order updated.' })
     },
   )

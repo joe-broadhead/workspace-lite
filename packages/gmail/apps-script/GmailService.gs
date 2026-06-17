@@ -209,13 +209,10 @@ const GmailService = (() => {
       return result && typeof result.success === 'boolean' ? result : ok(result);
     }
     catch (e) {
+      if (e && e.proxyError) return e.proxyError;
       const correlationId = Utilities.getUuid();
       console.error('[gmail-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
-      let message = `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
-      if (typeof errorMsg === 'string') message = errorMsg;
-      if (typeof errorMsg === 'function') {
-        try { message = errorMsg(e) || message; } catch (_) { /* keep generic fallback */ }
-      }
+      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
       return err(errorCode, message, correlationId);
     }
   }

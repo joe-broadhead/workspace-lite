@@ -10,6 +10,7 @@ export function registerDocsFormatTools(server: ToolServer) {
     docsFormatTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('formatText', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return formatResponse(result, {
         summary: `Formatted ${data.occurrences || 0} occurrence(s) of "${args.findText}".`,

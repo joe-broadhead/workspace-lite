@@ -23,10 +23,10 @@
   "scripts": {
     "build": "npm run build:shared && npm run build:packages",
     "build:shared": "cd shared && npm run build",
-    "build:packages": "tsc -b packages/*",
+    "build:packages": "tsc -b packages/drive packages/gmail packages/calendar packages/sheets packages/slides packages/docs packages/tasks packages/forms",
     "build:drive": "cd packages/drive && npm run build",
     "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
-    "lint": "npm run typecheck",
+    "lint": "eslint shared/src packages/drive/src packages/gmail/src packages/calendar/src packages/sheets/src packages/slides/src packages/docs/src packages/tasks/src packages/forms/src tests scripts --ext .ts,.mjs",
     "test": "tsx --test tests/*.test.ts",
     "audit": "npm audit --audit-level=moderate",
     "validate": "npm run typecheck && npm run build && npm test && npm run validate:manifests && npm run validate:limits && npm run validate:responses && npm run validate:mutations && npm run validate:inputs && npm run validate:architecture",
@@ -39,15 +39,18 @@
     "generate:proxy-shell": "node scripts/generate-proxy-shell.mjs",
     "docs:build": "mkdocs build --strict",
     "docs:serve": "mkdocs serve",
-    "clean": "rm -rf packages/*/dist shared/dist packages/*/*.tsbuildinfo shared/*.tsbuildinfo *.tsbuildinfo",
+    "clean": "node scripts/clean.mjs",
     "dev:drive": "cd packages/drive && npm run dev",
     "install:deps": "npm install",
     "deploy:drive": "cd packages/drive/apps-script && clasp push",
     "postinstall": "npm run build:shared"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.9.3",
+    "eslint": "^10.5.0",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
   }
 }

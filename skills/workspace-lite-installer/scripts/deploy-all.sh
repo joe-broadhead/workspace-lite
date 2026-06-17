@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy all 8 workspace-lite services: push, version, and deploy to existing .env deployment IDs.
+# Deploy all 8 workspace-lite services: push, version, and redeploy existing .env deployment IDs.
 # Usage: ./deploy-all.sh /path/to/workspace-lite "Deploy message"
 set -euo pipefail
 
@@ -15,7 +15,17 @@ if [ ! -f "$REPO/.env" ]; then
   exit 1
 fi
 
-source "$REPO/.env"
+load_env() {
+  local env_file="$1"
+  local sanitized_env
+  sanitized_env=$(mktemp)
+  tr -d '\r' < "$env_file" > "$sanitized_env"
+  # shellcheck source=/dev/null
+  source "$sanitized_env"
+  rm -f "$sanitized_env"
+}
+
+load_env "$REPO/.env"
 SERVICES=(drive gmail calendar sheets slides docs tasks forms)
 
 echo "=== Deploying all services to $REPO ==="
@@ -38,7 +48,7 @@ for svc in "${SERVICES[@]}"; do
   echo "  Version: $V"
 
   # Find the exact deployment ID from .env
-  env_var="GOOGLE_WORKSPACE_$(echo $svc | tr '[:lower:]' '[:upper:]')_PROXY_URL"
+  env_var="GOOGLE_WORKSPACE_$(echo "$svc" | tr '[:lower:]' '[:upper:]')_PROXY_URL"
   env_url="${!env_var}"
   if [ -z "$env_url" ]; then
     echo "  ERROR: $env_var is not set in .env"
@@ -51,9 +61,9 @@ for svc in "${SERVICES[@]}"; do
     exit 1
   fi
 
-  echo "  Deploying version $V to $env_id..."
-  if ! clasp deploy -i "$env_id" -V "$V" -d "$MSG" 2>&1 | tail -1; then
-    echo "  ERROR: clasp deploy failed for $svc"
+  echo "  Redeploying version $V to $env_id..."
+  if ! clasp redeploy "$env_id" -V "$V" -d "$MSG" 2>&1 | tail -1; then
+    echo "  ERROR: clasp redeploy failed for $svc"
     exit 1
   fi
 

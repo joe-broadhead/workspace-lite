@@ -72,6 +72,8 @@ The setup script installs dependencies, builds packages, creates or reuses Apps
 Script projects, pushes proxy code, prints Apps Script editor URLs, guides the
 manual web app deployment step, bootstraps tokens, and prints MCP config.
 
+Windows is supported through Git Bash or MSYS2 with Node 20+ and `clasp`.
+
 The Google deployment step stays intentionally manual: for each service, open
 the printed Apps Script editor URL, choose **Deploy -> New deployment -> Web app**,
 set **Execute as: Me**, set **Who has access: Anyone**, authorize scopes if

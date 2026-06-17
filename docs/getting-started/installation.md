@@ -10,13 +10,21 @@ Complete setup of all 8 Google Workspace MCP servers, including the required man
 | Requirement | Version / Command | Notes |
 |-------------|-------------------|-------|
 | Node.js | 20+ | `node --version` |
+| npm | Bundled with Node.js | `npm --version` |
 | clasp | latest | `npm install -g @google/clasp` |
+| curl | any modern version | Included with macOS and Git Bash; used for token bootstrap |
 | Google account | &mdash; | With access to the Workspace services you plan to use |
+
+Windows users should run setup from Git Bash or MSYS2. Native PowerShell can run
+the MCP servers, but the installer and deployment helper scripts expect a bash
+environment.
 
 !!! tip "Verify prerequisites"
     ```bash
     node --version   # ≥ 20
+    npm --version
     clasp --version  # any
+    curl --version
     ```
 
 ---
@@ -28,7 +36,7 @@ git clone https://github.com/joe-broadhead/workspace-lite.git
 cd workspace-lite
 ```
 
-The setup script installs dependencies with `npm ci` when `package-lock.json` is present, then builds all 8 service packages. To preview the flow without creating Apps Script projects, bootstrap secrets, or `.env` entries, run `./scripts/setup.sh --dry-run`.
+The setup script installs dependencies with `npm ci` when `package-lock.json` is present, then builds all 8 service packages. To preview the flow without creating Apps Script projects, bootstrap secrets, or `.env` entries, run `bash ./scripts/setup.sh --dry-run`.
 
 ---
 
@@ -36,7 +44,7 @@ The setup script installs dependencies with `npm ci` when `package-lock.json` is
 
 ```bash
 chmod +x scripts/setup.sh
-./scripts/setup.sh
+bash ./scripts/setup.sh
 ```
 
 The script automates:
@@ -44,7 +52,7 @@ The script automates:
 | Step | What happens |
 |------|--------------|
 | 1. Authenticate | Opens a browser for `clasp login` (one-time) |
-| 2. Create projects | Creates 8 Apps Script standalone projects with correct OAuth scopes |
+| 2. Create projects | Creates or reuses 8 Apps Script standalone projects with correct OAuth scopes |
 | 3. Push code | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service files to each project |
 | 4. Deploy guide | Prints Apps Script editor URLs and manual web app deployment instructions |
 | 5. Token bootstrap | Collects deployment URLs, bootstraps auth tokens, appends successful entries to `.env` |
@@ -79,7 +87,7 @@ Use these exact settings:
 Copy each deployment URL (looks like `https://script.google.com/macros/s/.../exec`) and paste it back into the script prompt.
 
 !!! warning "GUI step requires the user"
-    Agents and scripts can push code, create Apps Script versions, and refresh an existing deployment with `clasp deploy -i`. The initial deployment still needs the Apps Script editor so the user can verify **Web app**, **Execute as: Me**, **Who has access: Anyone**, and OAuth scopes before approving access.
+    Agents and scripts can push code, create Apps Script versions, and refresh an existing deployment with `clasp redeploy`. The initial deployment still needs the Apps Script editor so the user can verify **Web app**, **Execute as: Me**, **Who has access: Anyone**, and OAuth scopes before approving access.
 
 ---
 
@@ -121,9 +129,16 @@ Source the generated `.env` file (or copy exports to `.zshrc`):
 source .env
 ```
 
+On Windows, persist the generated `.env` values at User scope so native OpenCode
+can inherit them after restart:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skills\workspace-lite-installer\scripts\persist-env.ps1 -EnvFile .\.env
+```
+
 Restart OpenCode. When all 8 services are configured, all 218 tools are available.
 
-If you skipped deployment URLs or bootstrap failed, the script leaves `.env` unchanged for those services. Deploy the web apps in the Apps Script editor, rerun `./scripts/setup.sh`, paste the `/exec` deployment URLs, then source `.env` and restart OpenCode.
+If you skipped deployment URLs or bootstrap failed, the script leaves `.env` unchanged for those services. Deploy the web apps in the Apps Script editor, rerun `bash ./scripts/setup.sh`, paste the `/exec` deployment URLs, then source `.env` and restart OpenCode.
 
 ---
 
@@ -148,13 +163,13 @@ For each service, two environment variables are required:
 
 ### Deploying Manually
 
-1. Create each Apps Script project with `clasp create --type standalone`
+1. Create each Apps Script project with `clasp create --type standalone`, or reuse the matching project from `clasp list --json`
 2. Push code with `clasp push`
 3. Deploy as a web app in the Apps Script GUI and copy the deployment URL. The user must verify scopes and web app access settings here.
 4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and write the bootstrapped token directly to your environment file:
 
 ```bash
-TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$(curl -sL -X POST -H 'Content-Type: application/json' -d '{"setupKey":"<bootstrap-setup-key>"}' "https://script.google.com/macros/s/<deployment-id>/exec")"
 TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
@@ -239,10 +254,10 @@ TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JS
 
 | Phase | Description |
 |-------|-------------|
-| **Bootstrap** | `GET ?bootstrap=1` triggers one-time token generation. The token is generated from `Utilities.getUuid()` plus a second UUID with dashes removed, stored in `PropertiesService.getScriptProperties()` under `PROXY_AUTH_TOKEN`, returned once, and then `PROXY_BOOTSTRAPPED=true` is set. |
+| **Bootstrap** | JSON `POST` with `setupKey` triggers one-time token generation. The token is generated from `Utilities.getUuid()` plus a second UUID with dashes removed, stored in `PropertiesService.getScriptProperties()` under `PROXY_AUTH_TOKEN`, returned once, and then `PROXY_BOOTSTRAPPED=true` is set. |
 | **Storage** | Token lives in Apps Script properties &mdash; durable across deployments, survives code pushes. |
-| **Rotation** | Re-run bootstrap? The endpoint returns `FORBIDDEN` once bootstrapped. To rotate, manually clear script properties: **Project Settings &rarr; Script Properties** in the Apps Script editor, then re-bootstrap. |
+| **Rotation** | JSON `POST` with `setupKey` and `rotate:true` validates the local setup key, replaces the primary token, marks bootstrap complete, and returns the new token once. |
 | **Usage** | Every `POST` request includes `token` in the JSON body. `Auth.gs` validates against the stored token. |
 
 !!! warning "Bootstrap is one-shot"
-    The bootstrap endpoint (`?bootstrap=1`) only works once per deployment. Save the token immediately. If lost, you must clear script properties and re-bootstrap.
+    The bootstrap endpoint only works once per deployment. Save the token immediately. If lost, rerun setup interactively and accept the rotation prompt.

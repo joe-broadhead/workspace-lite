@@ -33,11 +33,16 @@ export function registerTool(
         const message = error instanceof Error ? error.message : 'Invalid tool input'
         return formatResponse({ success: false, error: { code: 'BAD_REQUEST', message } })
       }
-      const result = await client.callProxy(def.action, args)
-      if (def.format) return def.format(result)
-      return formatResponse(result, {
-        summary: def.summary,
-      })
+      try {
+        const result = await client.callProxy(def.action, args)
+        if (def.format) return def.format(result)
+        return formatResponse(result, {
+          summary: def.summary,
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Proxy call failed'
+        return formatResponse({ success: false, error: { code: 'PROXY_ERROR', message } })
+      }
     },
   )
 }

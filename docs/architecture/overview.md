@@ -124,10 +124,11 @@ The authentication model eliminates OAuth from every API call by leveraging Apps
                  ┌──────────┐
                  │  Admin   │
                  └────┬─────┘
-                      │ GET ?bootstrap=1
+                      │ POST /exec
+                      │ { "setupKey": "..." }
                       ▼
 ┌─────────────────────────────────────────┐
-│  Apps Script Web App (Code.gs:doGet)    │
+│  Apps Script Web App (Code.gs:doPost)   │
 │                                         │
 │  1. Check isBootstrapped() → false      │
 │  2. Validate bootstrap setup key        │

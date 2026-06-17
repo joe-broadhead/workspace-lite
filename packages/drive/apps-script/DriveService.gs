@@ -213,9 +213,10 @@ var DriveService = (() => {
       return result && typeof result.success === 'boolean' ? result : ok(result);
     }
     catch (e) {
+      if (e && e.proxyError) return e.proxyError;
       const correlationId = Utilities.getUuid();
       console.error('[drive-proxy] correlationId=%s code=%s error=%s', correlationId, errorCode, e && e.message ? e.message : String(e));
-      const message = typeof errorMsg === 'function' ? errorMsg(e) : (typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`);
+      const message = typeof errorMsg === 'string' ? errorMsg : `${errorCode} failed. See Apps Script logs with correlationId ${correlationId}.`;
       return err(errorCode, message, correlationId);
     }
   }
@@ -765,13 +766,13 @@ var DriveService = (() => {
   function fileTrash(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    return trap(function() { DriveApp.getFileById(id).setTrashed(true); return { trashed: true, fileId: id }; }, 'UPDATE_FAILED', `Could not trash file: ${id}`);
+    return withIdempotency('fileTrash', params, function() { return trap(function() { DriveApp.getFileById(id).setTrashed(true); return { trashed: true, fileId: id }; }, 'UPDATE_FAILED', `Could not trash file: ${id}`); });
   }
 
   function fileUntrash(params) {
     const id = requireParam(params, 'fileId');
     validateDriveId(id);
-    return trap(function() { DriveApp.getFileById(id).setTrashed(false); return { untrashed: true, fileId: id }; }, 'UPDATE_FAILED', `Could not untrash file: ${id}`);
+    return withIdempotency('fileUntrash', params, function() { return trap(function() { DriveApp.getFileById(id).setTrashed(false); return { untrashed: true, fileId: id }; }, 'UPDATE_FAILED', `Could not untrash file: ${id}`); });
   }
 
   function fileDelete(params) {

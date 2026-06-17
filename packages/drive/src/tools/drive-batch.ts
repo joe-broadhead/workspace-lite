@@ -10,6 +10,7 @@ export function registerDriveBatchTool(server: ToolServer) {
     driveBatchSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('batch', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Batch executed.' })
     },
   )

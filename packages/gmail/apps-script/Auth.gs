@@ -88,6 +88,37 @@ function bootstrapProxy(e, tokenEnvName) {
   }
 }
 
+function rotateProxy(e, tokenEnvName) {
+  const lock = LockService.getScriptLock()
+  if (!lock.tryLock(5000)) {
+    return err('LOCK_TIMEOUT', 'Could not acquire rotation lock. Try again shortly.')
+  }
+  try {
+    const expectedSecret = getBootstrapSecret_()
+    if (!expectedSecret) {
+      return err('BOOTSTRAP_NOT_CONFIGURED', 'Bootstrap setup secret is missing. Run scripts/setup.sh to generate BootstrapSecret.gs before deployment.')
+    }
+
+    const suppliedSecret = e && e.parameter ? e.parameter.setupKey : null
+    if (!constantTimeEquals_(suppliedSecret, expectedSecret)) {
+      return err('UNAUTHORIZED', 'Invalid or missing rotation setup key')
+    }
+
+    const props = PropertiesService.getScriptProperties()
+    props.deleteProperty(SCRIPT_PROPERTY_KEY)
+    props.deleteProperty(BOOTSTRAPPED_KEY)
+    const token = getOrCreateToken_()
+    markBootstrapped_()
+    return ok({
+      status: 'rotated',
+      token: token,
+      note: 'Save this token as ' + tokenEnvName + '. The previous primary token is no longer valid.',
+    })
+  } finally {
+    lock.releaseLock()
+  }
+}
+
 function parseTokenClasses_(value, fallback) {
   const classes = {}
   String(value || fallback || '').split(',').forEach(function(part) {

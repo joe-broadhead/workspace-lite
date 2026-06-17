@@ -14,6 +14,7 @@ export function registerSheetsManageTools(server: ToolServer) {
     sheetsSpreadsheetCreateSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('spreadsheetCreate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Spreadsheet created.',
         hint: 'Use sheets_read_range to read data.',
@@ -27,6 +28,7 @@ export function registerSheetsManageTools(server: ToolServer) {
     sheetsSpreadsheetGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('spreadsheetGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Spreadsheet metadata retrieved.',
         hint: 'Use sheets_read_range to read data.',
@@ -40,6 +42,7 @@ export function registerSheetsManageTools(server: ToolServer) {
     sheetsAddSheetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('sheetAdd', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Sheet added.' })
     },
   )
@@ -50,6 +53,7 @@ export function registerSheetsManageTools(server: ToolServer) {
     sheetsDeleteSheetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('sheetDelete', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Sheet deleted.' })
     },
   )
@@ -60,6 +64,7 @@ export function registerSheetsManageTools(server: ToolServer) {
     sheetsRenameSheetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('sheetRename', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Sheet renamed.' })
     },
   )
@@ -70,6 +75,7 @@ export function registerSheetsManageTools(server: ToolServer) {
     sheetsCopySheetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('sheetCopy', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Sheet copied.' })
     },
   )

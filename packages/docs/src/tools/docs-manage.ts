@@ -16,6 +16,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsCreateDocumentSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('documentCreate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Document created.',
         hint: 'Use docs_insert_paragraph to add content.',
@@ -29,6 +30,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsDocumentGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('documentGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: 'Document retrieved.',
         hint: 'Use docs_insert_paragraph to add content, docs_format_text to style.',
@@ -42,6 +44,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsGetAsJsonSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('documentGetJson', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Document JSON retrieved.' })
     },
   )
@@ -52,6 +55,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsInsertParagraphSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('paragraphInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Paragraph inserted.' })
     },
   )
@@ -62,6 +66,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsUpdateParagraphSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('paragraphUpdate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Paragraph updated.' })
     },
   )
@@ -72,6 +77,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsDeleteParagraphSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('paragraphDelete', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Paragraph deleted.' })
     },
   )
@@ -82,6 +88,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsSetTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('setText', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Document text set.' })
     },
   )
@@ -92,6 +99,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsReplaceTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('replaceText', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Text replaced.' })
     },
   )
@@ -102,6 +110,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsHeaderFooterSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('headerSet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Header set.' })
     },
   )
@@ -112,6 +121,7 @@ export function registerDocsManageTools(server: ToolServer) {
     docsHeaderFooterSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('footerSet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Footer set.' })
     },
   )

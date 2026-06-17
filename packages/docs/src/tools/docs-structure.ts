@@ -15,6 +15,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsPageSetupGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('pageSetupGet', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Page setup retrieved.' })
     },
   )
@@ -25,6 +26,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsPageSetupUpdateSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('pageSetupUpdate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Page setup updated.' })
     },
   )
@@ -35,6 +37,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsBookmarksListSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('bookmarksList', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Bookmarks listed.' })
     },
   )
@@ -45,6 +48,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsBookmarkCreateSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('bookmarkCreate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Bookmark created.' })
     },
   )
@@ -55,6 +59,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsBookmarkDeleteSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('bookmarkDelete', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Bookmark deleted.' })
     },
   )
@@ -65,6 +70,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsNamedRangesListSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('namedRangesList', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Named ranges listed.' })
     },
   )
@@ -75,6 +81,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsNamedRangeCreateSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('namedRangeCreate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Named range created.' })
     },
   )
@@ -85,6 +92,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsNamedRangeDeleteSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('namedRangeDelete', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Named range deleted.' })
     },
   )
@@ -95,6 +103,7 @@ export function registerDocsStructureTools(server: ToolServer) {
     docsTableOfContentsListSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('tableOfContentsList', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Tables of contents listed.' })
     },
   )

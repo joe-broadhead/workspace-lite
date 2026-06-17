@@ -60,6 +60,9 @@ jobs:
       - name: Validate release candidate
         run: npm run validate
 
+      - name: Lint release candidate
+        run: npm run lint
+
       - name: Audit npm dependencies
         run: npm run audit
 

@@ -10,6 +10,7 @@ export function registerSheetsChartTools(server: ToolServer) {
     sheetsCreateChartSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('chartCreate', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, {
         summary: `Chart created at position ${(result.data as Record<string, unknown>)?.position || args.position}.`,
       })

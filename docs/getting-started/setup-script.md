@@ -8,13 +8,13 @@
 
 | Phase | Actions |
 |-------|---------|
-| **Prerequisites check** | Verifies `clasp` and `node` are installed |
+| **Prerequisites check** | Verifies `clasp`, `node`, `npm`, and `curl` are installed |
 | **clasp login** | Opens browser for Google authentication (once) |
 | **Build** | `npm ci && npm run build` when `package-lock.json` is present; compiles shared package and all 8 services |
-| **Project creation** | `clasp create --type standalone` for each of the 8 services with correct OAuth scopes and project titles |
+| **Project creation** | Reuses an existing project with the expected title, or runs `clasp create --type standalone` for each missing service |
 | **Code push** | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service-specific `.gs` files to each project |
 | **Deployment guide** | Prints Apps Script editor URLs and instructions for the 8 manual web app deployments |
-| **Token bootstrap** | Collects deployment URLs, calls `?bootstrap=1` on each, appends successful token entries to `.env` |
+| **Token bootstrap** | Collects deployment URLs, posts each setup key as JSON, appends successful token entries to `.env` |
 | **Config generator** | Prints ready-to-paste `opencode.jsonc` JSON for all 8 MCP servers under `mcp` |
 | **Skill commands** | Prints `ln -sf` commands to install the `google-workspace` usage skill and `workspace-lite-installer` operator skill |
 
@@ -68,7 +68,7 @@ export GOOGLE_WORKSPACE_FORMS_PROXY_URL="https://script.google.com/macros/s/<for
 export GOOGLE_WORKSPACE_FORMS_PROXY_TOKEN="<forms-proxy-token>"
 ```
 
-If you skip all deployment URL prompts, or if every bootstrap attempt fails, `.env` is left unchanged.
+If you skip all deployment URL prompts, or if every bootstrap attempt fails, `.env` is left unchanged. If a service token already exists in `.env`, setup skips that service instead of consuming bootstrap again.
 
 ### OpenCode Config
 
@@ -117,28 +117,27 @@ If an agent is helping with setup after you complete the GUI deployments, it can
 
 ## Rerunning for Individual Services
 
-The script is idempotent &mdash; it skips services that already have a valid `.clasp.json` with a non-placeholder `scriptId`.
+The script is idempotent &mdash; it skips services that already have a valid `.clasp.json` with a non-placeholder `scriptId`, and it reuses existing Apps Script projects with the canonical service title before creating a new project. This keeps aborted setup retries from creating duplicate projects.
 
 ### Scenario: Add a service you skipped
 
 ```bash
-./scripts/setup.sh
+bash ./scripts/setup.sh
 ```
 
 Press Enter for services already configured. Paste the new deployment URL when prompted for the missing service.
 
-### Scenario: Re-bootstrap a token
+### Scenario: Re-bootstrap or rotate a token
 
-If you lost a token, clear the script properties in the Apps Script editor:
+If you lost a token, rerun `./scripts/setup.sh`, paste the service `/exec` URL, and follow the prompt to rotate the primary token with the local setup key. Rotation invalidates the previous primary token and writes the new one to `.env`.
 
-1. Open the Apps Script editor URL from `scripts/setup.sh`, or open `https://script.google.com/d/<script-id>/edit` using the `scriptId` in `packages/<service>/apps-script/.clasp.json`
-2. **Project Settings** :material-arrow-right: **Script Properties**
-3. Delete both `PROXY_AUTH_TOKEN` and `PROXY_BOOTSTRAPPED`
-4. Read the setup key from the untracked `BootstrapSecret.gs` file or regenerate it with `scripts/setup.sh`
-5. Call the bootstrap endpoint again:
+You can also rotate manually:
+
+1. Read the setup key from the untracked `BootstrapSecret.gs` file or regenerate it with `scripts/setup.sh`.
+2. Call the rotation endpoint:
 
 ```bash
-TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$(curl -sL -X POST -H 'Content-Type: application/json' -d '{"setupKey":"<bootstrap-setup-key>","rotate":true}' "https://script.google.com/macros/s/<deployment-id>/exec")"
 TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
@@ -154,7 +153,7 @@ clasp push --force
 VERSION_OUTPUT="$(clasp version "Refresh web app deployment $(date +%F)")"
 VERSION="$(printf '%s\n' "$VERSION_OUTPUT" | sed -n 's/.*version \([0-9][0-9]*\).*/\1/p')"
 clasp deployments
-clasp deploy -i "<existing-versioned-deployment-id>" -V "$VERSION" -d "Refresh web app deployment $(date +%F)"
+clasp redeploy "<existing-versioned-deployment-id>" -V "$VERSION" -d "Refresh web app deployment $(date +%F)"
 ```
 
 If the code change adds or changes Google OAuth scopes, the user must open the Apps Script editor, review the new scope prompt, authorize it, and then refresh/redeploy. Use a new deployment URL only when intentionally changing web app access or replacing a broken deployment.
@@ -192,9 +191,9 @@ If the code change adds or changes Google OAuth scopes, the user must open the A
 
 | Symptom | Fix |
 |---------|-----|
-| `"FORBIDDEN"`: Bootstrap already completed | The token was already generated. Clear script properties and re-bootstrap (see above) |
-| `"UNAUTHORIZED"`: Invalid or missing bootstrap setup key | Include `setupKey=<bootstrap-setup-key>` from the untracked `BootstrapSecret.gs` file |
-| `"BAD_REQUEST"`: Missing action field | You called the POST endpoint instead of GET. Use `?bootstrap=1&setupKey=<bootstrap-setup-key>` as query parameters |
+| `"FORBIDDEN"`: Bootstrap already completed | The token was already generated. Rerun setup and accept the rotation prompt if the token is missing from `.env` |
+| `"UNAUTHORIZED"`: Invalid or missing bootstrap setup key | POST JSON with `{"setupKey":"<bootstrap-setup-key>"}` from the untracked `BootstrapSecret.gs` file |
+| `"BAD_REQUEST"`: Missing action field | The request was parsed as a normal proxy call. For bootstrap, POST a JSON body containing only `setupKey` |
 | Token not returned | The URL may already be bootstrapped. Check `.env` for existing tokens |
 
 ### OpenCode doesn&rsquo;t see the tools

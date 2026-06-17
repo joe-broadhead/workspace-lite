@@ -19,6 +19,7 @@ export function registerGmailSettingsTools(server: ToolServer) {
   server.tool('gmail_list_filters', 'List Gmail filters configured for the authenticated account.', {},
     async () => {
       const result = await callProxy('filtersList')
+      if (!result.success) return formatResponse(result)
       return formatList(result, { itemsKey: 'items', noun: 'filter', itemSummary: filterSummary,
         hint: 'Use gmail_get_filter with a filterId for the raw filter resource.' })
     })

@@ -13,6 +13,7 @@ export function registerSheetsReadTools(server: ToolServer) {
     sheetsRangeReadSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeRead', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const values = data.values as string[][] || []
 
@@ -36,6 +37,7 @@ export function registerSheetsReadTools(server: ToolServer) {
     sheetsGetFormulasSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeGetFormulas', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const formulas = data.formulas as string[][] || []
       const displayValues = data.displayValues as string[][] || []
@@ -66,6 +68,7 @@ export function registerSheetsReadTools(server: ToolServer) {
     sheetsGetNotesSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('rangeGetNotes', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const notes = data.notes as string[][] || []
 
@@ -89,6 +92,7 @@ export function registerSheetsReadTools(server: ToolServer) {
     sheetsBatchGetSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('valuesBatchGet', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const valueRanges = (data.valueRanges as Array<Record<string, unknown>>) || []
       const summary = valueRanges.map((vr: Record<string, unknown>) => {
@@ -107,6 +111,7 @@ export function registerSheetsReadTools(server: ToolServer) {
     sheetsFindTextSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('textFind', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       const matches = (data.matches as Array<Record<string, unknown>>) || []
       const lines = matches.map((match) => {
@@ -130,6 +135,7 @@ export function registerSheetsReadTools(server: ToolServer) {
     sheetsListProtectionsSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('protectionsList', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Protections retrieved.' })
     },
   )

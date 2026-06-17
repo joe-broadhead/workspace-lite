@@ -14,6 +14,7 @@ export function registerDocsContentTools(server: ToolServer) {
     docsInsertListSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('listInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'List inserted.' })
     },
   )
@@ -24,6 +25,7 @@ export function registerDocsContentTools(server: ToolServer) {
     docsInsertTableSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('tableInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Table inserted.' })
     },
   )
@@ -34,6 +36,7 @@ export function registerDocsContentTools(server: ToolServer) {
     docsInsertImageSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('imageInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Image inserted.' })
     },
   )
@@ -44,6 +47,7 @@ export function registerDocsContentTools(server: ToolServer) {
     docsInsertPageBreakSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('pageBreakInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Page break inserted.' })
     },
   )
@@ -54,6 +58,7 @@ export function registerDocsContentTools(server: ToolServer) {
     docsInsertHorizontalRuleSchema,
     async (args: Record<string, unknown>) => {
       const result = await callProxy('horizontalRuleInsert', args)
+      if (!result.success) return formatResponse(result)
       return formatResponse(result, { summary: 'Horizontal rule inserted.' })
     },
   )

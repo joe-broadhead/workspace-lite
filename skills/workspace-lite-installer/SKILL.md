@@ -8,6 +8,7 @@ metadata:
       - node
       - npm
       - clasp
+      - curl
 ---
 
 # Workspace Lite Installer
@@ -20,7 +21,7 @@ Use this skill to help a user install, configure, update, or troubleshoot the `w
 - The user must complete Google account browser auth, review OAuth scopes, and confirm web app deployment settings in the Apps Script GUI.
 - Never print, commit, or paste `.env`, `.clasprc.json`, `.clasp.json`, `BootstrapSecret.gs`, bearer tokens, setup keys, deployment URLs from private installs, or script IDs into public output.
 - Ask before rotating tokens, deleting Apps Script properties, creating replacement deployments, or changing OpenCode config.
-- Supported platforms: macOS and Linux. Windows is not supported (requires bash, clasp, Node.js).
+- Supported platforms: macOS, Linux, and Windows through Git Bash or MSYS2. Native PowerShell can run MCP servers after environment variables are persisted, but setup and deploy helper scripts expect bash.
 
 ## Services
 
@@ -57,11 +58,12 @@ The shared template lives at `shared/apps-script/Auth.gs` — when changing `DEF
 
 The workspace-lite repo ships a `scripts/setup.sh` that handles initial setup. All `scripts/` paths below are relative to the repo root.
 
-1. Confirm prerequisites (`node` >= 20, `npm`, `clasp`):
+1. Confirm prerequisites (`node` >= 20, `npm`, `clasp`, `curl`):
    ```bash
    node --version
    npm --version
    clasp --version
+   curl --version
    ```
 2. If `clasp` is missing, install it:
    ```bash
@@ -69,11 +71,11 @@ The workspace-lite repo ships a `scripts/setup.sh` that handles initial setup. A
    ```
 3. Run a dry run first when possible:
    ```bash
-   ./scripts/setup.sh --dry-run
+   bash ./scripts/setup.sh --dry-run
    ```
 4. Run setup:
    ```bash
-   ./scripts/setup.sh
+   bash ./scripts/setup.sh
    ```
 5. If `clasp login` opens a browser, tell the user to complete Google auth. You cannot approve this for them.
 6. When setup prints Apps Script editor URLs, tell the user to open each URL and create the initial web app deployment in the GUI:
@@ -85,6 +87,8 @@ The workspace-lite repo ships a `scripts/setup.sh` that handles initial setup. A
    - Copy the `/exec` web app URL back into the setup prompt
 7. If the user completes the GUI deployments but does not paste URLs, retrieve them with `clasp deployments` from each service directory. Use the versioned deployment row (`@1`, `@2`, etc.), not the `@HEAD` row, and construct `https://script.google.com/macros/s/<deployment-id>/exec`.
 8. After setup writes `.env`, persist it (see "Persist Environment Variables" below) and restart OpenCode.
+
+Setup is intentionally idempotent: it reuses local `.clasp.json` files, reuses existing Apps Script projects with the canonical service titles, and skips service tokens that are already present in `.env`. If bootstrap was consumed before `.env` was written, setup prompts before rotating the primary token with the local setup key.
 
 ## Retrieve Web App URLs After GUI Deployment
 
@@ -116,15 +120,15 @@ The skill ships three hardened scripts. **Use these instead of running raw clasp
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/deploy-all.sh <repo-path> "<message>"` | Push, version, and deploy all 8 services to the .env deployment IDs |
-| `scripts/deploy-single.sh <repo-path> <service> "<message>"` | Push, version, and deploy one service |
+| `scripts/deploy-all.sh <repo-path> "<message>"` | Push, version, and redeploy all 8 services to the .env deployment IDs |
+| `scripts/deploy-single.sh <repo-path> <service> "<message>"` | Push, version, and redeploy one service |
 | `scripts/verify-deployments.sh <repo-path>` | Check that every .env deployment URL matches clasp state |
 
 **Always run `verify-deployments.sh` after deploying** to confirm no deployment ID mismatch occurred.
 
 ### Manual steps (fallback)
 
-If the scripts can't be used, do this per service. Note: `sed` variant shown works on both macOS and Linux.
+If the scripts can't be used, do this per service. Note: `sed` variant shown works on macOS, Linux, and Git Bash.
 
 ```bash
 REPO=/path/to/workspace-lite
@@ -143,12 +147,30 @@ env_url="${!env_var}"
 env_id=$(echo "$env_url" | sed -n 's/.*macros\/s\/\(AKfy[a-zA-Z0-9_-]*\).*/\1/p')
 if [ -z "$env_id" ]; then echo "ERROR: could not extract deployment ID from $env_var"; exit 1; fi
 
-clasp deploy -i "$env_id" -V "$V" -d "$MSG"
+clasp redeploy "$env_id" -V "$V" -d "$MSG"
 ```
 
-### Critical: Always deploy to the .env deployment ID
+### Push vs. deploy: the two-step update cycle
 
-`clasp deploy -i` can sometimes create a NEW deployment ID instead of updating the existing one (a Google Apps Script API quirk). After deploying, always verify with the helper script or manually:
+Apps Script has two separate states:
+
+- `clasp push` uploads local files to the script project's working copy (`@HEAD` in `clasp deployments`).
+- `clasp version` plus `clasp redeploy` pins that source as an immutable numbered version and updates the existing `/exec` deployment ID.
+
+The MCP `PROXY_URL` uses the versioned `/exec` URL, so pushed code is not visible to MCP traffic until you redeploy:
+
+```bash
+cd packages/<service>/apps-script
+clasp push --force
+V=$(clasp version "brief deploy message" 2>&1 | sed -n 's/Created version \([0-9][0-9]*\)/\1/p')
+clasp redeploy "<deployment-id-from-.env>" -V "$V" -d "brief deploy message"
+```
+
+The `/dev` URL serves `@HEAD` and requires a browser session as the deploying user. It can be useful for manual debugging, but never set an MCP `PROXY_URL` to `/dev` because MCP server processes do not have browser auth.
+
+### Critical: Always redeploy to the .env deployment ID
+
+Use `clasp redeploy <deployment-id>` for in-place refreshes. `clasp deploy -i` can create a new deployment ID instead of updating the existing one on some clasp/API paths. After redeploying, always verify with the helper script or manually:
 
 ```bash
 source "$REPO/.env"
@@ -162,6 +184,19 @@ done
 ```
 
 If a service shows the wrong version number, redeploy to the `.env` deployment ID. If `.env` has a deployment ID that doesn't appear in `clasp deployments`, something went wrong — run `clasp deployments` to inspect all deployments and redeploy to the correct ID.
+
+### Recovery patches
+
+If you temporarily add an HTTP handler for recovery or debugging, the safe cycle is:
+
+1. Edit locally.
+2. `clasp push --force`.
+3. Create a version and `clasp redeploy <deployment-id> -V <version> -d "temporary recovery"`.
+4. Hit the temporary endpoint.
+5. Revert the local patch.
+6. Push, version, and redeploy clean code to the same deployment ID.
+
+Without the redeploy steps, `/exec` still serves the previous pinned version; without the cleanup redeploy, the temporary patch can remain live.
 
 ### Token class upgrades
 
@@ -191,7 +226,7 @@ Update ALL 8 service Auth.gs files + the shared template, then run `scripts/depl
 
 ## Initial GUI Step Is Still Required
 
-`clasp deploy` is useful for refreshing an existing deployment, but it is not a full replacement for the initial Apps Script GUI deployment flow. The user needs the GUI to verify:
+`clasp redeploy` is useful for refreshing an existing deployment, but it is not a full replacement for the initial Apps Script GUI deployment flow. The user needs the GUI to verify:
 
 - Deployment type is **Web app**.
 - Execute-as is **Me** / `USER_DEPLOYING`.
@@ -243,6 +278,13 @@ source /path/to/workspace-lite/.env
 ```
 Then restart OpenCode so MCP processes inherit the new environment.
 
+**Windows PowerShell user environment**:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skills\workspace-lite-installer\scripts\persist-env.ps1 -EnvFile .\.env
+```
+
+This persists variables at the Windows User scope so native OpenCode, PowerShell, and cmd can inherit them after restart. The deployment helper scripts normalize CRLF when reading `.env`; still prefer leaving `.env` as LF to keep manual `source .env` behavior predictable.
+
 ## Installing Repo Skills into OpenCode
 
 ```bash
@@ -251,6 +293,8 @@ mkdir -p ~/.config/opencode/skills
 ln -sfn "$(pwd)/skills/google-workspace" ~/.config/opencode/skills/google-workspace
 ln -sfn "$(pwd)/skills/workspace-lite-installer" ~/.config/opencode/skills/workspace-lite-installer
 ```
+
+On Windows, native symlinks require Developer Mode or an elevated/admin shell. If symlink creation fails, copy the two skill directories into OpenCode's skills directory instead.
 
 ## Validation
 

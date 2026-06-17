@@ -36,6 +36,102 @@ read_bootstrap_secret() {
   grep -o "BOOTSTRAP_SETUP_SECRET = '[^']*'" "$file" | sed "s/.*'\([^']*\)'/\1/"
 }
 
+service_title() {
+  case "$1" in
+    drive)    echo "Google Workspace Proxy - Drive" ;;
+    gmail)    echo "Google Workspace Proxy - Gmail" ;;
+    calendar) echo "Google Workspace Proxy - Calendar" ;;
+    sheets)   echo "Google Workspace Proxy - Sheets" ;;
+    slides)   echo "Google Workspace Proxy - Slides" ;;
+    docs)     echo "Google Workspace Proxy - Docs" ;;
+    tasks)    echo "Google Workspace Proxy - Tasks" ;;
+    forms)    echo "Google Workspace Proxy - Forms" ;;
+    *)        echo "" ;;
+  esac
+}
+
+write_clasp_config() {
+  local dir="$1"
+  local script_id="$2"
+  cat > "$dir/.clasp.json" << EOF
+{
+  "scriptId": "$script_id",
+  "rootDir": "",
+  "scriptExtensions": [
+    ".js",
+    ".gs"
+  ],
+  "htmlExtensions": [
+    ".html"
+  ],
+  "jsonExtensions": [
+    ".json"
+  ],
+  "filePushOrder": [],
+  "skipSubdirectories": false
+}
+EOF
+}
+
+find_existing_project_id() {
+  local title="$1"
+  { clasp list --json 2>/dev/null || printf "[]"; } | node -e '
+let data = "";
+process.stdin.on("data", c => data += c);
+process.stdin.on("end", () => {
+  try {
+    const title = process.argv[1];
+    const projects = JSON.parse(data);
+    const match = Array.isArray(projects) ? projects.find(p => p.name === title) : null;
+    const id = match ? (match.id || match.scriptId) : "";
+    if (id) console.log(id);
+  } catch (_) {}
+});
+' "$title"
+}
+
+env_file_has_service_token() {
+  local svc="$1"
+  local env_name
+  env_name=$(echo "$svc" | tr '[:lower:]' '[:upper:]')
+  [ -f "$ROOT/.env" ] && grep -Eq "^export GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN=" "$ROOT/.env"
+}
+
+extract_token() {
+  RESPONSE="$1" node -e '
+try {
+  const response = JSON.parse(process.env.RESPONSE || "{}");
+  const token = response && response.success === true && response.data ? response.data.token : "";
+  if (typeof token === "string" && /^[A-Za-z0-9_-]{60,}$/.test(token)) console.log(token);
+} catch (_) {}
+'
+}
+
+extract_error_code() {
+  RESPONSE="$1" node -e '
+try {
+  const response = JSON.parse(process.env.RESPONSE || "{}");
+  if (response && response.error && response.error.code) console.log(response.error.code);
+} catch (_) {}
+'
+}
+
+extract_error_message() {
+  RESPONSE="$1" node -e '
+try {
+  const response = JSON.parse(process.env.RESPONSE || "{}");
+  if (response && response.error && response.error.message) console.log(response.error.message);
+} catch (_) {}
+'
+}
+
+bootstrap_request() {
+  local url="$1"
+  local setup_key="$2"
+  local rotate="${3:-false}"
+  curl -sL -X POST -H 'Content-Type: application/json' -d "{\"setupKey\":\"${setup_key}\",\"rotate\":${rotate}}" "$url" 2>/dev/null || echo '{"success":false,"error":{"code":"NETWORK_ERROR","message":"Bootstrap request failed"}}'
+}
+
 # ── Prerequisites ──
 banner "Prerequisites"
 if [ "$DRY_RUN" -eq 1 ]; then
@@ -49,10 +145,18 @@ if ! command -v node &>/dev/null; then
   echo "Node.js is required. Install Node 20+ from https://nodejs.org"
   exit 1
 fi
+if ! command -v npm &>/dev/null; then
+  echo "npm is required. Install Node.js 20+ with npm from https://nodejs.org"
+  exit 1
+fi
+if ! command -v curl &>/dev/null; then
+  echo "curl is required for token bootstrap. Install curl or run setup from a shell that provides it."
+  exit 1
+fi
 if [ "$DRY_RUN" -eq 1 ]; then
-  success "Node.js found; clasp check skipped"
+  success "Node.js, npm, and curl found; clasp check skipped"
 else
-  success "clasp and Node.js found"
+  success "clasp, Node.js, npm, and curl found"
 fi
 
 # ── clasp login ──
@@ -94,7 +198,7 @@ for svc in "${SERVICES[@]}"; do
       warn "$svc already has a clasp project ($existing_id). Skipping creation."
       if [ "$DRY_RUN" -eq 0 ]; then
         ensure_bootstrap_secret "$dir"
-        cd "$dir" && clasp push --force 2>&1 | tail -1
+        cd "$dir" && clasp push --force
       fi
       continue
     fi
@@ -113,34 +217,32 @@ for svc in "${SERVICES[@]}"; do
     cp "$dir/appsscript.json" "$manifest_backup"
   fi
 
-  # Create project title
-  title=""
-  case "$svc" in
-    drive)    title="Google Workspace Proxy - Drive" ;;
-    gmail)    title="Google Workspace Proxy - Gmail" ;;
-    calendar) title="Google Workspace Proxy - Calendar" ;;
-    sheets)   title="Google Workspace Proxy - Sheets" ;;
-    slides)   title="Google Workspace Proxy - Slides" ;;
-    docs)     title="Google Workspace Proxy - Docs" ;;
-    tasks)    title="Google Workspace Proxy - Tasks" ;;
-    forms)    title="Google Workspace Proxy - Forms" ;;
-  esac
+  title="$(service_title "$svc")"
 
   if [ "$DRY_RUN" -eq 1 ]; then
-    warn "$svc: would create Apps Script project '$title' and preserve appsscript.json."
+    warn "$svc: would reuse existing project named '$title' if present, otherwise create it and preserve appsscript.json."
     if [ -n "$manifest_backup" ]; then rm -f "$manifest_backup"; fi
     continue
   fi
 
-  if ! clasp create --type standalone --title "$title" 2>/dev/null; then
-    warn "Could not create $svc project. Check clasp login."
-    if [ -n "$manifest_backup" ]; then rm -f "$manifest_backup"; fi
-    continue
+  existing_project_id="$(find_existing_project_id "$title")"
+  if [ -n "$existing_project_id" ]; then
+    warn "$svc: reusing existing Apps Script project '$title' ($existing_project_id)."
+    write_clasp_config "$dir" "$existing_project_id"
+  else
+    if [ -n "$manifest_backup" ]; then
+      mv "$dir/appsscript.json" "$manifest_backup"
+    fi
+
+    if ! clasp create --type standalone --title "$title"; then
+      warn "Could not create $svc project. Check clasp login and the full clasp output above."
+      if [ -n "$manifest_backup" ]; then mv "$manifest_backup" "$dir/appsscript.json"; fi
+      continue
+    fi
   fi
 
   if [ -n "$manifest_backup" ]; then
-    cp "$manifest_backup" "$dir/appsscript.json"
-    rm -f "$manifest_backup"
+    mv "$manifest_backup" "$dir/appsscript.json"
   fi
 
   clasp push --force
@@ -203,15 +305,43 @@ else
     svc="${URL_SERVICES[$i]}"
     url="${URL_VALUES[$i]}"
     dir="$ROOT/packages/$svc/apps-script"
+    env_name=$(echo "$svc" | tr '[:lower:]' '[:upper:]')
+    if env_file_has_service_token "$svc"; then
+      warn "$svc: token already exists in .env. Skipping bootstrap."
+      continue
+    fi
+
     ensure_bootstrap_secret "$dir"
     setup_key=$(read_bootstrap_secret "$dir")
     echo "→ Bootstrapping $svc..."
 
-    response=$(curl -sL "${url}?bootstrap=1&setupKey=${setup_key}" 2>/dev/null || echo '{"success":false}')
-    token=$(echo "$response" | grep -o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"')
+    response=$(bootstrap_request "$url" "$setup_key" false)
+    token=$(extract_token "$response")
+    code=$(extract_error_code "$response")
 
     if [ -z "$token" ]; then
-      warn "Could not get token for $svc. Already bootstrapped? The URL may have been bootstrapped before."
+      if [ "$code" = "FORBIDDEN" ]; then
+        warn "$svc: bootstrap was already completed but no token exists in .env."
+        rotate_reply=""
+        if [ -t 0 ]; then
+          if read -r -p "Rotate the primary token for $svc using the local setup key? This invalidates the previous primary token. [y/N] " rotate_reply; then
+            :
+          fi
+        else
+          warn "$svc: non-interactive setup cannot rotate safely. Rerun setup interactively or call the rotation endpoint manually."
+        fi
+        case "$rotate_reply" in
+          y|Y|yes|YES)
+            response=$(bootstrap_request "$url" "$setup_key" true)
+            token=$(extract_token "$response")
+            ;;
+        esac
+      fi
+    fi
+
+    if [ -z "$token" ]; then
+      msg=$(extract_error_message "$response")
+      warn "Could not get token for $svc. ${msg:-Check the Apps Script deployment URL and BootstrapSecret.gs setup key.}"
       continue
     fi
 
@@ -220,7 +350,6 @@ else
       echo "# Generated on $(date)" >> "$ROOT/.env"
     fi
 
-    env_name=$(echo "$svc" | tr '[:lower:]' '[:upper:]')
     cat >> "$ROOT/.env" << EOF
 export GOOGLE_WORKSPACE_${env_name}_PROXY_URL="$url"
 export GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN="$token"
