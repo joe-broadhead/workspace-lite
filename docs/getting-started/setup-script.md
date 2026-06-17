@@ -14,7 +14,7 @@
 | **Project creation** | `clasp create --type standalone` for each of the 8 services with correct OAuth scopes and project titles |
 | **Code push** | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service-specific `.gs` files to each project |
 | **Deployment guide** | Prints Apps Script editor URLs and instructions for the 8 manual web app deployments |
-| **Token bootstrap** | Collects deployment URLs, calls `?bootstrap=1` on each, appends successful token entries to `.env` |
+| **Token bootstrap** | Collects deployment URLs, posts each setup key as JSON, appends successful token entries to `.env` |
 | **Config generator** | Prints ready-to-paste `opencode.jsonc` JSON for all 8 MCP servers under `mcp` |
 | **Skill commands** | Prints `ln -sf` commands to install the `google-workspace` usage skill and `workspace-lite-installer` operator skill |
 
@@ -138,7 +138,7 @@ If you lost a token, clear the script properties in the Apps Script editor:
 5. Call the bootstrap endpoint again:
 
 ```bash
-TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$(curl -sL -X POST -H 'Content-Type: application/json' -d '{"setupKey":"<bootstrap-setup-key>"}' "https://script.google.com/macros/s/<deployment-id>/exec")"
 TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
@@ -193,8 +193,8 @@ If the code change adds or changes Google OAuth scopes, the user must open the A
 | Symptom | Fix |
 |---------|-----|
 | `"FORBIDDEN"`: Bootstrap already completed | The token was already generated. Clear script properties and re-bootstrap (see above) |
-| `"UNAUTHORIZED"`: Invalid or missing bootstrap setup key | Include `setupKey=<bootstrap-setup-key>` from the untracked `BootstrapSecret.gs` file |
-| `"BAD_REQUEST"`: Missing action field | You called the POST endpoint instead of GET. Use `?bootstrap=1&setupKey=<bootstrap-setup-key>` as query parameters |
+| `"UNAUTHORIZED"`: Invalid or missing bootstrap setup key | POST JSON with `{"setupKey":"<bootstrap-setup-key>"}` from the untracked `BootstrapSecret.gs` file |
+| `"BAD_REQUEST"`: Missing action field | The request was parsed as a normal proxy call. For bootstrap, POST a JSON body containing only `setupKey` |
 | Token not returned | The URL may already be bootstrapped. Check `.env` for existing tokens |
 
 ### OpenCode doesn&rsquo;t see the tools

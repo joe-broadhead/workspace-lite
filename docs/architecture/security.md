@@ -16,7 +16,7 @@ The security model rests on three layers: **token authentication** (who can call
 
 ## Token Model
 
-Every Apps Script web app proxy is protected by a bearer token stored in Apps Script Script Properties. The setup script creates an untracked `BootstrapSecret.gs` file for each service, and bootstrap requires both `bootstrap=1` and that setup key.
+Every Apps Script web app proxy is protected by a bearer token stored in Apps Script Script Properties. The setup script creates an untracked `BootstrapSecret.gs` file for each service, and bootstrap requires that setup key in a JSON `POST` body.
 
 The primary token is:
 
@@ -36,7 +36,7 @@ The bootstrap flow:
 
 1. `scripts/setup.sh` writes an untracked `BootstrapSecret.gs` containing `BOOTSTRAP_SETUP_SECRET`.
 2. User deploys the Apps Script web app (manual GUI step).
-3. Setup calls `GET /exec?bootstrap=1&setupKey=<bootstrap-setup-key>`.
+3. Setup calls `POST /exec` with `{"setupKey":"<bootstrap-setup-key>"}`.
 4. The proxy validates the setup key in constant time, generates the token, stores it, marks bootstrap complete, and returns the token.
 5. The user stores the token as an environment variable such as `GOOGLE_WORKSPACE_DRIVE_PROXY_TOKEN`.
 
@@ -50,7 +50,7 @@ Normal proxy calls accept the token only in the JSON request body:
 { "action": "fileGet", "params": { "fileId": "<file-id>" }, "token": "<proxy-token>" }
 ```
 
-The MCP servers read tokens from environment variables and send the selected token in that body field. Read actions can use `GOOGLE_WORKSPACE_<SERVICE>_PROXY_READ_TOKEN`; write, send, share, destructive, and admin actions use their matching class token when configured. Query parameters are reserved for the one-time bootstrap flow, and Authorization headers are not part of the proxy request contract.
+The MCP servers read tokens from environment variables and send the selected token in that body field. Read actions can use `GOOGLE_WORKSPACE_<SERVICE>_PROXY_READ_TOKEN`; write, send, share, destructive, and admin actions use their matching class token when configured. Authorization headers and query parameters are not part of the normal proxy request contract.
 
 ## Rate Limiting
 

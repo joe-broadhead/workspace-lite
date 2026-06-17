@@ -5,6 +5,7 @@ Describe the change and why it is needed.
 ## Validation
 
 - [ ] `npm run validate`
+- [ ] `npm run lint`
 - [ ] `npm run audit`
 - [ ] `mkdocs build --strict`
 - [ ] `git diff --check`

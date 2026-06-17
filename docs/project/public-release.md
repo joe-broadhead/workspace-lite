@@ -11,6 +11,7 @@ The first release target is `v0.0.0`. Use `v0.0.x` for hardening iterations, and
 | TypeScript and package build | `npm run typecheck` and `npm run build` |
 | Unit and contract tests | `npm test` |
 | Safety and architecture validators | `npm run validate` |
+| Lint | `npm run lint` |
 | Dependency audit | `npm run audit` |
 | Docs build | `mkdocs build --strict` |
 | Diff hygiene | `git diff --check` |

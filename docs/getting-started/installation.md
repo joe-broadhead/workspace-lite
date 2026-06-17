@@ -154,7 +154,7 @@ For each service, two environment variables are required:
 4. Read the setup key from the generated, untracked `BootstrapSecret.gs` file and write the bootstrapped token directly to your environment file:
 
 ```bash
-TOKEN_RESPONSE="$(curl -sL "https://script.google.com/macros/s/<deployment-id>/exec?bootstrap=1&setupKey=<bootstrap-setup-key>")"
+TOKEN_RESPONSE="$(curl -sL -X POST -H 'Content-Type: application/json' -d '{"setupKey":"<bootstrap-setup-key>"}' "https://script.google.com/macros/s/<deployment-id>/exec")"
 TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JSON.parse(process.env.TOKEN_RESPONSE); if (!r.success) throw new Error(r.error?.message || "Bootstrap failed"); fs.appendFileSync(".env", `export GOOGLE_WORKSPACE_<SERVICE>_PROXY_TOKEN=${JSON.stringify(r.data.token)}\n`)'
 ```
 
@@ -239,10 +239,10 @@ TOKEN_RESPONSE="$TOKEN_RESPONSE" node -e 'const fs = require("fs"); const r = JS
 
 | Phase | Description |
 |-------|-------------|
-| **Bootstrap** | `GET ?bootstrap=1` triggers one-time token generation. The token is generated from `Utilities.getUuid()` plus a second UUID with dashes removed, stored in `PropertiesService.getScriptProperties()` under `PROXY_AUTH_TOKEN`, returned once, and then `PROXY_BOOTSTRAPPED=true` is set. |
+| **Bootstrap** | JSON `POST` with `setupKey` triggers one-time token generation. The token is generated from `Utilities.getUuid()` plus a second UUID with dashes removed, stored in `PropertiesService.getScriptProperties()` under `PROXY_AUTH_TOKEN`, returned once, and then `PROXY_BOOTSTRAPPED=true` is set. |
 | **Storage** | Token lives in Apps Script properties &mdash; durable across deployments, survives code pushes. |
 | **Rotation** | Re-run bootstrap? The endpoint returns `FORBIDDEN` once bootstrapped. To rotate, manually clear script properties: **Project Settings &rarr; Script Properties** in the Apps Script editor, then re-bootstrap. |
 | **Usage** | Every `POST` request includes `token` in the JSON body. `Auth.gs` validates against the stored token. |
 
 !!! warning "Bootstrap is one-shot"
-    The bootstrap endpoint (`?bootstrap=1`) only works once per deployment. Save the token immediately. If lost, you must clear script properties and re-bootstrap.
+    The bootstrap endpoint only works once per deployment. Save the token immediately. If lost, you must clear script properties and re-bootstrap.

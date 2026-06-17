@@ -38,6 +38,9 @@ jobs:
       - name: Validate TypeScript, tests, manifests, and policy checks
         run: npm run validate
 
+      - name: Lint
+        run: npm run lint
+
       - name: Audit npm dependencies
         run: npm run audit
 

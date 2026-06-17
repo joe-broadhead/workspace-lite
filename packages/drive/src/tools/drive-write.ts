@@ -1,6 +1,7 @@
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
 import { registerTool } from '@workspace-lite/shared/tool-helpers'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
+import { formatResponse } from '@workspace-lite/shared/response'
 import {
   folderCreateSchema, fileCreateSchema, fileCopySchema, fileMoveSchema,
   fileUpdateMetaSchema, fileUpdateContentSchema,
@@ -80,6 +81,7 @@ export function registerDriveWriteTools(server: ToolServer) {
     driveExportAsSchema,
     async (args: Record<string, unknown>) => {
       const result = await client.callProxy('fileExportAs', args)
+      if (!result.success) return formatResponse(result)
       const data = result.data as Record<string, unknown>
       return {
         content: [{
