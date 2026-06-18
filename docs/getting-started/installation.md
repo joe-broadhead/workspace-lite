@@ -19,6 +19,12 @@ Windows users should run setup from Git Bash or MSYS2. Native PowerShell can run
 the MCP servers, but the installer and deployment helper scripts expect a bash
 environment.
 
+On Windows, launch OpenCode from a shell that has the workspace-lite environment
+variables loaded, or persist `.env` with the provided PowerShell helper in
+[Step 5](#step-5-configure-opencode). The setup script emits Windows OpenCode
+commands with the local `node_modules\\.bin\\tsx.cmd` wrapper because direct
+process spawning does not always resolve `npx tsx`.
+
 !!! tip "Verify prerequisites"
     ```bash
     node --version   # ≥ 20
@@ -138,7 +144,31 @@ powershell -ExecutionPolicy Bypass -File .\skills\workspace-lite-installer\scrip
 
 Restart OpenCode. When all 8 services are configured, all 218 tools are available.
 
+!!! tip "Windows OpenCode command"
+    On Windows, the generated command should point at the local `tsx.cmd`
+    wrapper, for example:
+
+    ```jsonc
+    "command": ["C:\\path\\to\\workspace-lite\\node_modules\\.bin\\tsx.cmd", "C:\\path\\to\\workspace-lite\\packages\\drive\\src\\index.ts"]
+    ```
+
+    This is expected. It avoids `-32000: Connection closed` failures caused by
+    direct-spawn clients that do not resolve `npx` through a shell.
+
 If you skipped deployment URLs or bootstrap failed, the script leaves `.env` unchanged for those services. Deploy the web apps in the Apps Script editor, rerun `bash ./scripts/setup.sh`, paste the `/exec` deployment URLs, then source `.env` and restart OpenCode.
+
+!!! warning "Windows npm install integrity"
+    If MCP servers crash on startup with `ERR_MODULE_NOT_FOUND` for a `.js` file
+    inside `node_modules` such as `zod` or `ajv`, run:
+
+    ```bash
+    npm run check:install
+    rm -rf node_modules
+    npm install
+    ```
+
+    A full clean reinstall repairs cases where npm reported success but left
+    package ESM files missing. Incremental reinstalls may not fix this state.
 
 ---
 

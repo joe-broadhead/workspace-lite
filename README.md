@@ -73,6 +73,9 @@ Script projects, pushes proxy code, prints Apps Script editor URLs, guides the
 manual web app deployment step, bootstraps tokens, and prints MCP config.
 
 Windows is supported through Git Bash or MSYS2 with Node 20+ and `clasp`.
+The setup script emits Windows OpenCode commands that call the local
+`node_modules\\.bin\\tsx.cmd` wrapper directly, avoiding direct-spawn `npx`
+resolution failures.
 
 The Google deployment step stays intentionally manual: for each service, open
 the printed Apps Script editor URL, choose **Deploy -> New deployment -> Web app**,
@@ -108,6 +111,7 @@ and the first Apps Script web app deployment settings in the Apps Script GUI.
 
 ```bash
 npm ci
+npm run check:install
 npm run validate
 npm run audit
 ```

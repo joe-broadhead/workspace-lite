@@ -132,6 +132,38 @@ bootstrap_request() {
   curl -sL -X POST -H 'Content-Type: application/json' -d "{\"setupKey\":\"${setup_key}\",\"rotate\":${rotate}}" "$url" 2>/dev/null || echo '{"success":false,"error":{"code":"NETWORK_ERROR","message":"Bootstrap request failed"}}'
 }
 
+is_windows_shell() {
+  case "${OSTYPE:-}" in
+    msys*|cygwin*) return 0 ;;
+  esac
+  [ "${OS:-}" = "Windows_NT" ]
+}
+
+windows_path_if_needed() {
+  local value="$1"
+  if is_windows_shell && command -v cygpath &>/dev/null; then
+    cygpath -w "$value"
+  else
+    printf "%s" "$value"
+  fi
+}
+
+json_array() {
+  node -e 'console.log(JSON.stringify(process.argv.slice(1)))' "$@"
+}
+
+opencode_command_json() {
+  local svc="$1"
+  local script_path="$ROOT/packages/$svc/src/index.ts"
+
+  if is_windows_shell; then
+    local tsx_cmd="$ROOT/node_modules/.bin/tsx.cmd"
+    json_array "$(windows_path_if_needed "$tsx_cmd")" "$(windows_path_if_needed "$script_path")"
+  else
+    json_array "npx" "tsx" "$script_path"
+  fi
+}
+
 # ── Prerequisites ──
 banner "Prerequisites"
 if [ "$DRY_RUN" -eq 1 ]; then
@@ -369,10 +401,11 @@ echo ""
 for svc in "${SERVICES[@]}"; do
   env_name=$(echo "$svc" | tr '[:lower:]' '[:upper:]')
   name="google-${svc}"
+  command_json="$(opencode_command_json "$svc")"
   cat <<EOF
     "$name": {
       "type": "local",
-      "command": ["npx", "tsx", "$ROOT/packages/$svc/src/index.ts"],
+      "command": $command_json,
       "environment": {
         "GOOGLE_WORKSPACE_${env_name}_PROXY_URL": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_URL}",
         "GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN}",

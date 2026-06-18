@@ -23,6 +23,31 @@ Use this skill to help a user install, configure, update, or troubleshoot the `w
 - Ask before rotating tokens, deleting Apps Script properties, creating replacement deployments, or changing OpenCode config.
 - Supported platforms: macOS, Linux, and Windows through Git Bash or MSYS2. Native PowerShell can run MCP servers after environment variables are persisted, but setup and deploy helper scripts expect bash.
 
+## Windows & Shell Context Check
+
+Before running setup or diagnosing MCP startup failures on Windows, verify the shell context:
+
+```bash
+echo "OS: ${OSTYPE:-unknown}"   # Git Bash/MSYS should print msys
+echo "Shell: ${SHELL:-unknown}" # should point to bash
+```
+
+If the user is not in Git Bash or MSYS2, explain that setup and deploy helper scripts expect bash. Ask them to open Git Bash and run setup from there.
+
+If OpenCode is launched from a Windows shell that does not inherit the workspace-lite environment, MCP servers can fail with `-32000: Connection closed`. Prefer launching OpenCode from the shell where `.env` is sourced, or persist variables with `scripts/persist-env.ps1` and restart OpenCode.
+
+For Git Bash login shells, check that `~/.bash_profile` sources `~/.bashrc`:
+
+```bash
+grep -q 'bashrc' ~/.bash_profile && echo "OK" || echo "MISSING: add ~/.bashrc sourcing to ~/.bash_profile"
+```
+
+If missing:
+
+```bash
+printf '\n[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"\n' >> ~/.bash_profile
+```
+
 ## Services
 
 There are 8 packages and 8 Apps Script web apps. Canonical service order: `drive`, `gmail`, `calendar`, `sheets`, `slides`, `docs`, `tasks`, `forms`.
@@ -284,6 +309,31 @@ powershell -ExecutionPolicy Bypass -File .\skills\workspace-lite-installer\scrip
 ```
 
 This persists variables at the Windows User scope so native OpenCode, PowerShell, and cmd can inherit them after restart. The deployment helper scripts normalize CRLF when reading `.env`; still prefer leaving `.env` as LF to keep manual `source .env` behavior predictable.
+
+On Windows, the generated OpenCode config should point directly at the local `tsx.cmd` wrapper, not `["npx", "tsx", ...]`. The setup script handles this automatically in Git Bash/MSYS/Cygwin contexts. If diagnosing a hand-written config, prefer:
+
+```jsonc
+"command": ["C:\\path\\to\\workspace-lite\\node_modules\\.bin\\tsx.cmd", "C:\\path\\to\\workspace-lite\\packages\\drive\\src\\index.ts"]
+```
+
+This avoids direct-spawn resolution failures where OpenCode does not invoke a shell.
+
+## Repair Broken npm Installs
+
+On Windows with some npm versions, a successful-looking incremental install can still leave missing `.js` files inside `node_modules`, causing MCP startup errors such as `ERR_MODULE_NOT_FOUND` for `zod` or `ajv` paths.
+
+Run the integrity check:
+
+```bash
+npm run check:install
+```
+
+If it fails, do a full clean reinstall. Incremental reinstalls may not repair the missing files:
+
+```bash
+rm -rf node_modules
+npm install
+```
 
 ## Installing Repo Skills into OpenCode
 

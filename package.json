@@ -40,10 +40,11 @@
     "docs:build": "mkdocs build --strict",
     "docs:serve": "mkdocs serve",
     "clean": "node scripts/clean.mjs",
+    "check:install": "node scripts/check-install.mjs",
     "dev:drive": "cd packages/drive && npm run dev",
     "install:deps": "npm install",
     "deploy:drive": "cd packages/drive/apps-script && clasp push",
-    "postinstall": "npm run build:shared"
+    "postinstall": "npm run check:install && npm run build:shared"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
