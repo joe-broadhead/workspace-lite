@@ -92,6 +92,11 @@ The script prints entries for the top-level `mcp` block in `opencode.jsonc`:
 "google-forms": { /* ... */ }
 ```
 
+On Windows Git Bash/MSYS/Cygwin, setup emits commands that call the local
+`node_modules\\.bin\\tsx.cmd` wrapper directly instead of `["npx", "tsx", ...]`.
+This avoids direct-spawn MCP client failures when no shell is used to resolve
+`npx`.
+
 ---
 
 ## Manual Deployment Step
@@ -202,7 +207,8 @@ If the code change adds or changes Google OAuth scopes, the user must open the A
 |---------|-----|
 | Tools not listed | Verify `.env` is sourced, OpenCode was restarted, and `opencode.jsonc` has the top-level `mcp` block |
 | `GOOGLE_WORKSPACE_*` not found | Run `source /path/to/.env` before starting OpenCode, or add exports to `.zshrc` |
-| Port / STDIO error | The MCP server process failed to start. Check logs with `npx tsx packages/drive/src/index.ts` directly |
+| Port / STDIO error | The MCP server process failed to start. Check logs with `npx tsx packages/drive/src/index.ts` directly. On Windows, verify generated OpenCode config uses `node_modules\\.bin\\tsx.cmd`. |
+| `ERR_MODULE_NOT_FOUND` in `node_modules` | Run `npm run check:install`; if it reports missing package files, run `rm -rf node_modules && npm install` from Git Bash. |
 
 !!! tip "Run a server directly"
     To test an MCP server in isolation, source `.env` and run:
