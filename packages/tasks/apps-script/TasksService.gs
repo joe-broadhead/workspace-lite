@@ -224,6 +224,13 @@ const TasksService = (() => {
   function tasklistsDelete(params) {
     const tasklistId = requireParam(params, 'tasklistId')
     validateTasksId('tasklistId', tasklistId)
+    // Tasks.Tasklists.remove silently succeeds on already-deleted lists; verify existence
+    // first so callers get NOT_FOUND instead of a false deleted:true.
+    const existing = trap(function() {
+      Tasks.Tasklists.get(tasklistId)
+      return { exists: true }
+    }, 'NOT_FOUND', function(e) { return e.message || `Task list not found: ${tasklistId}` })
+    if (existing && existing.success === false) return existing
     return trap(function() {
       Tasks.Tasklists.remove(tasklistId)
       return { deleted: true, tasklistId: tasklistId }

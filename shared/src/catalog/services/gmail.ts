@@ -35,6 +35,18 @@ import {
 } from '../../schemas.js'
 import type { ToolSpec } from '../types.js'
 
+const FILTER_CRITERION_FIELDS = ['from', 'to', 'subject', 'query', 'negatedQuery', 'hasAttachment', 'excludeChats', 'size'] as const
+const FILTER_ACTION_FIELDS = ['addLabels', 'removeLabels', 'forward'] as const
+
+function validateFilterFields(args: Record<string, unknown>) {
+  if (!FILTER_CRITERION_FIELDS.some((key) => args[key] !== undefined)) {
+    throw new Error(`At least one filter criterion must be provided (${FILTER_CRITERION_FIELDS.join(', ')})`)
+  }
+  if (!FILTER_ACTION_FIELDS.some((key) => args[key] !== undefined)) {
+    throw new Error(`At least one filter action must be provided (${FILTER_ACTION_FIELDS.join(', ')})`)
+  }
+}
+
 /** gmail service catalog — 39 tools. */
 export const gmailTools: ToolSpec[] = [
   {
@@ -153,8 +165,9 @@ export const gmailTools: ToolSpec[] = [
     name: 'gmail_create_filter',
     service: 'gmail',
     action: 'filtersCreate',
-    description: "Create a Gmail filter. Criteria fields match Gmail API filter criteria. Label names or IDs in addLabels/removeLabels are resolved to label IDs; forwarding requires params.confirm=true.",
+    description: "Create a Gmail filter. Requires at least one criterion (from, to, subject, query, negatedQuery, hasAttachment, excludeChats, size) and at least one action (addLabels, removeLabels, forward). Label names or IDs in addLabels/removeLabels are resolved to label IDs; forwarding requires params.confirm=true.",
     schema: gmailCreateFilterSchema,
+    validate: validateFilterFields,
     batchEligible: true,
     group: 'write',
     formatter: { kind: 'text', summary: "Filter created." },

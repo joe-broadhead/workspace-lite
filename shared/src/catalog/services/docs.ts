@@ -27,6 +27,14 @@ import {
 } from '../../schemas.js'
 import type { ToolSpec } from '../types.js'
 
+const PAGE_SETUP_FIELDS = ['pageWidth', 'pageHeight', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight'] as const
+
+function validatePageSetupFields(args: Record<string, unknown>) {
+  if (!PAGE_SETUP_FIELDS.some((key) => args[key] !== undefined)) {
+    throw new Error(`Provide at least one page setup field to update (${PAGE_SETUP_FIELDS.join(', ')})`)
+  }
+}
+
 /** docs service catalog — 26 tools. */
 export const docsTools: ToolSpec[] = [
   {
@@ -275,8 +283,9 @@ export const docsTools: ToolSpec[] = [
     name: 'docs_update_page_setup',
     service: 'docs',
     action: 'pageSetupUpdate',
-    description: "Update page size and margins for a Google Docs document. Values are points.",
+    description: "Update page size and margins for a Google Docs document. Values are points. Requires at least one page setup field.",
     schema: docsPageSetupUpdateSchema,
+    validate: validatePageSetupFields,
     batchEligible: true,
     group: 'write',
     formatter: { kind: 'text', summary: "Page setup updated." },

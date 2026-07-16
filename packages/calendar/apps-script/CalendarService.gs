@@ -359,10 +359,11 @@ const CalendarService = (() => {
     };
   }
 
-  function ensureNotPrimaryCalendar(calendarId) {
-    if (!calendarId || calendarId === 'primary') return err('BAD_REQUEST', 'Refusing to delete the primary/default calendar. Provide a secondary calendarId.');
+  function ensureNotPrimaryCalendar(calendarId, action) {
+    const verb = action || 'delete';
+    if (!calendarId || calendarId === 'primary') return err('BAD_REQUEST', `Refusing to ${verb} the primary/default calendar. Provide a secondary calendarId.`);
     const def = CalendarApp.getDefaultCalendar();
-    if (def && def.getId && def.getId() === calendarId) return err('BAD_REQUEST', 'Refusing to delete the primary/default calendar. Provide a secondary calendarId.');
+    if (def && def.getId && def.getId() === calendarId) return err('BAD_REQUEST', `Refusing to ${verb} the primary/default calendar. Provide a secondary calendarId.`);
     return null;
   }
 
@@ -540,6 +541,8 @@ const CalendarService = (() => {
   function updateCalendar(params) {
     const calendarId = requireParam(params, 'calendarId');
     validateCalendarId(calendarId);
+    const primaryError = ensureNotPrimaryCalendar(calendarId, 'update');
+    if (primaryError) return primaryError;
     return trap(function() {
       const patch = {};
       if (params.summary !== undefined) patch.summary = String(params.summary);

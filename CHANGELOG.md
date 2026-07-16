@@ -8,6 +8,14 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 
 ## Unreleased
 
+### Fixed
+
+- `gmail_create_filter` now validates client-side that at least one criterion and one action field are provided, matching the Apps Script guard (JOE-712).
+- `drive_update_revision` schema now requires `keepForever`, matching the Apps Script guard (JOE-713).
+- `docs_update_page_setup` now validates client-side that at least one page setup field is provided, matching the Apps Script guard (JOE-720).
+- `calendar_update_calendar` now refuses the primary calendar with a clear BAD_REQUEST instead of a generic UPDATE_FAILED, mirroring `calendar_delete_calendar` (JOE-710).
+- `tasks_delete_tasklist` now returns NOT_FOUND for a nonexistent tasklist instead of a false `deleted:true` (JOE-815).
+
 ### Added
 
 - Catalog-driven CLI package `@workspace-lite/cli` with bin `wslite` (optional `workspace-lite`) for full MCP tool parity over `createProxyClient`.
