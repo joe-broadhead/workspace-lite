@@ -17,10 +17,11 @@ function mockFactory(calls: Array<{ action: string; params: Record<string, unkno
 }
 
 describe('CLI MVP', () => {
-  it('loads tasks catalog tools only (MVP surface)', () => {
+  it('includes tasks tools in catalog load', () => {
     const tools = loadCatalogTools()
-    assert.equal(tools.length, tasksTools.length)
-    assert.ok(tools.every((t) => t.service === 'tasks'))
+    const tasks = tools.filter((t) => t.service === 'tasks')
+    assert.equal(tasks.length, tasksTools.length)
+    assert.ok(tools.length >= tasksTools.length)
   })
 
   it('exitCodeFor maps success / partial / confirm / fail', () => {
@@ -91,8 +92,9 @@ describe('CLI MVP', () => {
       assert.equal(code, EXIT.SUCCESS)
       const parsed = JSON.parse(chunks.join(''))
       assert.ok(Array.isArray(parsed.tools))
-      assert.equal(parsed.tools.length, tasksTools.length)
-      assert.ok(parsed.tools.every((t: { service: string }) => t.service === 'tasks'))
+      const tasks = parsed.tools.filter((t: { service: string }) => t.service === 'tasks')
+      assert.equal(tasks.length, tasksTools.length)
+      assert.ok(parsed.tools.length >= tasksTools.length)
     } finally {
       process.stdout.write = orig
     }
@@ -111,13 +113,16 @@ describe('CLI MVP', () => {
         env: {
           GOOGLE_WORKSPACE_TASKS_PROXY_URL: 'https://example.invalid',
           GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN: 'secret',
+          GOOGLE_WORKSPACE_FORMS_PROXY_URL: 'https://example.invalid/forms',
+          GOOGLE_WORKSPACE_FORMS_PROXY_TOKEN: 'secret-forms',
         },
         exit: () => {},
       })
       assert.equal(code, EXIT.SUCCESS)
       const parsed = JSON.parse(chunks.join(''))
-      assert.equal(parsed.services[0].proxyUrl, 'set')
-      assert.equal(parsed.services[0].primaryToken, 'set')
+      const tasks = parsed.services.find((s: { service: string }) => s.service === 'tasks')
+      assert.equal(tasks.proxyUrl, 'set')
+      assert.equal(tasks.primaryToken, 'set')
       // never leak token value
       assert.doesNotMatch(chunks.join(''), /secret/)
     } finally {
