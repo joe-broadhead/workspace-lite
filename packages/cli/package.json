@@ -1,0 +1,24 @@
+{
+  "name": "@workspace-lite/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI (wslite) for Google Workspace tools via Apps Script proxy",
+  "bin": {
+    "wslite": "./dist/index.js",
+    "workspace-lite": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace-lite/shared": "*",
+    "commander": "^13.1.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
