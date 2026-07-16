@@ -10,11 +10,16 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 
 ### Added
 
+- Catalog-driven CLI package `@workspace-lite/cli` with bin `wslite` (optional `workspace-lite`) for full MCP tool parity over `createProxyClient`.
+- Shared tool catalog under `shared/src/catalog/` as SSOT for MCP registration and CLI command generation.
 - Setup-key-gated token rotation for recovery when one-time bootstrap was consumed before `.env` was written.
 - Windows Git Bash installation guidance and a PowerShell helper for persisting generated `.env` variables.
+- Docs: `docs/getting-started/cli.md`; error codes `CONFIRMATION_REQUIRED`, `ACTION_NOT_ALLOWED`, `BATCH_ACTION_NOT_ALLOWED`.
 
 ### Changed
 
+- Documented honest Auth.gs `DEFAULT_AUTH_TOKEN_CLASSES` (`read,draft,write,destructive,share,send`) in AGENTS.md and security docs (was incorrectly described as `read,draft` default).
+- Registry `toolActionMappings` reads catalog only (tools-file scrape removed).
 - `build:packages` now uses an explicit TypeScript project list instead of shell glob expansion.
 - `scripts/setup.sh` now reuses existing Apps Script projects by title, handles clasp v3 manifest creation behavior, skips already-bootstrapped `.env` entries, and can recover missing tokens through explicit rotation.
 - Deployment helper scripts now use `clasp redeploy` for in-place deployment refreshes.

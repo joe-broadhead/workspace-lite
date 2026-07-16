@@ -49,12 +49,24 @@ npm run typecheck && npm test
 
 ## Token Classes
 
-`DEFAULT_AUTH_TOKEN_CLASSES` in `packages/<service>/apps-script/Auth.gs` controls primary token permissions:
-- `read,draft` — read-only
-- `read,draft,write` — read + write
-- `read,draft,write,destructive` — above + trash/delete
-- `read,draft,write,destructive,share` — above + sharing
-- `read,draft,write,destructive,share,send` — all operations
+`DEFAULT_AUTH_TOKEN_CLASSES` in `shared/apps-script/Auth.gs` (mirrored into each service) is:
+
+```text
+read,draft,write,destructive,share,send
+```
+
+That is the **actual code default** for the primary bootstrap token — not a progressive opt-in ladder. Operators who want a narrower primary token must set `PROXY_AUTH_TOKEN_CLASSES` (or class-scoped tokens) in Apps Script Script Properties.
+
+Class-scoped Script Properties / env vars remain available for least privilege:
+
+- `read` / `PROXY_READ_TOKEN` / `GOOGLE_WORKSPACE_<SERVICE>_PROXY_READ_TOKEN`
+- `write` / `PROXY_WRITE_TOKEN` / `…_PROXY_WRITE_TOKEN`
+- `send` / `PROXY_SEND_TOKEN` / `…_PROXY_SEND_TOKEN`
+- `share` / `PROXY_SHARE_TOKEN` / `…_PROXY_SHARE_TOKEN`
+- `destructive` / `PROXY_DESTRUCTIVE_TOKEN` / `…_PROXY_DESTRUCTIVE_TOKEN`
+- `admin` / `PROXY_ADMIN_TOKEN` / `…_PROXY_ADMIN_TOKEN`
+
+`draft` is an Auth.gs capability class (allowDraftToken policies); the TypeScript client does **not** route to a `PROXY_DRAFT_TOKEN` env var today.
 
 ## Important Rules
 

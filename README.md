@@ -21,12 +21,15 @@ Workspace: Drive, Gmail, Calendar, Sheets, Slides, Docs, Tasks, and Forms. Each
 service runs through a small Apps Script web app deployed as you, so agents can
 use your Workspace data without service accounts or per-tool OAuth loops.
 
+A catalog-driven **CLI** (`wslite`) exposes the same 218 tools for humans and
+scripts — same proxy client, schemas, risk classes, and confirm semantics as MCP.
+
 ## What It Does
 
-- **Exposes 218 MCP tools** across 8 Google Workspace services.
+- **Exposes 218 MCP tools** across 8 Google Workspace services (and the same surface via `wslite`).
 - **Keeps Google calls inside Apps Script** with one web app proxy per service.
-- **Uses bearer-token auth** with one-time bootstrap and optional class-scoped tokens.
-- **Classifies risky actions** as `send`, `share`, or `destructive` so agents can ask before crossing user-review boundaries.
+- **Uses bearer-token auth** with one-time bootstrap and optional class-scoped tokens (primary default classes are the full Auth.gs set; see docs).
+- **Classifies risky actions** as `send`, `share`, or `destructive` so agents/CLI can ask before crossing user-review boundaries.
 - **Supports batch tools for every service** with up to 20 same-service operations and per-operation results.
 - **Ships agent skills** for safe Workspace usage and guided installation/deployment refreshes.
 
