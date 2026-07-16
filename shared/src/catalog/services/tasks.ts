@@ -1,0 +1,183 @@
+import { formatList } from '../../response.js'
+import {
+  tasksBatchSchema,
+  tasksClearCompletedSchema,
+  tasksCreateTasklistSchema,
+  tasksCreateTaskSchema,
+  tasksDeleteTasklistSchema,
+  tasksDeleteTaskSchema,
+  tasksGetTasklistSchema,
+  tasksGetTaskSchema,
+  tasksListTasklistsSchema,
+  tasksListTasksSchema,
+  tasksMoveTaskSchema,
+  tasksUpdateTasklistSchema,
+  tasksUpdateTaskSchema,
+} from '../../schemas.js'
+import type { ToolSpec } from '../types.js'
+
+/** Tasks service catalog — 13 tools (SSOT after PR4 flip). */
+export const tasksTools: ToolSpec[] = [
+  {
+    name: 'tasks_list_tasklists',
+    service: 'tasks',
+    action: 'tasklistsList',
+    description: 'List Google Tasks task lists for the authenticated account.',
+    schema: tasksListTasklistsSchema,
+    batchEligible: true,
+    group: 'list',
+    formatter: {
+      kind: 'list',
+      formatMcp: (result) => formatList(result, {
+        itemsKey: 'items',
+        noun: 'task list',
+        itemSummary: (item: unknown) => {
+          const list = item as Record<string, unknown>
+          return `${list.title} (${list.id})${list.updated ? ' updated ' + list.updated : ''}`
+        },
+        hint: 'Use tasks_get_tasklist with a tasklistId for metadata, or tasks_list_tasks to read tasks.',
+      }),
+    },
+  },
+  {
+    name: 'tasks_get_tasklist',
+    service: 'tasks',
+    action: 'tasklistsGet',
+    description: 'Get one Google Tasks task list by ID.',
+    schema: tasksGetTasklistSchema,
+    batchEligible: true,
+    group: 'read',
+    formatter: {
+      kind: 'text',
+      summary: 'Task list retrieved.',
+    },
+  },
+  {
+    name: 'tasks_list_tasks',
+    service: 'tasks',
+    action: 'tasksList',
+    description: 'List tasks in a Google Tasks task list.',
+    schema: tasksListTasksSchema,
+    batchEligible: true,
+    group: 'list',
+    formatter: {
+      kind: 'list',
+      formatMcp: (result) => formatList(result, {
+        itemsKey: 'items',
+        noun: 'task',
+        itemSummary: (item: unknown) => {
+          const task = item as Record<string, unknown>
+          const status = task.status ? ` [${task.status}]` : ''
+          const due = task.due ? ` due ${task.due}` : ''
+          return `${task.title || '(untitled)'}${status}${due} (${task.id})`
+        },
+        hint: 'Use tasks_get_task with tasklistId and taskId for full details.',
+      }),
+    },
+  },
+  {
+    name: 'tasks_get_task',
+    service: 'tasks',
+    action: 'tasksGet',
+    description: 'Get one task from a Google Tasks task list.',
+    schema: tasksGetTaskSchema,
+    batchEligible: true,
+    group: 'read',
+    formatter: {
+      kind: 'text',
+      summary: 'Task retrieved.',
+    },
+  },
+  {
+    name: 'tasks_create_tasklist',
+    service: 'tasks',
+    action: 'tasklistsCreate',
+    description: 'Create a new Google Tasks task list.',
+    schema: tasksCreateTasklistSchema,
+    batchEligible: true,
+    group: 'write',
+    formatter: { kind: 'text', summary: 'Task list created.' },
+  },
+  {
+    name: 'tasks_update_tasklist',
+    service: 'tasks',
+    action: 'tasklistsUpdate',
+    description: 'Update a Google Tasks task list title.',
+    schema: tasksUpdateTasklistSchema,
+    batchEligible: true,
+    group: 'write',
+    formatter: { kind: 'text', summary: 'Task list updated.' },
+  },
+  {
+    name: 'tasks_delete_tasklist',
+    service: 'tasks',
+    action: 'tasklistsDelete',
+    description: 'Delete a Google Tasks task list. Requires confirmation.',
+    schema: tasksDeleteTasklistSchema,
+    batchEligible: true,
+    group: 'manage',
+    formatter: { kind: 'text', summary: 'Task list deleted.' },
+  },
+  {
+    name: 'tasks_create_task',
+    service: 'tasks',
+    action: 'tasksCreate',
+    description: 'Create a new task in a Google Tasks task list.',
+    schema: tasksCreateTaskSchema,
+    batchEligible: true,
+    group: 'write',
+    formatter: { kind: 'text', summary: 'Task created.' },
+  },
+  {
+    name: 'tasks_update_task',
+    service: 'tasks',
+    action: 'tasksUpdate',
+    description: 'Update a task title, notes, due date, or status.',
+    schema: tasksUpdateTaskSchema,
+    batchEligible: true,
+    group: 'write',
+    formatter: { kind: 'text', summary: 'Task updated.' },
+  },
+  {
+    name: 'tasks_delete_task',
+    service: 'tasks',
+    action: 'tasksDelete',
+    description: 'Delete a task from a Google Tasks task list. Requires confirmation.',
+    schema: tasksDeleteTaskSchema,
+    batchEligible: true,
+    group: 'manage',
+    formatter: { kind: 'text', summary: 'Task deleted.' },
+  },
+  {
+    name: 'tasks_move_task',
+    service: 'tasks',
+    action: 'tasksMove',
+    description: 'Move a task within a Google Tasks task list, optionally under a parent or after a previous task.',
+    schema: tasksMoveTaskSchema,
+    batchEligible: true,
+    group: 'write',
+    formatter: { kind: 'text', summary: 'Task moved.' },
+  },
+  {
+    name: 'tasks_clear_completed',
+    service: 'tasks',
+    action: 'tasksClear',
+    description: 'Clear completed tasks from a Google Tasks task list. Requires confirmation.',
+    schema: tasksClearCompletedSchema,
+    batchEligible: true,
+    group: 'manage',
+    formatter: { kind: 'text', summary: 'Completed tasks cleared.' },
+  },
+  {
+    name: 'tasks_batch',
+    service: 'tasks',
+    action: 'batch',
+    description: 'Execute multiple Google Tasks operations in a single round-trip. Operations execute sequentially; errors are collected per-operation. Up to 20 operations.',
+    schema: tasksBatchSchema,
+    batchEligible: false,
+    isBatchTool: true,
+    group: 'batch',
+    cli: { paramsJsonOnly: true },
+    formatter: { kind: 'text', summary: 'Tasks batch completed.' },
+  },
+]

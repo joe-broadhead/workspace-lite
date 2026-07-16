@@ -9,7 +9,7 @@ import { registerFormsTools } from '../packages/forms/src/tools/index.js'
 import { registerGmailTools } from '../packages/gmail/src/tools/index.js'
 import { registerSheetsTools } from '../packages/sheets/src/tools/index.js'
 import { registerSlidesTools } from '../packages/slides/src/tools/index.js'
-import { registerTasksTools } from '../packages/tasks/src/tools/index.js'
+import { registerTasksTools } from '../packages/tasks/src/index.js'
 
 type Handler = (args: Record<string, unknown>) => unknown
 

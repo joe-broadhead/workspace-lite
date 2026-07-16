@@ -11,8 +11,18 @@
     "./response": "./dist/response.js",
     "./proxy-client": "./dist/proxy-client.js",
     "./tool-helpers": "./dist/tool-helpers.js",
-    "./catalog": "./dist/catalog/index.js",
-    "./catalog/*": "./dist/catalog/*"
+    "./catalog": {
+      "types": "./dist/catalog/index.d.ts",
+      "default": "./dist/catalog/index.js"
+    },
+    "./catalog/*": {
+      "types": "./dist/catalog/*.d.ts",
+      "default": "./dist/catalog/*.js"
+    },
+    "./catalog/services/*": {
+      "types": "./dist/catalog/services/*.d.ts",
+      "default": "./dist/catalog/services/*.js"
+    }
   },
   "scripts": {
     "build": "tsc",
