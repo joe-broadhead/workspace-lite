@@ -111,8 +111,50 @@ export function batchDocMappings(serviceKey) {
     .map((match) => ({ tool: match[1], action: match[2] }))
 }
 
+/**
+ * Hybrid tool→action mappings: prefer catalog service module when present,
+ * otherwise scrape packages/<service>/src/tools (removed per-service as flipped).
+ */
 export function toolActionMappings(serviceKey) {
+  const catalogPath = path.join(root, 'shared', 'src', 'catalog', 'services', `${serviceKey}.ts`)
+  if (fs.existsSync(catalogPath)) {
+    return toolActionMappingsFromCatalog(serviceKey, catalogPath)
+  }
+  return toolActionMappingsFromToolsDir(serviceKey)
+}
+
+function toolActionMappingsFromCatalog(serviceKey, catalogPath) {
+  const source = fs.readFileSync(catalogPath, 'utf8')
+  const mappings = []
+  // Match each tool object: name, action, optional actions array
+  const toolBlocks = source.split(/\{\s*\n\s*name:\s*'/).slice(1)
+  for (const block of toolBlocks) {
+    const nameMatch = block.match(/^([^']+)'/)
+    if (!nameMatch) continue
+    const tool = nameMatch[1]
+    const actionMatch = block.match(/\baction:\s*'([^']+)'/)
+    if (!actionMatch) continue
+    const primaryAction = actionMatch[1]
+    const actionsArrayMatch = block.match(/\bactions:\s*\[([^\]]+)\]/)
+    let actions = [primaryAction]
+    if (actionsArrayMatch) {
+      actions = [...actionsArrayMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
+      if (!actions.length) actions = [primaryAction]
+    }
+    const schemaMatch = block.match(/\bschema:\s*([A-Za-z0-9_]+)/)
+    const schema = schemaMatch ? schemaMatch[1] : 'inline'
+    for (const action of actions) {
+      mappings.push({ tool, schema, action, source: `${serviceKey}.ts` })
+    }
+  }
+  return mappings.sort((a, b) => a.tool.localeCompare(b.tool) || a.action.localeCompare(b.action))
+}
+
+function toolActionMappingsFromToolsDir(serviceKey) {
   const toolsDir = path.join(root, 'packages', serviceKey, 'src', 'tools')
+  if (!fs.existsSync(toolsDir)) {
+    throw new Error(`No catalog and no tools dir for service ${serviceKey}`)
+  }
   const files = fs.readdirSync(toolsDir).filter((file) => file.endsWith('.ts'))
   const mappings = []
 
