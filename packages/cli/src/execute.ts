@@ -5,7 +5,7 @@ import {
   resolveRiskClass,
   type ToolSpec,
 } from '@workspace-lite/shared/catalog'
-import { createProxyClient } from '@workspace-lite/shared/proxy-client'
+import { createProxyClient, type CreateProxyClientOptions } from '@workspace-lite/shared/proxy-client'
 import type { ProxyResponse } from '@workspace-lite/shared/response'
 import { exitCodeFor, EXIT } from './exit-codes.js'
 import { interactivePrompt } from './prompt.js'
@@ -18,6 +18,8 @@ export interface ExecuteOpts {
   /** Injected for tests — defaults to createProxyClient */
   clientFactory?: (service: string) => { callProxy: (action: string, params?: Record<string, unknown>) => Promise<ProxyResponse> }
   prompt?: (summary: string) => Promise<boolean>
+  /** When true, log token env **names** only (never values) via onTokenSelected */
+  tokenDiagnostics?: boolean
 }
 
 export interface ExecuteResult {
@@ -65,7 +67,17 @@ export async function executeTool(
       }
     }
 
-    const factory = opts.clientFactory ?? ((service: string) => createProxyClient(service))
+    const factory = opts.clientFactory ?? ((service: string) => {
+      const options: CreateProxyClientOptions = {}
+      if (opts.tokenDiagnostics || opts.verbose) {
+        options.onTokenSelected = (info) => {
+          process.stderr.write(
+            `[wslite] tokenClass=${info.tokenClass} envName=${info.envName} (candidates: ${info.candidateEnvNames.join(', ')})\n`,
+          )
+        }
+      }
+      return createProxyClient(service, options)
+    })
     const client = factory(tool.service)
     const response = await client.callProxy(action, confirmed.args)
     return {

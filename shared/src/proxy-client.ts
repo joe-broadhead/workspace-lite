@@ -5,6 +5,19 @@ export interface ProxyClient {
   callProxy(action: string, params?: Record<string, unknown>): Promise<ProxyResponse>
 }
 
+/** Diagnostics for token selection — env **names** only, never token values (PR16). */
+export type TokenSelectedInfo = {
+  service: string
+  action: string
+  tokenClass: TokenClass
+  envName: string
+  candidateEnvNames: string[]
+}
+
+export type CreateProxyClientOptions = {
+  onTokenSelected?: (info: TokenSelectedInfo) => void
+}
+
 function selectProxyToken(envPrefix: string, tokenClass: TokenClass) {
   const primaryEnvName = `${envPrefix}_PROXY_TOKEN`
   const adminEnvName = `${envPrefix}_PROXY_ADMIN_TOKEN`
@@ -17,13 +30,13 @@ function selectProxyToken(envPrefix: string, tokenClass: TokenClass) {
 
   for (const envName of candidateEnvNames) {
     const token = process.env[envName]
-    if (token) return { token, candidateEnvNames }
+    if (token) return { token, envName, candidateEnvNames }
   }
 
-  return { token: '', candidateEnvNames }
+  return { token: '', envName: '', candidateEnvNames }
 }
 
-export function createProxyClient(service: string): ProxyClient {
+export function createProxyClient(service: string, options: CreateProxyClientOptions = {}): ProxyClient {
   const envPrefix = `GOOGLE_WORKSPACE_${service.toUpperCase()}`
   const proxyUrl = process.env[`${envPrefix}_PROXY_URL`] ?? ''
 
@@ -33,6 +46,13 @@ export function createProxyClient(service: string): ProxyClient {
       const tokenClass = resolveRiskClass(service, action, params)
       const proxyToken = selectProxyToken(envPrefix, tokenClass)
       if (!proxyToken.token) throw new Error(`${proxyToken.candidateEnvNames.join(', ')} not set`)
+      options.onTokenSelected?.({
+        service,
+        action,
+        tokenClass,
+        envName: proxyToken.envName,
+        candidateEnvNames: proxyToken.candidateEnvNames,
+      })
       const res = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
