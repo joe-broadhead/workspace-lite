@@ -198,7 +198,7 @@ There is no additional infrastructure to secure.
 
 ### What an attacker can do with a compromised token
 
-Token impact depends on the token's authorization classes. The setup-generated primary token defaults to `read,draft`; broader classes require `PROXY_AUTH_TOKEN_CLASSES` or class-scoped token properties in Apps Script Script Properties. The MCP client chooses class-scoped environment tokens by action class when they are configured, and only falls back to the primary token when no matching class token is available.
+Token impact depends on the token's authorization classes. The setup-generated primary token defaults to the full Auth.gs set `read,draft,write,destructive,share,send` (`DEFAULT_AUTH_TOKEN_CLASSES`). Narrower primary tokens require explicitly setting `PROXY_AUTH_TOKEN_CLASSES` or class-scoped token properties in Apps Script Script Properties. The MCP client and `wslite` CLI choose class-scoped environment tokens by action class when they are configured, and only fall back to the primary token when no matching class token is available.
 
 | Token class | Access |
 |---|---|

@@ -31,6 +31,9 @@ All errors follow a consistent JSON structure:
 | `INSERT_FAILED` | Could not insert element | Check position is valid and element type is supported |
 | `SEND_FAILED` | Email send operation failed | Check recipient addresses and message content |
 | `UNKNOWN_ACTION` | Invalid action name in batch operation | Check action names match the service documentation |
+| `CONFIRMATION_REQUIRED` | Action needs explicit `confirm: true` (send/share/destructive) | Re-run after user approval; CLI uses interactive prompt or `--yes` (never auto-sets without approval) |
+| `ACTION_NOT_ALLOWED` | Token class is not authorized for this action | Use a broader token class or a matching class-scoped token |
+| `BATCH_ACTION_NOT_ALLOWED` | Nested batch op is not on the service batch allowlist | Check `BATCH_ACTIONS` for the service; remove or replace the nested action |
 
 ## Batch Errors
 
