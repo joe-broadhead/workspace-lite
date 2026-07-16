@@ -15,6 +15,8 @@ import { docsTools } from '@workspace-lite/shared/catalog/services/docs'
 import { registerDocsTools } from '../packages/docs/src/index.js'
 import { sheetsTools } from '@workspace-lite/shared/catalog/services/sheets'
 import { registerSheetsTools } from '../packages/sheets/src/index.js'
+import { gmailTools } from '@workspace-lite/shared/catalog/services/gmail'
+import { registerGmailTools } from '../packages/gmail/src/index.js'
 
 const registry = JSON.parse(readFileSync('config/service-registry.json', 'utf8')) as {
   services: Array<{ key: string; toolCount: number }>
@@ -61,3 +63,4 @@ parityFor('calendar', calendarTools, registerCalendarTools)
 parityFor('slides', slidesTools, registerSlidesTools)
 parityFor('docs', docsTools, registerDocsTools)
 parityFor('sheets', sheetsTools, registerSheetsTools)
+parityFor('gmail', gmailTools, registerGmailTools)
