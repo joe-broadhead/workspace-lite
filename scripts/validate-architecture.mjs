@@ -25,6 +25,7 @@ function relative(filePath) {
 
 const referenceAuth = sharedShellSource('Auth.gs')
 const referenceResponse = sharedShellSource('Response.gs')
+const riskModule = fs.readFileSync(path.join(root, 'shared', 'src', 'catalog', 'risk.ts'), 'utf8')
 const proxyClient = fs.readFileSync(path.join(root, 'shared', 'src', 'proxy-client.ts'), 'utf8')
 
 for (const token of [
@@ -34,7 +35,14 @@ for (const token of [
   "sendsCalendarUpdates(params)",
   'const operationParams = (operation as { params?: unknown }).params',
 ]) {
-  if (!proxyClient.includes(token)) failures.push(`shared/src/proxy-client.ts: missing semantic token routing guard ${token}`)
+  if (!riskModule.includes(token)) failures.push(`shared/src/catalog/risk.ts: missing semantic token routing guard ${token}`)
+}
+
+if (!proxyClient.includes("from './catalog/risk.js'") && !proxyClient.includes('from "./catalog/risk.js"')) {
+  failures.push('shared/src/proxy-client.ts: must import risk resolution from ./catalog/risk.js')
+}
+if (!proxyClient.includes('resolveRiskClass')) {
+  failures.push('shared/src/proxy-client.ts: must call resolveRiskClass for token class routing')
 }
 
 for (const service of services) {
