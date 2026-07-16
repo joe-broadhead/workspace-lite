@@ -1,3 +1,4 @@
+import { calendarTools } from '@workspace-lite/shared/catalog/services/calendar'
 import { formsTools } from '@workspace-lite/shared/catalog/services/forms'
 import { tasksTools } from '@workspace-lite/shared/catalog/services/tasks'
 import type { ServiceKey, ToolSpec } from '@workspace-lite/shared/catalog'
@@ -5,7 +6,7 @@ import { assertUniqueCliPaths } from '@workspace-lite/shared/catalog'
 
 /** All catalog tools present in this build (grows as services flip). */
 export function loadCatalogTools(): ToolSpec[] {
-  const tools = [...tasksTools, ...formsTools]
+  const tools = [...tasksTools, ...formsTools, ...calendarTools]
   assertUniqueCliPaths(tools.map((t) => t.name))
   return tools
 }
