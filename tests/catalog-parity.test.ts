@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
+import { calendarTools } from '@workspace-lite/shared/catalog/services/calendar'
 import { formsTools } from '@workspace-lite/shared/catalog/services/forms'
 import { tasksTools } from '@workspace-lite/shared/catalog/services/tasks'
 import { effectiveActions, assertUniqueCliPaths } from '@workspace-lite/shared/catalog'
+import { registerCalendarTools } from '../packages/calendar/src/index.js'
 import { registerFormsTools } from '../packages/forms/src/index.js'
 import { registerTasksTools } from '../packages/tasks/src/index.js'
 import type { ToolServer } from '@workspace-lite/shared/tool-helpers'
@@ -66,3 +68,4 @@ function parityFor(
 
 parityFor('tasks', tasksTools, registerTasksTools)
 parityFor('forms', formsTools, registerFormsTools)
+parityFor('calendar', calendarTools, registerCalendarTools)
