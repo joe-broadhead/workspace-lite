@@ -69,3 +69,24 @@ if [ "$ISSUES" -gt 0 ]; then
 else
   echo "All deployments match .env URLs."
 fi
+
+# Optional CLI doctor (env presence) when wslite is built in the monorepo
+WSLITE_BIN=""
+if [ -x "$REPO/packages/cli/dist/index.js" ]; then
+  WSLITE_BIN="node $REPO/packages/cli/dist/index.js"
+elif command -v wslite >/dev/null 2>&1; then
+  WSLITE_BIN="wslite"
+fi
+
+if [ -n "$WSLITE_BIN" ]; then
+  echo ""
+  echo "=== wslite doctor (env presence; no secrets) ==="
+  # shellcheck disable=SC2086
+  if ! $WSLITE_BIN doctor; then
+    echo "WARNING: wslite doctor reported missing env for one or more catalog services"
+    ISSUES=$((ISSUES + 1))
+  fi
+else
+  echo ""
+  echo "NOTE: wslite not built (packages/cli/dist/index.js missing); skip doctor check"
+fi

@@ -149,7 +149,7 @@ The skill ships three hardened scripts. **Use these instead of running raw clasp
 | `scripts/deploy-single.sh <repo-path> <service> "<message>"` | Push, version, and redeploy one service |
 | `scripts/verify-deployments.sh <repo-path>` | Check that every .env deployment URL matches clasp state |
 
-**Always run `verify-deployments.sh` after deploying** to confirm no deployment ID mismatch occurred.
+**Always run `verify-deployments.sh` after deploying** When `packages/cli` is built, the script also runs `wslite doctor` (env presence only; never prints token values). to confirm no deployment ID mismatch occurred.
 
 ### Manual steps (fallback)
 
