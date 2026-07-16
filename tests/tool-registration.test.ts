@@ -7,7 +7,7 @@ import { registerDocsTools } from '../packages/docs/src/index.js'
 import { registerDriveTools } from '../packages/drive/src/tools/index.js'
 import { registerFormsTools } from '../packages/forms/src/index.js'
 import { registerGmailTools } from '../packages/gmail/src/tools/index.js'
-import { registerSheetsTools } from '../packages/sheets/src/tools/index.js'
+import { registerSheetsTools } from '../packages/sheets/src/index.js'
 import { registerSlidesTools } from '../packages/slides/src/index.js'
 import { registerTasksTools } from '../packages/tasks/src/index.js'
 
