@@ -112,21 +112,16 @@ export function batchDocMappings(serviceKey) {
 }
 
 /**
- * Hybrid tool→action mappings: prefer catalog service module when present,
- * otherwise scrape packages/<service>/src/tools (removed per-service as flipped).
+ * tool→action mappings from catalog SSOT only (packages tools scrape removed).
+ * Multi-action tools emit one row per entry in actions[] (effectiveActions).
  */
 export function toolActionMappings(serviceKey) {
   const catalogPath = path.join(root, 'shared', 'src', 'catalog', 'services', `${serviceKey}.ts`)
-  if (fs.existsSync(catalogPath)) {
-    return toolActionMappingsFromCatalog(serviceKey, catalogPath)
+  if (!fs.existsSync(catalogPath)) {
+    throw new Error(`Catalog module missing for service ${serviceKey}: ${catalogPath}`)
   }
-  return toolActionMappingsFromToolsDir(serviceKey)
-}
-
-function toolActionMappingsFromCatalog(serviceKey, catalogPath) {
   const source = fs.readFileSync(catalogPath, 'utf8')
   const mappings = []
-  // Match each tool object: name, action, optional actions array
   const toolBlocks = source.split(/\{\s*\n\s*name:\s*'/).slice(1)
   for (const block of toolBlocks) {
     const nameMatch = block.match(/^([^']+)'/)
@@ -148,30 +143,4 @@ function toolActionMappingsFromCatalog(serviceKey, catalogPath) {
     }
   }
   return mappings.sort((a, b) => a.tool.localeCompare(b.tool) || a.action.localeCompare(b.action))
-}
-
-function toolActionMappingsFromToolsDir(serviceKey) {
-  const toolsDir = path.join(root, 'packages', serviceKey, 'src', 'tools')
-  if (!fs.existsSync(toolsDir)) {
-    throw new Error(`No catalog and no tools dir for service ${serviceKey}`)
-  }
-  const files = fs.readdirSync(toolsDir).filter((file) => file.endsWith('.ts'))
-  const mappings = []
-
-  for (const file of files) {
-    const source = fs.readFileSync(path.join(toolsDir, file), 'utf8')
-    for (const match of source.matchAll(/registerTool\([\s\S]*?name:\s*'([^']+)'[\s\S]*?schema:\s*([A-Za-z0-9_]+)[\s\S]*?action:\s*'([^']+)'/g)) {
-      mappings.push({ tool: match[1], schema: match[2], action: match[3], source: file })
-    }
-    for (const match of source.matchAll(/server\.tool\(\s*'([^']+)'[\s\S]*?callProxy\('([^']+)'/g)) {
-      mappings.push({ tool: match[1], schema: 'inline', action: match[2], source: file })
-    }
-
-    if (serviceKey === 'drive' && source.includes("'drive_list_folders'") && source.includes("const action = args.folderId ? 'folderList' : 'folderListRoot'")) {
-      mappings.push({ tool: 'drive_list_folders', schema: 'folderListSchema', action: 'folderList', source: file })
-      mappings.push({ tool: 'drive_list_folders', schema: 'folderListSchema', action: 'folderListRoot', source: file })
-    }
-  }
-
-  return mappings.sort((a, b) => a.tool.localeCompare(b.tool))
 }
