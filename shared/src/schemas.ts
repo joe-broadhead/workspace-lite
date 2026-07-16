@@ -259,7 +259,7 @@ export const driveRevisionGetSchema = {
 export const driveRevisionUpdateSchema = {
   fileId: driveIdSchema.describe('Drive file ID.'),
   revisionId: z.string().min(1).describe('Drive revision ID.'),
-  keepForever: z.boolean().optional().describe('Whether to keep this binary revision forever, where Drive API supports it.'),
+  keepForever: z.boolean().describe('Whether to keep this binary revision forever, where Drive API supports it.'),
 }
 
 export const driveSharedDrivesListSchema = {
