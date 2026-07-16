@@ -8,6 +8,8 @@
     "noUnusedParameters": true,
     "paths": {
       "@workspace-lite/shared": ["shared/src/index.ts"],
+      "@workspace-lite/shared/catalog": ["shared/src/catalog/index.ts"],
+      "@workspace-lite/shared/catalog/*": ["shared/src/catalog/*.ts"],
       "@workspace-lite/shared/*": ["shared/src/*.ts"]
     }
   },
