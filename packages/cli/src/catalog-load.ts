@@ -3,12 +3,13 @@ import { formsTools } from '@workspace-lite/shared/catalog/services/forms'
 import { calendarTools } from '@workspace-lite/shared/catalog/services/calendar'
 import { slidesTools } from '@workspace-lite/shared/catalog/services/slides'
 import { docsTools } from '@workspace-lite/shared/catalog/services/docs'
+import { sheetsTools } from '@workspace-lite/shared/catalog/services/sheets'
 import type { ServiceKey, ToolSpec } from '@workspace-lite/shared/catalog'
 import { assertUniqueCliPaths } from '@workspace-lite/shared/catalog'
 
 /** All catalog tools present in this build (grows as services flip). */
 export function loadCatalogTools(): ToolSpec[] {
-  const tools = [...tasksTools, ...formsTools, ...calendarTools, ...slidesTools, ...docsTools]
+  const tools = [...tasksTools, ...formsTools, ...calendarTools, ...slidesTools, ...docsTools, ...sheetsTools]
   assertUniqueCliPaths(tools.map((t) => t.name))
   return tools
 }
