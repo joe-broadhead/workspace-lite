@@ -119,6 +119,8 @@ describe('CLI MVP', () => {
           GOOGLE_WORKSPACE_CALENDAR_PROXY_TOKEN: 'secret-cal',
           GOOGLE_WORKSPACE_SLIDES_PROXY_URL: 'https://example.invalid/slides',
           GOOGLE_WORKSPACE_SLIDES_PROXY_TOKEN: 'secret-slides',
+          GOOGLE_WORKSPACE_DOCS_PROXY_URL: 'https://example.invalid/docs',
+          GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN: 'secret-docs',
         },
         exit: () => {},
       })
