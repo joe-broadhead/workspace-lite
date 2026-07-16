@@ -5,12 +5,13 @@ import { slidesTools } from '@workspace-lite/shared/catalog/services/slides'
 import { docsTools } from '@workspace-lite/shared/catalog/services/docs'
 import { sheetsTools } from '@workspace-lite/shared/catalog/services/sheets'
 import { gmailTools } from '@workspace-lite/shared/catalog/services/gmail'
+import { driveTools } from '@workspace-lite/shared/catalog/services/drive'
 import type { ServiceKey, ToolSpec } from '@workspace-lite/shared/catalog'
 import { assertUniqueCliPaths } from '@workspace-lite/shared/catalog'
 
 /** All catalog tools present in this build (grows as services flip). */
 export function loadCatalogTools(): ToolSpec[] {
-  const tools = [...tasksTools, ...formsTools, ...calendarTools, ...slidesTools, ...docsTools, ...sheetsTools, ...gmailTools]
+  const tools = [...tasksTools, ...formsTools, ...calendarTools, ...slidesTools, ...docsTools, ...sheetsTools, ...gmailTools, ...driveTools]
   assertUniqueCliPaths(tools.map((t) => t.name))
   return tools
 }
