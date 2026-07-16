@@ -123,6 +123,8 @@ describe('CLI MVP', () => {
           GOOGLE_WORKSPACE_DOCS_PROXY_TOKEN: 'secret-docs',
           GOOGLE_WORKSPACE_SHEETS_PROXY_URL: 'https://example.invalid/sheets',
           GOOGLE_WORKSPACE_SHEETS_PROXY_TOKEN: 'secret-sheets',
+          GOOGLE_WORKSPACE_GMAIL_PROXY_URL: 'https://example.invalid/gmail',
+          GOOGLE_WORKSPACE_GMAIL_PROXY_TOKEN: 'secret-gmail',
         },
         exit: () => {},
       })
