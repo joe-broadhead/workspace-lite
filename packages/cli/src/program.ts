@@ -132,13 +132,19 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
         const prefix = `GOOGLE_WORKSPACE_${service.toUpperCase()}`
         const url = Boolean(env[`${prefix}_PROXY_URL`])
         const primary = Boolean(env[`${prefix}_PROXY_TOKEN`])
-        const classes = ['READ', 'WRITE', 'SEND', 'SHARE', 'DESTRUCTIVE', 'ADMIN']
-          .filter((c) => Boolean(env[`${prefix}_PROXY_${c}_TOKEN`]))
+        const classTokenEnvNames = ['READ', 'WRITE', 'SEND', 'SHARE', 'DESTRUCTIVE', 'ADMIN']
+          .map((c) => `${prefix}_PROXY_${c}_TOKEN`)
+        const classes = classTokenEnvNames
+          .filter((name) => Boolean(env[name]))
+          .map((name) => name.replace(`${prefix}_PROXY_`, '').replace(/_TOKEN$/, ''))
         rows.push({
           service,
           proxyUrl: url ? 'set' : 'missing',
           primaryToken: primary ? 'set' : 'missing',
+          primaryEnvName: `${prefix}_PROXY_TOKEN`,
           classTokensSet: classes,
+          // env names only — never values
+          classTokenEnvNamesPresent: classTokenEnvNames.filter((name) => Boolean(env[name])),
         })
       }
       if (globals.json) {
