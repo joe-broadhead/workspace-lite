@@ -60,7 +60,7 @@ Do not hand-edit; run `node scripts/generate-tool-catalog.mjs`.
 - `gmail_create_draft` — Create a new email draft.
 - `gmail_create_draft_reply` — Create a draft reply without sending. Use this for review before sending.
 - `gmail_create_draft_reply_all` — Create a draft reply-all without sending. Use this for review before sending.
-- `gmail_create_filter` — Create a Gmail filter. Criteria fields match Gmail API filter criteria. Label names or IDs in addLabels/removeLabels are resolved to label IDs; forwarding requires params.confirm=true.
+- `gmail_create_filter` — Create a Gmail filter. Requires at least one criterion (from, to, subject, query, negatedQuery, hasAttachment, excludeChats, size) and at least one action (addLabels, removeLabels, forward). Label names or IDs in addLabels/removeLabels are resolved to label IDs; forwarding requires params.confirm=true.
 - `gmail_delete_draft` — Delete a draft permanently.
 - `gmail_delete_filter` — Permanently delete a Gmail filter by ID. Requires confirmation.
 - `gmail_delete_message` — Delete a message by moving it to trash. Gmail permanently removes trashed messages after its retention period.
@@ -208,7 +208,7 @@ Do not hand-edit; run `node scripts/generate-tool-catalog.mjs`.
 - `docs_set_footer` — Set the document footer text. Use empty string to clear.
 - `docs_set_header` — Set the document header text. Use empty string to clear.
 - `docs_set_text` — Replace the entire document body with new text.
-- `docs_update_page_setup` — Update page size and margins for a Google Docs document. Values are points.
+- `docs_update_page_setup` — Update page size and margins for a Google Docs document. Values are points. Requires at least one page setup field.
 - `docs_update_paragraph` — Update heading level and/or text of an existing paragraph by index.
 
 ## Tasks — 13 tools

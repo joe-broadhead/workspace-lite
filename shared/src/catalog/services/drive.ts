@@ -54,17 +54,7 @@ export const driveTools: ToolSpec[] = [
     schema: {},
     batchEligible: true,
     group: 'read',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'file',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Drive storage info retrieved." },
   },
   {
     name: 'drive_add_comment',
@@ -116,17 +106,7 @@ export const driveTools: ToolSpec[] = [
     isBatchTool: true,
     cli: { paramsJsonOnly: true },
     group: 'batch',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Drive batch completed." },
   },
   {
     name: 'drive_copy_file',

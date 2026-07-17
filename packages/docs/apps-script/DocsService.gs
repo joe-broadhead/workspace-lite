@@ -860,7 +860,9 @@ const DocsService = (() => {
 
   function namedRangeDelete(params) {
     const id = requireParam(params, 'documentId');
-    const namedRangeId = requireParam(params, 'namedRangeId');
+    // The Docs API JSON view prefixes named range IDs with "kix."; DocumentApp
+    // expects the bare ID, so accept both forms (JOE-836).
+    const namedRangeId = String(requireParam(params, 'namedRangeId')).replace(/^kix\./, '');
 
     const doc = getDocument(id);
     if (!doc) return err('NOT_FOUND', `Document not found: ${id}`);

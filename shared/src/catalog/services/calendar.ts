@@ -44,17 +44,7 @@ export const calendarTools: ToolSpec[] = [
     isBatchTool: true,
     cli: { paramsJsonOnly: true },
     group: 'batch',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Calendar batch completed." },
   },
   {
     name: 'calendar_create_calendar',

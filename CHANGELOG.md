@@ -10,6 +10,11 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 
 ### Fixed
 
+- `gmail_list_labels` no longer fails with INTERNAL_ERROR when user labels exist; the response no longer includes `messageCount`, which relied on a method that does not exist on Apps Script `GmailLabel` (JOE-824).
+- MCP formatters for object-returning tools (`gmail_profile`, gmail draft/send tools, `gmail_batch`, `calendar_batch`, `drive_about`, `drive_batch`) now render a summary plus the result payload instead of the misleading "Found 0 items"; added a regression test over all 218 catalog formatters (JOE-825).
+- `gmail_get_vacation_responder` output no longer claims settings were "updated" on a read (JOE-825).
+- `docs_delete_named_range` accepts `kix.`-prefixed named range IDs as returned by `docs_get_as_json` (JOE-836).
+
 - `gmail_create_filter` now validates client-side that at least one criterion and one action field are provided, matching the Apps Script guard (JOE-712).
 - `drive_update_revision` schema now requires `keepForever`, matching the Apps Script guard (JOE-713).
 - `docs_update_page_setup` now validates client-side that at least one page setup field is provided, matching the Apps Script guard (JOE-720).
