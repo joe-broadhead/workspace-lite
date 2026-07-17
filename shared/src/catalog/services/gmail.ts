@@ -79,17 +79,7 @@ export const gmailTools: ToolSpec[] = [
     isBatchTool: true,
     cli: { paramsJsonOnly: true },
     group: 'batch',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Gmail batch completed." },
   },
   {
     name: 'gmail_batch_modify',
@@ -109,17 +99,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailCreateDraftSchema,
     batchEligible: true,
     group: 'write',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Draft created." },
   },
   {
     name: 'gmail_create_draft_reply',
@@ -129,17 +109,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailReplySchema,
     batchEligible: true,
     group: 'write',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Draft reply created." },
   },
   {
     name: 'gmail_create_draft_reply_all',
@@ -149,17 +119,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailReplyAllSchema,
     batchEligible: true,
     group: 'write',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Draft reply-all created." },
   },
   {
     name: 'gmail_create_filter',
@@ -180,17 +140,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailDeleteDraftSchema,
     batchEligible: true,
     group: 'manage',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Draft deleted." },
   },
   {
     name: 'gmail_delete_filter',
@@ -220,17 +170,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailForwardSchema,
     batchEligible: true,
     group: 'write',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Message forwarded." },
   },
   {
     name: 'gmail_get_attachment',
@@ -290,7 +230,7 @@ export const gmailTools: ToolSpec[] = [
     schema: {},
     batchEligible: true,
     group: 'read',
-    formatter: { kind: 'text', summary: "Vacation responder settings updated." },
+    formatter: { kind: 'text', summary: "Vacation responder settings retrieved." },
   },
   {
     name: 'gmail_list_drafts',
@@ -390,17 +330,7 @@ export const gmailTools: ToolSpec[] = [
     schema: {},
     batchEligible: true,
     group: 'read',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'message',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Gmail profile retrieved." },
   },
   {
     name: 'gmail_remove_label',
@@ -430,17 +360,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailReplyAllSchema,
     batchEligible: true,
     group: 'write',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Reply-all sent." },
   },
   {
     name: 'gmail_search_messages',
@@ -480,17 +400,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailSendDraftSchema,
     batchEligible: true,
     group: 'write',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Draft sent." },
   },
   {
     name: 'gmail_star',
@@ -560,17 +470,7 @@ export const gmailTools: ToolSpec[] = [
     schema: gmailUpdateDraftSchema,
     batchEligible: true,
     group: 'write',
-    formatter: {
-      kind: 'list',
-      formatMcp: (result) => formatList(result, {
-        itemsKey: 'items',
-        noun: 'item',
-        itemSummary: (item: unknown) => {
-          const r = item as Record<string, unknown>
-          return String(r.title ?? r.name ?? r.id ?? r.summary ?? JSON.stringify(r).slice(0, 120))
-        },
-      }),
-    },
+    formatter: { kind: 'text', summary: "Draft updated. Note: Gmail rotates the draft ID on update; use the returned draft." },
   },
   {
     name: 'gmail_update_vacation_responder',

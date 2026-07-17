@@ -652,10 +652,11 @@ const GmailService = (() => {
     const labels = GmailApp.getUserLabels();
     const results = [];
     for (let i = 0; i < labels.length; i++) {
+      // GmailLabel has no getMessageCount(); that method only exists on the
+      // Gmail Advanced Service Label resource (JOE-824).
       results.push({
         name: labels[i].getName(),
         unreadCount: labels[i].getUnreadCount(),
-        messageCount: labels[i].getMessageCount(),
       });
     }
     return ok(results);
