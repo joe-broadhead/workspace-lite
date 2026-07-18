@@ -11,6 +11,7 @@ import { findToolByName, findToolsByAction, loadCatalogTools, toolsByService } f
 import { executeRaw, executeTool, type ExecuteOpts } from './execute.js'
 import { EXIT } from './exit-codes.js'
 import { probeService, type FetchLike, type LiveProbeResult } from './doctor.js'
+import { checkDeployment, type DeploymentCheck, type ExecLike } from './deployments.js'
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
 import { renderResult } from './render.js'
 
@@ -30,6 +31,8 @@ export interface ProgramDeps {
   env?: NodeJS.ProcessEnv
   /** Injected for doctor --live tests — defaults to global fetch. */
   fetchImpl?: FetchLike
+  /** Injected for doctor --deployments tests — defaults to spawning clasp. */
+  execImpl?: ExecLike
   /** Capture exit instead of process.exit (tests). */
   exit?: (code: number) => void
 }
@@ -129,7 +132,8 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
     .command('doctor')
     .description('Check proxy env presence for catalog services (no secrets printed)')
     .option('--live', 'Also probe each configured service live: health GET + one authenticated read')
-    .action(async (cmdOpts: { live?: boolean }) => {
+    .option('--deployments', 'Compare .env deployment IDs against clasp deployments (needs a configured checkout)')
+    .action(async (cmdOpts: { live?: boolean; deployments?: boolean }) => {
       const globals = program.opts() as GlobalOpts
       const services = [...byService.keys()].sort()
       const rows: Array<Record<string, unknown>> = []
@@ -165,10 +169,21 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
           Object.assign(row, { live: probe })
         }
       }
+      if (cmdOpts.deployments) {
+        for (const row of rows) {
+          const service = row.service as string
+          const proxyUrl = env[`GOOGLE_WORKSPACE_${service.toUpperCase()}_PROXY_URL`]
+          row.deployment = await checkDeployment(service, proxyUrl, deps.execImpl)
+        }
+      }
       const allConfigured = rows.every((r) => r.proxyUrl === 'set' && r.primaryToken === 'set')
       const allReady = !cmdOpts.live || rows.every((r) => (r.live as { ready?: boolean } | undefined)?.ready)
+      const allCurrent = !cmdOpts.deployments || rows.every((r) => {
+        const status = (r.deployment as DeploymentCheck | undefined)?.status
+        return status === 'current' || status === 'clasp-unavailable' || status === 'version-unavailable'
+      })
       if (globals.json) {
-        process.stdout.write(JSON.stringify({ ok: allConfigured && allReady, live: Boolean(cmdOpts.live), services: rows }, null, 2) + '\n')
+        process.stdout.write(JSON.stringify({ ok: allConfigured && allReady && allCurrent, live: Boolean(cmdOpts.live), deployments: Boolean(cmdOpts.deployments), services: rows }, null, 2) + '\n')
       } else {
         for (const row of rows) {
           let line = `${row.service}: url=${row.proxyUrl} primary=${row.primaryToken} classTokens=[${(row.classTokensSet as string[]).join(',') || 'none'}]`
@@ -178,10 +193,18 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
             if (live.authNote || live.healthNote) line += ` (${[live.healthNote, live.authNote].filter(Boolean).join('; ')})`
             if (live.advice) line += `\n  ↳ ${live.advice}`
           }
+          const deployment = row.deployment as DeploymentCheck | undefined
+          if (deployment) {
+            line += ` | deployment=${deployment.status}`
+            if (deployment.envVersion !== undefined) line += ` @${deployment.envVersion}`
+            if (deployment.latestVersion !== undefined && deployment.status === 'stale') line += ` (latest @${deployment.latestVersion})`
+            if (deployment.detail) line += ` (${deployment.detail})`
+            if (deployment.advice) line += `\n  ↳ ${deployment.advice}`
+          }
           process.stdout.write(line + '\n')
         }
       }
-      finish(allConfigured && allReady ? EXIT.SUCCESS : EXIT.FAILURE)
+      finish(allConfigured && allReady && allCurrent ? EXIT.SUCCESS : EXIT.FAILURE)
     })
 
   program

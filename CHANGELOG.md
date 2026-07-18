@@ -10,6 +10,8 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 
 ### Added
 
+- `wslite doctor --deployments`: compares each `.env` deployment ID against `clasp deployments` per service — detects stale versions, `@HEAD` URLs, and unknown deployments with redeploy hints; deployment IDs are fingerprinted, never printed in full (JOE-142).
+
 - `wslite doctor --live`: per-service live probes — unauthenticated health GET (with wrong-service URL detection) plus one authenticated read (param-check based for services without zero-arg reads) — with actionable remediation hints and redaction-safe output (JOE-141).
 
 - Distribution decision record (`docs/project/distribution-decision.md`): source-first for `v0.0.x`, no npm publishing yet, generated client config as the distribution surface, with explicit revisit triggers (JOE-157).
