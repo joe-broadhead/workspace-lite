@@ -45,7 +45,8 @@
     "install:deps": "npm install",
     "deploy:drive": "cd packages/drive/apps-script && clasp push",
     "postinstall": "npm run check:install && npm run build:shared",
-    "generate:tool-catalog": "node scripts/generate-tool-catalog.mjs"
+    "generate:tool-catalog": "node scripts/generate-tool-catalog.mjs",
+    "smoke:live": "node scripts/live-smoke/run.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

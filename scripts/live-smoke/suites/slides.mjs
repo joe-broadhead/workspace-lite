@@ -1,0 +1,41 @@
+/** Slides smoke suite on a run-created presentation (trashed via drive in cleanup). */
+export const suite = {
+  service: 'slides',
+  steps: [
+    { tool: 'slides_create_presentation', params: (c) => ({ name: `${c.prefix}-slides` }), save: { key: 'pres', pick: 'data.presentation.id' } },
+    { tool: 'slides_get_presentation', params: (c) => ({ presentationId: c.pres }) },
+    { tool: 'slides_insert_text_box', params: (c) => ({ presentationId: c.pres, slideIndex: 0, text: `${c.prefix} hello` }), save: { key: 'textBox', pick: 'data.objectId' } },
+    { tool: 'slides_add_slide', params: (c) => ({ presentationId: c.pres, titleText: `${c.prefix} slide 2` }) },
+    { tool: 'slides_insert_shape', params: (c) => ({ presentationId: c.pres, slideIndex: 1, shapeType: 'ELLIPSE' }), save: { key: 'shape', pick: 'data.objectId' } },
+    { tool: 'slides_insert_line', params: (c) => ({ presentationId: c.pres, slideIndex: 1, lineCategory: 'STRAIGHT', startLeft: 10, startTop: 10, endLeft: 100, endTop: 60 }) },
+    { tool: 'slides_insert_table', params: (c) => ({ presentationId: c.pres, slideIndex: 1, values: [['a', 'b'], ['1', '2']] }) },
+    { tool: 'slides_insert_image', params: (c) => ({ presentationId: c.pres, slideIndex: 0, imageUrl: 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png' }), save: { key: 'image', pick: 'data.objectId' } },
+    { tool: 'slides_get_slide_elements', params: (c) => ({ presentationId: c.pres, slideIndex: 0 }) },
+    { tool: 'slides_get_element', params: (c) => ({ presentationId: c.pres, slideIndex: 0, objectId: c.textBox }) },
+    { tool: 'slides_get_element_text', params: (c) => ({ presentationId: c.pres, slideIndex: 0, objectId: c.textBox }) },
+    { tool: 'slides_format_text', params: (c) => ({ presentationId: c.pres, slideIndex: 0, objectId: c.textBox, findText: 'hello', bold: true }) },
+    { tool: 'slides_replace_all_text', params: (c) => ({ presentationId: c.pres, findText: 'hello', replaceText: 'smoke' }) },
+    { tool: 'slides_set_element_alt_text', params: (c) => ({ presentationId: c.pres, slideIndex: 0, objectId: c.image, title: 'smoke image' }) },
+    { tool: 'slides_set_element_link', params: (c) => ({ presentationId: c.pres, slideIndex: 0, objectId: c.image, linkUrl: 'https://example.com' }) },
+    { tool: 'slides_update_element_geometry', params: (c) => ({ presentationId: c.pres, slideIndex: 1, objectId: c.shape, left: 300, top: 60 }) },
+    { tool: 'slides_update_element_transform', params: (c) => ({ presentationId: c.pres, slideIndex: 1, objectId: c.shape, applyMode: 'RELATIVE', scaleX: 1, scaleY: 1, translateX: 5, translateY: 5 }) },
+    { tool: 'slides_reorder_element', params: (c) => ({ presentationId: c.pres, slideIndex: 1, objectId: c.shape, operation: 'SEND_TO_BACK' }) },
+    { tool: 'slides_set_slide_background', params: (c) => ({ presentationId: c.pres, slideIndex: 1, color: '#EEF5FF' }) },
+    { tool: 'slides_get_slide_notes', params: (c) => ({ presentationId: c.pres, slideIndex: 0, notes: 'smoke notes' }) },
+    { tool: 'slides_duplicate_slide', params: (c) => ({ presentationId: c.pres, slideIndex: 1 }), gated: true },
+    { tool: 'slides_move_slide', params: (c) => ({ presentationId: c.pres, slideIndex: 2, newIndex: 1 }) },
+    { tool: 'slides_delete_element', params: (c) => ({ presentationId: c.pres, slideIndex: 0, objectId: c.image }), gated: true },
+    { tool: 'slides_delete_slide', params: (c) => ({ presentationId: c.pres, slideIndex: 2 }), gated: true },
+    { tool: 'slides_batch', params: (c) => ({ presentationId: c.pres, operations: [
+      { action: 'presentationGet', params: {} },
+      { action: 'slideNotes', params: { slideIndex: 0 } },
+    ] }) },
+  ],
+  cleanup: [
+    { tool: 'drive_delete_file', params: (c) => ({ fileId: c.pres }), gated: true, skip: (c) => (c.pres ? null : 'no presentation created') },
+  ],
+  verify: [
+    { tool: 'drive_search_files', params: (c) => ({ query: `name contains '${c.prefix}-slides' and trashed=false` }),
+      leftovers: (body) => (Array.isArray(body.data) ? body.data.length : (body.data?.files ?? []).length) },
+  ],
+}
