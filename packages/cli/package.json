@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@workspace-lite/shared": "*",
-    "commander": "^13.1.0",
+    "commander": "^15.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
