@@ -21,7 +21,7 @@ Same as MCP: for each service, set `GOOGLE_WORKSPACE_<SERVICE>_PROXY_URL` and `G
 ## Commands
 
 ```text
-wslite doctor [--live]
+wslite doctor [--live] [--deployments]
 wslite tools [--service <svc>] [--risk <class>]
 wslite run <mcpToolName> …
 wslite call <service> <action> [--params-json …] [--tool <mcpName>]
@@ -36,7 +36,17 @@ wslite drive get-file --file-id …
 - **health** — unauthenticated GET on the proxy URL; verifies the deployment answers, returns valid JSON, and identifies as the *right* service (a URL wired to another service's proxy is reported as `service-mismatch`).
 - **auth** — one cheap authenticated read through the normal client path. Services without zero-argument reads are verified via a parameter-validation response, which the proxy only returns after accepting the token.
 
-Each failing service gets an actionable hint (redeploy, fix URL wiring, rotate token, or wait out a rate limit) with a correlationId for Apps Script log lookup where available. Exit code is 0 only when every service is configured and, with `--live`, ready. Use `--json` for machine-readable output.
+Each failing service gets an actionable hint (redeploy, fix URL wiring, rotate token, or wait out a rate limit) with a correlationId for Apps Script log lookup where available.
+
+Add `--deployments` (requires a configured repo checkout with `clasp` logged in) to compare the deployment ID in each `.env` URL against `clasp deployments`:
+
+- **current** — the URL points at the highest versioned deployment.
+- **stale** — a newer versioned deployment exists. Remember: **pushed source is not live** until the deployment the URL points at is updated (`deploy-single.sh` / `deploy-all.sh` handle this).
+- **head** — the URL points at `@HEAD`; MCP traffic must use versioned `/exec` deployments.
+- **not-found / malformed-url** — the `.env` URL doesn't match any listed deployment.
+- **clasp-unavailable** — clasp missing, not logged in, or no `.clasp.json`; the check degrades gracefully and does not fail doctor.
+
+Deployment IDs are fingerprinted in output (first 10 characters), never printed in full. Exit code is 0 only when every service is configured and, with `--live`/`--deployments`, ready and current. Use `--json` for machine-readable output.
 
 Global flags: `--json`, `--yes`/`-y`, `--quiet`/`-q`, `--verbose`/`-v`, `--idempotency-key`, `--params-json`.
 
