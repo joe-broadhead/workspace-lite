@@ -1,0 +1,43 @@
+/** Docs smoke suite on a run-created document (trashed via drive in cleanup). */
+export const suite = {
+  service: 'docs',
+  steps: [
+    { tool: 'docs_create_document', params: (c) => ({ name: `${c.prefix}-doc` }), save: { key: 'doc', pick: 'data.document.id' } },
+    { tool: 'docs_insert_paragraph', params: (c) => ({ documentId: c.doc, text: `${c.prefix} heading`, heading: 'HEADING1' }) },
+    { tool: 'docs_insert_paragraph', params: (c) => ({ documentId: c.doc, text: 'smoke body findme' }) },
+    { tool: 'docs_get_document', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_replace_text', params: (c) => ({ documentId: c.doc, findText: 'findme', replaceText: 'found' }) },
+    { tool: 'docs_format_text', params: (c) => ({ documentId: c.doc, findText: 'found', bold: true }) },
+    { tool: 'docs_insert_list', params: (c) => ({ documentId: c.doc, items: ['one', 'two'], listType: 'NUMBER' }) },
+    { tool: 'docs_insert_table', params: (c) => ({ documentId: c.doc, values: [['h1', 'h2'], ['a', 'b']] }) },
+    { tool: 'docs_insert_image', params: (c) => ({ documentId: c.doc, imageUrl: 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png' }) },
+    { tool: 'docs_insert_page_break', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_insert_horizontal_rule', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_set_header', params: (c) => ({ documentId: c.doc, text: 'smoke header' }) },
+    { tool: 'docs_set_footer', params: (c) => ({ documentId: c.doc, text: 'smoke footer' }) },
+    { tool: 'docs_get_page_setup', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_update_page_setup', params: (c) => ({ documentId: c.doc, marginTop: 80 }) },
+    { tool: 'docs_update_paragraph', params: (c) => ({ documentId: c.doc, paragraphIndex: 2, heading: 'HEADING2' }) },
+    { tool: 'docs_create_bookmark', params: (c) => ({ documentId: c.doc, paragraphIndex: 1 }), save: { key: 'bookmark', pick: 'data.bookmark.id' } },
+    { tool: 'docs_list_bookmarks', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_delete_bookmark', params: (c) => ({ documentId: c.doc, bookmarkId: c.bookmark }), gated: true },
+    { tool: 'docs_create_named_range', params: (c) => ({ documentId: c.doc, name: `${c.prefix}-range`, paragraphIndex: 2 }), save: { key: 'range', pick: 'data.namedRange.id' } },
+    { tool: 'docs_list_named_ranges', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_delete_named_range', params: (c) => ({ documentId: c.doc, namedRangeId: `kix.${c.range}` }), gated: true, note: 'kix.-prefixed ID accepted (JOE-836)' },
+    { tool: 'docs_list_table_of_contents', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_get_as_json', params: (c) => ({ documentId: c.doc }) },
+    { tool: 'docs_delete_paragraph', params: (c) => ({ documentId: c.doc, paragraphIndex: 0 }), gated: true },
+    { tool: 'docs_set_text', params: (c) => ({ documentId: c.doc, text: 'smoke reset' }), gated: true },
+    { tool: 'docs_batch', params: (c) => ({ documentId: c.doc, operations: [
+      { action: 'documentGet', params: {} },
+      { action: 'paragraphInsert', params: { text: 'batch paragraph' } },
+    ] }) },
+  ],
+  cleanup: [
+    { tool: 'drive_delete_file', params: (c) => ({ fileId: c.doc }), gated: true, skip: (c) => (c.doc ? null : 'no document created') },
+  ],
+  verify: [
+    { tool: 'drive_search_files', params: (c) => ({ query: `name contains '${c.prefix}-doc' and trashed=false` }),
+      leftovers: (body) => (Array.isArray(body.data) ? body.data.length : (body.data?.files ?? []).length) },
+  ],
+}

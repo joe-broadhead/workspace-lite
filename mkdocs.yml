@@ -123,6 +123,7 @@ nav:
       - Input Policies: operations/input-policies.md
       - Troubleshooting: operations/troubleshooting.md
       - Security: operations/security.md
+      - Live Smoke Harness: operations/live-smoke.md
   - Project:
       - Public Release Readiness: project/public-release.md
       - Distribution Decision: project/distribution-decision.md

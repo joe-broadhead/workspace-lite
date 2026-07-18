@@ -14,3 +14,6 @@ dist/
 .vscode/
 coverage/
 site/
+
+# live smoke harness evidence (private)
+.smoke/
