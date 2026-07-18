@@ -21,13 +21,22 @@ Same as MCP: for each service, set `GOOGLE_WORKSPACE_<SERVICE>_PROXY_URL` and `G
 ## Commands
 
 ```text
-wslite doctor
+wslite doctor [--live]
 wslite tools [--service <svc>] [--risk <class>]
 wslite run <mcpToolName> …
 wslite call <service> <action> [--params-json …] [--tool <mcpName>]
 wslite tasks list-tasklists
 wslite drive get-file --file-id …
 ```
+
+## Doctor
+
+`wslite doctor` checks env presence per service (URL + tokens; names only, never values). Add `--live` to also probe each configured service against its deployed proxy:
+
+- **health** — unauthenticated GET on the proxy URL; verifies the deployment answers, returns valid JSON, and identifies as the *right* service (a URL wired to another service's proxy is reported as `service-mismatch`).
+- **auth** — one cheap authenticated read through the normal client path. Services without zero-argument reads are verified via a parameter-validation response, which the proxy only returns after accepting the token.
+
+Each failing service gets an actionable hint (redeploy, fix URL wiring, rotate token, or wait out a rate limit) with a correlationId for Apps Script log lookup where available. Exit code is 0 only when every service is configured and, with `--live`, ready. Use `--json` for machine-readable output.
 
 Global flags: `--json`, `--yes`/`-y`, `--quiet`/`-q`, `--verbose`/`-v`, `--idempotency-key`, `--params-json`.
 
