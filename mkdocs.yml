@@ -125,6 +125,7 @@ nav:
       - Security: operations/security.md
   - Project:
       - Public Release Readiness: project/public-release.md
+      - Distribution Decision: project/distribution-decision.md
       - Release Process: project/release-process.md
       - Changelog: project/changelog.md
       - Contributing: project/contributing.md
