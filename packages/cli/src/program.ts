@@ -10,6 +10,8 @@ import {
 import { findToolByName, findToolsByAction, loadCatalogTools, toolsByService } from './catalog-load.js'
 import { executeRaw, executeTool, type ExecuteOpts } from './execute.js'
 import { EXIT } from './exit-codes.js'
+import { probeService, type FetchLike, type LiveProbeResult } from './doctor.js'
+import { createProxyClient } from '@workspace-lite/shared/proxy-client'
 import { renderResult } from './render.js'
 
 export interface GlobalOpts {
@@ -26,6 +28,8 @@ export interface ProgramDeps {
   prompt?: ExecuteOpts['prompt']
   tty?: boolean
   env?: NodeJS.ProcessEnv
+  /** Injected for doctor --live tests — defaults to global fetch. */
+  fetchImpl?: FetchLike
   /** Capture exit instead of process.exit (tests). */
   exit?: (code: number) => void
 }
@@ -124,7 +128,8 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
   program
     .command('doctor')
     .description('Check proxy env presence for catalog services (no secrets printed)')
-    .action(() => {
+    .option('--live', 'Also probe each configured service live: health GET + one authenticated read')
+    .action(async (cmdOpts: { live?: boolean }) => {
       const globals = program.opts() as GlobalOpts
       const services = [...byService.keys()].sort()
       const rows: Array<Record<string, unknown>> = []
@@ -147,17 +152,36 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
           classTokenEnvNamesPresent: classTokenEnvNames.filter((name) => Boolean(env[name])),
         })
       }
-      if (globals.json) {
-        process.stdout.write(JSON.stringify({ ok: true, services: rows }, null, 2) + '\n')
-      } else {
+      if (cmdOpts.live) {
+        const factory = deps.clientFactory ?? ((s: string) => createProxyClient(s))
         for (const row of rows) {
-          process.stdout.write(
-            `${row.service}: url=${row.proxyUrl} primary=${row.primaryToken} classTokens=[${(row.classTokensSet as string[]).join(',') || 'none'}]\n`,
-          )
+          const service = row.service as string
+          const proxyUrl = env[`GOOGLE_WORKSPACE_${service.toUpperCase()}_PROXY_URL`]
+          if (!proxyUrl || row.primaryToken !== 'set') {
+            Object.assign(row, { live: { ready: false, health: 'skipped', auth: 'skipped', advice: 'set the env vars above first' } })
+            continue
+          }
+          const probe = await probeService(service, proxyUrl, factory, deps.fetchImpl)
+          Object.assign(row, { live: probe })
         }
       }
-      const allOk = rows.every((r) => r.proxyUrl === 'set' && r.primaryToken === 'set')
-      finish(allOk ? EXIT.SUCCESS : EXIT.FAILURE)
+      const allConfigured = rows.every((r) => r.proxyUrl === 'set' && r.primaryToken === 'set')
+      const allReady = !cmdOpts.live || rows.every((r) => (r.live as { ready?: boolean } | undefined)?.ready)
+      if (globals.json) {
+        process.stdout.write(JSON.stringify({ ok: allConfigured && allReady, live: Boolean(cmdOpts.live), services: rows }, null, 2) + '\n')
+      } else {
+        for (const row of rows) {
+          let line = `${row.service}: url=${row.proxyUrl} primary=${row.primaryToken} classTokens=[${(row.classTokensSet as string[]).join(',') || 'none'}]`
+          const live = row.live as LiveProbeResult | undefined
+          if (live) {
+            line += ` | health=${live.health} auth=${live.auth} ready=${live.ready ? 'yes' : 'NO'}`
+            if (live.authNote || live.healthNote) line += ` (${[live.healthNote, live.authNote].filter(Boolean).join('; ')})`
+            if (live.advice) line += `\n  ↳ ${live.advice}`
+          }
+          process.stdout.write(line + '\n')
+        }
+      }
+      finish(allConfigured && allReady ? EXIT.SUCCESS : EXIT.FAILURE)
     })
 
   program
