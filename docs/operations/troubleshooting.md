@@ -1,5 +1,7 @@
 # Troubleshooting
 
+Start with [Diagnostics](diagnostics.md): `wslite doctor --live --deployments` localizes most failures (missing env vars, bad token, wrong URL wiring, stale deployment) in one run, with redaction-safe output you can share directly. Use the sections below once doctor has told you *which* service and *what kind* of failure you have.
+
 ## Deployment Issues
 
 ### Web App Not Accessible

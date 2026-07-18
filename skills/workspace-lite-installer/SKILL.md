@@ -23,6 +23,20 @@ Use this skill to help a user install, configure, update, or troubleshoot the `w
 - Ask before rotating tokens, deleting Apps Script properties, creating replacement deployments, or changing OpenCode config.
 - Supported platforms: macOS, Linux, and Windows through Git Bash or MSYS2. Native PowerShell can run MCP servers after environment variables are persisted, but setup and deploy helper scripts expect bash.
 
+## Diagnose Before You Repair
+
+When troubleshooting an existing install, **run diagnostics before changing anything** — do not guess at redeploys, token rotations, or `.env` edits:
+
+```bash
+node packages/cli/dist/index.js doctor                # env presence, offline
+node packages/cli/dist/index.js doctor --live         # proxy health + token check per service
+node packages/cli/dist/index.js doctor --deployments  # stale/@HEAD deployment detection (needs clasp)
+```
+
+(Build first with `npm run build` if `packages/cli/dist` is missing.) Doctor names the failing service and failure kind — missing env var, unreachable URL, wrong-service wiring, rejected token, or stale deployment — and each failure comes with a remediation hint. Follow the hint; only fall back to the manual procedures below when doctor cannot localize the problem. Interpretation tables live in `docs/operations/diagnostics.md`.
+
+Doctor output is redaction-safe (env var names, error codes, correlationIds, fingerprinted deployment IDs only) and may be shared with the user or pasted into issues verbatim. Everything else stays private: never paste token values, `.env` contents, full deployment URLs, or script IDs.
+
 ## Windows & Shell Context Check
 
 Before running setup or diagnosing MCP startup failures on Windows, verify the shell context:
@@ -149,7 +163,7 @@ The skill ships three hardened scripts. **Use these instead of running raw clasp
 | `scripts/deploy-single.sh <repo-path> <service> "<message>"` | Push, version, and redeploy one service |
 | `scripts/verify-deployments.sh <repo-path>` | Check that every .env deployment URL matches clasp state |
 
-**Always run `verify-deployments.sh` after deploying** When `packages/cli` is built, the script also runs `wslite doctor` (env presence only; never prints token values). to confirm no deployment ID mismatch occurred.
+**Always run `verify-deployments.sh` after deploying** to confirm no deployment ID mismatch occurred. When `packages/cli` is built, the script also runs `wslite doctor` (env presence only; never prints token values). For a deeper post-deploy check, run `wslite doctor --live --deployments` — it verifies the live proxies answer, tokens are accepted, and no `.env` URL points at a stale version.
 
 ### Manual steps (fallback)
 

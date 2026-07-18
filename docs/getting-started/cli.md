@@ -48,6 +48,8 @@ Add `--deployments` (requires a configured repo checkout with `clasp` logged in)
 
 Deployment IDs are fingerprinted in output (first 10 characters), never printed in full. Exit code is 0 only when every service is configured and, with `--live`/`--deployments`, ready and current. Use `--json` for machine-readable output.
 
+See [Diagnostics](../operations/diagnostics.md) for when to run which check, full status interpretation tables, and redaction-safe support guidance.
+
 Global flags: `--json`, `--yes`/`-y`, `--quiet`/`-q`, `--verbose`/`-v`, `--idempotency-key`, `--params-json`.
 
 ### Confirmation
