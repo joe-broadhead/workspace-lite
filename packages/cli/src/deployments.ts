@@ -130,7 +130,9 @@ function repoRoot(): string {
 export async function checkDeployment(service: string, proxyUrl: string | undefined, execImpl: ExecLike = defaultExec): Promise<DeploymentCheck> {
   if (!proxyUrl) return analyzeDeployment(proxyUrl, '')
   const appsScriptDir = join(repoRoot(), 'packages', service, 'apps-script')
-  if (!existsSync(join(appsScriptDir, '.clasp.json'))) {
+  // .clasp.json is local-only (gitignored); only pre-check it on the real
+  // exec path — injected execs (tests) must not depend on checkout state.
+  if (execImpl === defaultExec && !existsSync(join(appsScriptDir, '.clasp.json'))) {
     return {
       status: 'clasp-unavailable',
       envDeploymentId: extractDeploymentId(proxyUrl) ? fingerprintId(extractDeploymentId(proxyUrl)!) : undefined,
