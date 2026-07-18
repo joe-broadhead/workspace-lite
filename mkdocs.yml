@@ -118,6 +118,7 @@ nav:
       - Overview: skill/overview.md
       - Workflows: skill/workflows.md
   - Operations:
+      - Diagnostics: operations/diagnostics.md
       - Quotas & Limits: operations/quotas.md
       - Mutation Safety: operations/mutation-safety.md
       - Input Policies: operations/input-policies.md

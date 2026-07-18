@@ -107,6 +107,7 @@ and the first Apps Script web app deployment settings in the Apps Script GUI.
 - Service guides: <https://joe-broadhead.github.io/workspace-lite/services/drive/>
 - Batch operations: <https://joe-broadhead.github.io/workspace-lite/api/batch/>
 - Security model: <https://joe-broadhead.github.io/workspace-lite/operations/security/>
+- Diagnostics & troubleshooting: <https://joe-broadhead.github.io/workspace-lite/operations/diagnostics/>
 - Contributing: <https://joe-broadhead.github.io/workspace-lite/project/contributing/>
 - Changelog: <https://joe-broadhead.github.io/workspace-lite/project/changelog/>
 
