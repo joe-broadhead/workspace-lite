@@ -31,7 +31,7 @@ wslite drive get-file --file-id …
 
 ## Doctor
 
-`wslite doctor` checks env presence per service (URL + tokens; names only, never values). Add `--live` to also probe each configured service against its deployed proxy:
+`wslite doctor` checks env presence per service (URL + tokens; names only, never values). Partial installs (`setup.sh --profile`/`--services`) are first-class: a service with no env vars at all is reported as *not installed* and never fails doctor; a service with *some* vars set was clearly intended, so incomplete config is a real failure. Add `--live` to also probe each configured service against its deployed proxy:
 
 - **health** — unauthenticated GET on the proxy URL; verifies the deployment answers, returns valid JSON, and identifies as the *right* service (a URL wired to another service's proxy is reported as `service-mismatch`).
 - **auth** — one cheap authenticated read through the normal client path. Services without zero-argument reads are verified via a parameter-validation response, which the proxy only returns after accepting the token.

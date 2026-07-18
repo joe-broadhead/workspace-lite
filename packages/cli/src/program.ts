@@ -148,6 +148,11 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
           .map((name) => name.replace(`${prefix}_PROXY_`, '').replace(/_TOKEN$/, ''))
         rows.push({
           service,
+          // Partial installs (setup.sh --profile/--services) are first-class:
+          // a service with no env vars at all is "not installed" and never
+          // counts against doctor's exit code. Any var present means the
+          // service was intended, so incomplete config is a real failure.
+          installed: url || primary || classes.length > 0,
           proxyUrl: url ? 'set' : 'missing',
           primaryToken: primary ? 'set' : 'missing',
           primaryEnvName: `${prefix}_PROXY_TOKEN`,
@@ -156,9 +161,10 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
           classTokenEnvNamesPresent: classTokenEnvNames.filter((name) => Boolean(env[name])),
         })
       }
+      const installedRows = rows.filter((r) => r.installed)
       if (cmdOpts.live) {
         const factory = deps.clientFactory ?? ((s: string) => createProxyClient(s))
-        for (const row of rows) {
+        for (const row of installedRows) {
           const service = row.service as string
           const proxyUrl = env[`GOOGLE_WORKSPACE_${service.toUpperCase()}_PROXY_URL`]
           if (!proxyUrl || row.primaryToken !== 'set') {
@@ -170,15 +176,16 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
         }
       }
       if (cmdOpts.deployments) {
-        for (const row of rows) {
+        for (const row of installedRows) {
           const service = row.service as string
           const proxyUrl = env[`GOOGLE_WORKSPACE_${service.toUpperCase()}_PROXY_URL`]
           row.deployment = await checkDeployment(service, proxyUrl, deps.execImpl)
         }
       }
-      const allConfigured = rows.every((r) => r.proxyUrl === 'set' && r.primaryToken === 'set')
-      const allReady = !cmdOpts.live || rows.every((r) => (r.live as { ready?: boolean } | undefined)?.ready)
-      const allCurrent = !cmdOpts.deployments || rows.every((r) => {
+      const allConfigured = installedRows.length > 0 &&
+        installedRows.every((r) => r.proxyUrl === 'set' && r.primaryToken === 'set')
+      const allReady = !cmdOpts.live || installedRows.every((r) => (r.live as { ready?: boolean } | undefined)?.ready)
+      const allCurrent = !cmdOpts.deployments || installedRows.every((r) => {
         const status = (r.deployment as DeploymentCheck | undefined)?.status
         return status === 'current' || status === 'clasp-unavailable' || status === 'version-unavailable'
       })
@@ -186,6 +193,10 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
         process.stdout.write(JSON.stringify({ ok: allConfigured && allReady && allCurrent, live: Boolean(cmdOpts.live), deployments: Boolean(cmdOpts.deployments), services: rows }, null, 2) + '\n')
       } else {
         for (const row of rows) {
+          if (!row.installed) {
+            process.stdout.write(`${row.service}: not installed (no env vars set — ok for partial installs)\n`)
+            continue
+          }
           let line = `${row.service}: url=${row.proxyUrl} primary=${row.primaryToken} classTokens=[${(row.classTokensSet as string[]).join(',') || 'none'}]`
           const live = row.live as LiveProbeResult | undefined
           if (live) {

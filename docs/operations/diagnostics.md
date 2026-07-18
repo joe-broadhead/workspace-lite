@@ -21,7 +21,9 @@ Plain `wslite doctor` makes **no network calls** and reads no files outside `pro
 
 ## `wslite doctor` (env presence)
 
-Reports each service as configured or lists the missing variable names. Nothing else. Exit code 0 means every service the install intends to use has its variables set — it does **not** prove the values are correct; that is what `--live` is for.
+Reports each service as configured or lists the missing variable names. Nothing else. Partial installs are supported: services with no variables at all are reported as *not installed* and don't fail doctor (that's the expected state after `setup.sh --profile core`), while a service with only some of its variables set counts as broken. Exit code 0 means every service the install intends to use has its variables set — it does **not** prove the values are correct; that is what `--live` is for.
+
+`--live` and `--deployments` likewise probe only installed services.
 
 ## `wslite doctor --live` (health + auth probes)
 
