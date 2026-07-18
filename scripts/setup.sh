@@ -7,15 +7,69 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-SERVICES=("drive" "gmail" "calendar" "sheets" "slides" "docs" "tasks" "forms")
+ALL_SERVICES_COUNT=8
 DRY_RUN=0
-if [ "${1:-}" = "--dry-run" ]; then
-  DRY_RUN=1
+PROFILE=""
+SERVICES_ARG=""
+
+usage() {
+  cat << 'EOF'
+Usage: bash ./scripts/setup.sh [--dry-run] [--profile <name> | --services <csv>]
+
+  --dry-run           Preview the flow; no clasp projects, secrets, or .env changes.
+  --profile <name>    Install a named subset of services:
+                        full       drive,gmail,calendar,sheets,slides,docs,tasks,forms
+                        core       drive,gmail,calendar
+                        authoring  drive,docs,sheets,slides
+                        planning   calendar,tasks,docs
+                        forms      forms,sheets,drive
+  --services <csv>    Explicit comma-separated service list, e.g. drive,gmail.
+
+With no profile/services argument, all 8 services are installed (unchanged default).
+Setup is idempotent per service: rerun later with a bigger selection to add services.
+EOF
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    --profile) PROFILE="${2:-}"; shift ;;
+    --profile=*) PROFILE="${1#*=}" ;;
+    --services) SERVICES_ARG="${2:-}"; shift ;;
+    --services=*) SERVICES_ARG="${1#*=}" ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1"; echo ""; usage; exit 1 ;;
+  esac
+  shift
+done
+
+if ! command -v node &>/dev/null; then
+  echo "Node.js is required. Install Node 20+ from https://nodejs.org"
+  exit 1
 fi
+
+if ! SELECTED_SERVICES="$(node "$ROOT/scripts/setup-services.mjs" \
+    ${PROFILE:+--profile "$PROFILE"} ${SERVICES_ARG:+--services "$SERVICES_ARG"})"; then
+  exit 1
+fi
+read -r -a SERVICES <<< "$SELECTED_SERVICES"
 
 banner() { echo -e "${BLUE}=== $1${NC}"; }
 success() { echo -e "${GREEN}✓ $1${NC}"; }
 warn() { echo -e "${YELLOW}⚠ $1${NC}"; }
+
+banner "Service selection"
+if [ -n "$PROFILE" ]; then
+  echo "Profile: $PROFILE"
+elif [ -n "$SERVICES_ARG" ]; then
+  echo "Explicit service list."
+else
+  echo "No profile/services argument: installing all services (default)."
+fi
+echo "Services to set up (${#SERVICES[@]}/$ALL_SERVICES_COUNT): ${SERVICES[*]}"
+if [ "${#SERVICES[@]}" -lt "$ALL_SERVICES_COUNT" ]; then
+  echo "Only these services will be created, pushed, bootstrapped into .env, and included in config output."
+fi
 
 ensure_bootstrap_secret() {
   local dir="$1"
@@ -434,8 +488,10 @@ elif [ "$BOOTSTRAPPED_COUNT" -eq 0 ]; then
   warn "Setup paused before token bootstrap. Complete the manual Apps Script web app deployments, then rerun ./scripts/setup.sh and paste /exec URLs to create .env entries."
   success "Apps Script projects were created or updated. MCP tools are not usable until tokens are bootstrapped."
 elif [ "$BOOTSTRAPPED_COUNT" -lt "${#SERVICES[@]}" ]; then
-  warn "Setup partially complete: bootstrapped $BOOTSTRAPPED_COUNT of ${#SERVICES[@]} services. Rerun ./scripts/setup.sh to finish skipped services."
+  warn "Setup partially complete: bootstrapped $BOOTSTRAPPED_COUNT of ${#SERVICES[@]} selected services. Rerun ./scripts/setup.sh (same --profile/--services) to finish skipped services."
   success "Restart OpenCode after configured services are added to opencode.jsonc."
+elif [ "${#SERVICES[@]}" -lt "$ALL_SERVICES_COUNT" ]; then
+  success "Setup complete for: ${SERVICES[*]}. Restart OpenCode to use their tools. Rerun setup with more services or --profile full to add the rest later."
 else
   success "Setup complete. Restart OpenCode to use all 218 tools."
 fi

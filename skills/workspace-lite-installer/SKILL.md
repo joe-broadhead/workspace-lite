@@ -108,24 +108,28 @@ The workspace-lite repo ships a `scripts/setup.sh` that handles initial setup. A
    ```bash
    npm install -g @google/clasp
    ```
-3. Run a dry run first when possible:
+3. Ask whether the user wants all 8 services or a subset. Setup supports install profiles:
+   - `--profile core` (drive, gmail, calendar), `--profile authoring` (drive, docs, sheets, slides), `--profile planning` (calendar, tasks, docs), `--profile forms` (drive, sheets, forms), `--profile full` (all 8, same as no argument)
+   - or an explicit list: `--services drive,gmail`
+   Only selected services get Apps Script projects, deployment prompts, `.env` entries, and config snippets. Partial installs are safe: setup is idempotent per service, so rerunning later with a bigger selection adds the missing services, and `wslite doctor` treats services with no env vars as "not installed" rather than broken.
+4. Run a dry run first when possible — it prints exactly which services will be touched:
    ```bash
-   bash ./scripts/setup.sh --dry-run
+   bash ./scripts/setup.sh --dry-run [--profile <name> | --services <csv>]
    ```
-4. Run setup:
+5. Run setup with the same selection:
    ```bash
-   bash ./scripts/setup.sh
+   bash ./scripts/setup.sh [--profile <name> | --services <csv>]
    ```
-5. If `clasp login` opens a browser, tell the user to complete Google auth. You cannot approve this for them.
-6. When setup prints Apps Script editor URLs, tell the user to open each URL and create the initial web app deployment in the GUI:
+6. If `clasp login` opens a browser, tell the user to complete Google auth. You cannot approve this for them.
+7. When setup prints Apps Script editor URLs, tell the user to open each URL and create the initial web app deployment in the GUI:
    - **Deploy -> New deployment**
    - **Select type -> Web app**
    - **Execute as -> Me**
    - **Who has access -> Anyone**
    - Review and authorize the requested OAuth scopes
    - Copy the `/exec` web app URL back into the setup prompt
-7. If the user completes the GUI deployments but does not paste URLs, retrieve them with `clasp deployments` from each service directory. Use the versioned deployment row (`@1`, `@2`, etc.), not the `@HEAD` row, and construct `https://script.google.com/macros/s/<deployment-id>/exec`.
-8. After setup writes `.env`, persist it (see "Persist Environment Variables" below) and restart OpenCode.
+8. If the user completes the GUI deployments but does not paste URLs, retrieve them with `clasp deployments` from each service directory. Use the versioned deployment row (`@1`, `@2`, etc.), not the `@HEAD` row, and construct `https://script.google.com/macros/s/<deployment-id>/exec`.
+9. After setup writes `.env`, persist it (see "Persist Environment Variables" below) and restart OpenCode.
 
 Setup is intentionally idempotent: it reuses local `.clasp.json` files, reuses existing Apps Script projects with the canonical service titles, and skips service tokens that are already present in `.env`. If bootstrap was consumed before `.env` was written, setup prompts before rotating the primary token with the local setup key.
 

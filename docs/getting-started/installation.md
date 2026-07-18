@@ -53,6 +53,23 @@ chmod +x scripts/setup.sh
 bash ./scripts/setup.sh
 ```
 
+With no arguments, all 8 services are installed. To set up a smaller, intentional subset, pass a profile or an explicit service list:
+
+```bash
+bash ./scripts/setup.sh --profile core          # drive, gmail, calendar
+bash ./scripts/setup.sh --services drive,gmail  # exactly these services
+```
+
+| Profile | Services |
+|---|---|
+| `full` | drive, gmail, calendar, sheets, slides, docs, tasks, forms (same as no argument) |
+| `core` | drive, gmail, calendar |
+| `authoring` | drive, docs, sheets, slides |
+| `planning` | calendar, tasks, docs |
+| `forms` | drive, sheets, forms |
+
+Every setup phase respects the selection: only selected services get Apps Script projects, deployment prompts, `.env` entries, and OpenCode config snippets. `--dry-run` prints exactly which services would be touched. Unknown profile or service names fail immediately with the valid options listed. Setup is idempotent per service, so a partial install is not a dead end — rerun later with `--profile full` (or a larger list) to add the remaining services; existing services are reused and existing `.env` tokens are never overwritten. A partial `.env` is normal and fully supported: `wslite doctor` and the MCP servers only consider the services whose variables are present.
+
 The script automates:
 
 | Step | What happens |

@@ -10,6 +10,7 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 
 ### Added
 
+- Install profiles and partial-service setup: `scripts/setup.sh` accepts `--profile <full|core|authoring|planning|forms>` or `--services <csv>` — only selected services are created, pushed, bootstrapped into `.env`, and included in config output; unknown names fail fast with valid options listed; no-argument behavior (all 8 services) unchanged. `wslite doctor` (incl. `--live`/`--deployments`) now treats services with no env vars as "not installed" instead of failing, making partial installs first-class (JOE-144).
 - Diagnostics guide (`docs/operations/diagnostics.md`): when to run `doctor` vs `--live` vs `--deployments`, status interpretation tables, offline behavior, and redaction-safe support-bundle guidance; troubleshooting docs and the installer skill now point to doctor-first diagnostics (JOE-143).
 - `wslite doctor --deployments`: compares each `.env` deployment ID against `clasp deployments` per service — detects stale versions, `@HEAD` URLs, and unknown deployments with redeploy hints; deployment IDs are fingerprinted, never printed in full (JOE-142).
 
