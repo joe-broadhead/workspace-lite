@@ -8,6 +8,10 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 
 ## Unreleased
 
+### Added
+
+- Distribution decision record (`docs/project/distribution-decision.md`): source-first for `v0.0.x`, no npm publishing yet, generated client config as the distribution surface, with explicit revisit triggers (JOE-157).
+
 ### Fixed
 
 - `gmail_list_labels` no longer fails with INTERNAL_ERROR when user labels exist; the response no longer includes `messageCount`, which relied on a method that does not exist on Apps Script `GmailLabel` (JOE-824).
