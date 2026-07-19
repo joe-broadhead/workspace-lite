@@ -2,6 +2,8 @@
 
 The skills encode repeatable workflows so agents can move quickly while preserving user review for sensitive actions.
 
+Structured cross-service recipes (with declared services, confirmation gates, and partial-failure handling) live in [Workflow Recipes](../workflows/index.md); the sequences below are the lighter operational flows the skills carry directly.
+
 ## Installation
 
 1. Run `bash ./scripts/setup.sh --dry-run` to preview dependencies, project creation, deployment steps, and generated config.

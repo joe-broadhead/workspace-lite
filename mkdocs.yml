@@ -118,6 +118,10 @@ nav:
   - Agent Skill:
       - Overview: skill/overview.md
       - Workflows: skill/workflows.md
+  - Workflow Recipes:
+      - Recipe Format: workflows/index.md
+      - Shared Guardrails: workflows/guardrails.md
+      - Meeting Pack: workflows/meeting-pack.md
   - Operations:
       - Diagnostics: operations/diagnostics.md
       - Quotas & Limits: operations/quotas.md
