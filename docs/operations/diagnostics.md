@@ -93,6 +93,24 @@ Once doctor has localized a failure, `wslite repair` (also `npm run repair`) han
 
 Repair exits 0 only when nothing needed fixing or every finding was repaired, so it chains cleanly: `wslite repair && wslite doctor --live`.
 
+## Security audit (`wslite security audit`)
+
+`wslite security audit` (also `npm run security:audit`) reports your security posture offline — from the local env shape and repo files only. It makes no network calls, reads no Workspace content, and prints no secret values.
+
+What it reports, and how to read it:
+
+| Area | Finding | Interpretation |
+|---|---|---|
+| `tokens` | ⚠ only the primary token configured | The primary token carries **every class except admin** by default (`read,draft,write,destructive,share,send`). Fine for a trusted operator shell; for agents, bootstrap class-scoped tokens and hand out the narrowest one. The primary's server-side grant can be narrowed via the `PROXY_AUTH_TOKEN_CLASSES` script property. |
+| `tokens` | ⚠ admin-class token present locally | Admin enables token administration — keep it out of agent environments and client config. |
+| `scopes` | ℹ manifest scope list | The OAuth scopes each service's Apps Script project requests. They authorize *your own project only*; narrowing means editing `appsscript.json` and re-authorizing. |
+| `allowlists` | ℹ supported script properties | Resource/recipient/image-host allowlists are **Script Properties in Apps Script** — server-side by design, so the audit reports what each service supports, not what is set. Unset means unrestricted within the token class. Set them under Project Settings → Script Properties; reference: [Input Policies](input-policies.md). |
+| `allowlists` | ⚠ gmail send-capable without inspectable recipient bounds | A primary or send token can send email; unless `ALLOWED_EMAIL_RECIPIENTS`/`ALLOWED_EMAIL_DOMAINS` are set server-side, it can send to anyone. |
+| `sharing` | ✓ public Drive sharing disabled by default | `ALLOW_PUBLIC_DRIVE_SHARING`/`ALLOW_PUBLIC_SHARING` are opt-in script properties; leave them unset unless you need public links. |
+| `images` | ℹ image-host allowlist posture | Docs/Slides image-by-URL only fetches from `ALLOWED_IMAGE_HOSTS` (+ per-service variants); unset refuses image URLs entirely. |
+
+The audit is informational: it always exits 0, and warnings are posture hints, not failures. `--json` gives the findings with severities for scripting. Script Property *values* are deliberately not inspectable from the CLI — verifying them means opening the Apps Script editor, which is exactly the user-owned trust model working as intended.
+
 ## Sharing diagnostics safely (support bundles)
 
 There is no `wslite support-bundle` command yet. Until one exists, a safe support bundle is exactly this, assembled by hand:

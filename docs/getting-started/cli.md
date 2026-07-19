@@ -23,6 +23,7 @@ Same as MCP: for each service, set `GOOGLE_WORKSPACE_<SERVICE>_PROXY_URL` and `G
 ```text
 wslite doctor [--live] [--deployments]
 wslite repair [--dry-run] [--service <svc>]
+wslite security audit [--offline]
 wslite tools [--service <svc>] [--risk <class>]
 wslite run <mcpToolName> …
 wslite call <service> <action> [--params-json …] [--tool <mcpName>]
@@ -61,6 +62,10 @@ See [Diagnostics](../operations/diagnostics.md) for when to run which check, ful
 - `--dry-run` prints findings and proposals without changing anything; `--service <svc>` limits scope; output follows doctor's redaction rules (fingerprinted IDs, no secrets or URLs).
 
 Exit code is 0 only when nothing needs repair or every finding was repaired. See [Diagnostics](../operations/diagnostics.md) for when to use repair vs rerunning setup.
+
+## Security audit
+
+`wslite security audit` reports token-class posture (broad-primary and admin-token warnings), manifest OAuth scopes, per-service allowlist support, public-sharing posture, and image-host posture — offline, from local env shape and repo files, with no secret values printed. Informational: always exits 0. Interpretation guide: [Diagnostics → Security audit](../operations/diagnostics.md#security-audit-wslite-security-audit).
 
 Global flags: `--json`, `--yes`/`-y`, `--quiet`/`-q`, `--verbose`/`-v`, `--idempotency-key`, `--params-json`.
 

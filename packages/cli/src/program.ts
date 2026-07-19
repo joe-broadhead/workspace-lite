@@ -13,6 +13,7 @@ import { EXIT } from './exit-codes.js'
 import { probeService, type FetchLike, type LiveProbeResult } from './doctor.js'
 import { checkDeployment, defaultExec, repoRoot, type DeploymentCheck, type ExecLike } from './deployments.js'
 import { applyRepair, diagnoseRepairs, type FsLike, type RepairIO } from './repair.js'
+import { runSecurityAudit, type AuditFinding } from './security-audit.js'
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
 import { interactivePrompt } from './prompt.js'
 import { renderResult } from './render.js'
@@ -300,6 +301,42 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
         process.stdout.write(`No repairs needed${services.length ? ` for: ${services.join(', ')}` : ''}.\n`)
       }
       finish(findings.length === 0 || allResolved ? EXIT.SUCCESS : EXIT.FAILURE)
+    })
+
+  const security = program
+    .command('security')
+    .description('Security posture commands')
+  security
+    .command('audit')
+    .description('Report token-class, scope, allowlist, and sharing posture (offline; no secrets printed)')
+    .option('--offline', 'Offline mode (the default and only mode; accepted for forward compatibility)')
+    .action(() => {
+      const globals = program.opts() as GlobalOpts
+      const fsImpl: FsLike = deps.fsImpl ?? {
+        exists: (p) => existsSync(p),
+        readFile: (p) => readFileSync(p, 'utf8'),
+        writeFile: (p, c) => writeFileSync(p, c),
+      }
+      const catalogServices: string[] = [...byService.keys()].sort()
+      const { services, findings } = runSecurityAudit(catalogServices, env, repoRoot(), fsImpl)
+      if (globals.json) {
+        process.stdout.write(JSON.stringify({ services, findings }, null, 2) + '\n')
+        finish(EXIT.SUCCESS)
+      }
+      if (services.length === 0) {
+        process.stdout.write('No services configured — nothing to audit. Run setup first.\n')
+        finish(EXIT.SUCCESS)
+      }
+      process.stdout.write(`Auditing ${services.length} configured service${services.length === 1 ? '' : 's'}: ${services.join(', ')}\n\n`)
+      const icons: Record<AuditFinding['severity'], string> = { ok: '✓', info: 'ℹ', warn: '⚠' }
+      for (const finding of findings) {
+        const label = finding.service ? `${finding.service}: ` : ''
+        process.stdout.write(`${icons[finding.severity]} [${finding.area}] ${label}${finding.summary}\n`)
+        if (finding.advice) process.stdout.write(`  ↳ ${finding.advice}\n`)
+      }
+      const warns = findings.filter((f) => f.severity === 'warn').length
+      process.stdout.write(`\n${warns === 0 ? 'No warnings.' : `${warns} warning${warns === 1 ? '' : 's'} — see hints above.`} Interpretation guide: docs/operations/diagnostics.md\n`)
+      finish(EXIT.SUCCESS)
     })
 
   program
