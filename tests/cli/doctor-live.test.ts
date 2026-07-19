@@ -83,6 +83,33 @@ describe('doctor --live probes', () => {
     assert.equal(authCalls, 0)
   })
 
+  it('retries the health probe once after a timeout (Apps Script cold start)', async () => {
+    let calls = 0
+    const coldStart: FetchLike = async () => {
+      calls++
+      if (calls === 1) {
+        const err = new Error('timeout')
+        err.name = 'TimeoutError'
+        throw err
+      }
+      return { ok: true, status: 200, text: async () => JSON.stringify(healthyPayload('tasks')) }
+    }
+    const result = await probeService('tasks', 'https://proxy.example/exec',
+      clientReturning({ success: true, data: {} }), coldStart)
+    assert.equal(result.health, 'healthy')
+    assert.equal(calls, 2)
+
+    const alwaysTimeout: FetchLike = async () => {
+      const err = new Error('timeout')
+      err.name = 'TimeoutError'
+      throw err
+    }
+    const down = await probeService('tasks', 'https://proxy.example/exec',
+      clientReturning({ success: true, data: {} }), alwaysTimeout)
+    assert.equal(down.health, 'unreachable')
+    assert.match(down.healthNote ?? '', /retry/)
+  })
+
   it('reports client config errors as skipped with env names only', async () => {
     const throwing = () => ({ async callProxy(): Promise<ProxyResponse> { throw new Error('GOOGLE_WORKSPACE_TASKS_PROXY_TOKEN not set') } })
     const result = await probeService('tasks', 'https://proxy.example/exec', throwing, healthFetch(healthyPayload('tasks')))

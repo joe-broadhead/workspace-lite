@@ -48,17 +48,24 @@ export interface LiveProbeResult {
   advice?: string
 }
 
-export type FetchLike = (url: string, init: { method: string; signal: AbortSignal }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>
+export type FetchLike = (url: string, init: { method: string; signal: AbortSignal; headers?: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>
 
-async function probeHealth(service: string, url: string, fetchImpl: FetchLike): Promise<Pick<LiveProbeResult, 'health' | 'healthNote' | 'proxyReportsService'>> {
+export async function probeHealth(service: string, url: string, fetchImpl: FetchLike): Promise<Pick<LiveProbeResult, 'health' | 'healthNote' | 'proxyReportsService'>> {
   let text: string
   try {
-    const res = await fetchImpl(url, { method: 'GET', signal: AbortSignal.timeout(15_000) })
+    let res
+    try {
+      res = await fetchImpl(url, { method: 'GET', signal: AbortSignal.timeout(15_000) })
+    } catch (error) {
+      // Apps Script cold starts can exceed 15s; retry once with more headroom.
+      if (!(error instanceof Error && error.name === 'TimeoutError')) throw error
+      res = await fetchImpl(url, { method: 'GET', signal: AbortSignal.timeout(30_000) })
+    }
     if (!res.ok) return { health: 'unreachable', healthNote: `HTTP ${res.status}` }
     text = await res.text()
   } catch (error) {
     const name = error instanceof Error ? error.name : 'Error'
-    return { health: 'unreachable', healthNote: name === 'TimeoutError' ? 'timeout after 15s' : 'network error' }
+    return { health: 'unreachable', healthNote: name === 'TimeoutError' ? 'timeout after retry (15s + 30s)' : 'network error' }
   }
   let parsed: unknown
   try {

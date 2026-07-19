@@ -22,6 +22,7 @@ Same as MCP: for each service, set `GOOGLE_WORKSPACE_<SERVICE>_PROXY_URL` and `G
 
 ```text
 wslite doctor [--live] [--deployments]
+wslite repair [--dry-run] [--service <svc>]
 wslite tools [--service <svc>] [--risk <class>]
 wslite run <mcpToolName> …
 wslite call <service> <action> [--params-json …] [--tool <mcpName>]
@@ -49,6 +50,17 @@ Add `--deployments` (requires a configured repo checkout with `clasp` logged in)
 Deployment IDs are fingerprinted in output (first 10 characters), never printed in full. Exit code is 0 only when every service is configured and, with `--live`/`--deployments`, ready and current. Use `--json` for machine-readable output.
 
 See [Diagnostics](../operations/diagnostics.md) for when to run which check, full status interpretation tables, and redaction-safe support guidance.
+
+## Repair
+
+`wslite repair` turns doctor-style diagnoses of common install drift into guided fixes. It detects: CRLF or malformed `.env` entries, missing `.clasp.json` (recoverable when clasp lists the canonical project by title), missing tokens (recoverable via the bootstrap endpoint when `BootstrapSecret.gs` exists locally), failing health probes, and stale/`@HEAD`/unknown deployments.
+
+- Safe file writes (`.env` LF normalization, `.clasp.json` recovery, token append) run only after per-finding confirmation (`--yes` accepts them non-interactively).
+- **Token rotation is never automatic**: if bootstrap was already consumed, rotation additionally requires an interactive prompt — `--yes` alone will not rotate, and non-interactive runs get manual instructions instead.
+- Everything else (redeploys, missing bootstrap secrets, malformed `.env` lines that may contain secrets) gets exact manual commands rather than automation.
+- `--dry-run` prints findings and proposals without changing anything; `--service <svc>` limits scope; output follows doctor's redaction rules (fingerprinted IDs, no secrets or URLs).
+
+Exit code is 0 only when nothing needs repair or every finding was repaired. See [Diagnostics](../operations/diagnostics.md) for when to use repair vs rerunning setup.
 
 Global flags: `--json`, `--yes`/`-y`, `--quiet`/`-q`, `--verbose`/`-v`, `--idempotency-key`, `--params-json`.
 

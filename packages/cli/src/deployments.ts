@@ -111,7 +111,7 @@ export function analyzeDeployment(proxyUrl: string | undefined, claspOutput: str
 
 export type ExecLike = (command: string, args: string[], cwd: string) => Promise<{ code: number | null; stdout: string; stderr: string }>
 
-const defaultExec: ExecLike = (command, args, cwd) =>
+export const defaultExec: ExecLike = (command, args, cwd) =>
   new Promise((resolve) => {
     const child = spawn(command, args, { cwd, timeout: 60_000 })
     let stdout = ''
@@ -122,7 +122,7 @@ const defaultExec: ExecLike = (command, args, cwd) =>
     child.on('close', (code) => resolve({ code, stdout, stderr }))
   })
 
-function repoRoot(): string {
+export function repoRoot(): string {
   // packages/cli/{dist,src}/deployments.* → repo root is three levels up.
   return join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 }
