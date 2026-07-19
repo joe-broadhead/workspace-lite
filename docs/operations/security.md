@@ -200,6 +200,8 @@ There is no additional infrastructure to secure.
 
 Token impact depends on the token's authorization classes. The setup-generated primary token defaults to the full Auth.gs set `read,draft,write,destructive,share,send` (`DEFAULT_AUTH_TOKEN_CLASSES`). Narrower primary tokens require explicitly setting `PROXY_AUTH_TOKEN_CLASSES` or class-scoped token properties in Apps Script Script Properties. The MCP client and `wslite` CLI choose class-scoped environment tokens by action class when they are configured, and only fall back to the primary token when no matching class token is available.
 
+Because of that fallback, **an agent-facing environment is only as narrow as the broadest token it contains**: adding a read token next to the primary changes nothing. Safer configurations remove the primary from agent-facing env entirely — `read-only` (only `_PROXY_READ_TOKEN`), `authoring` (only `_PROXY_WRITE_TOKEN`: read/draft/write, no send/share/destructive), or `read-draft` (a primary narrowed server-side via `PROXY_AUTH_TOKEN_CLASSES=read,draft`, rotated first if it was shared). The [Lockdown Spec](../project/lockdown-spec.md) defines these profiles precisely, what tooling may recommend, and what it must never mutate; `wslite security audit` reports your current posture.
+
 | Token class | Access |
 |---|---|
 | `read` | Read/list/search actions allowed by service policies |
