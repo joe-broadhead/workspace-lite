@@ -57,3 +57,4 @@ Every recipe has exactly these `##` sections, in this order:
 | Recipe | Services | Status |
 |---|---|---|
 | [Meeting Pack](meeting-pack.md) | calendar, drive, docs, gmail, tasks | ready |
+| [Weekly Review](weekly-review.md) | calendar, tasks, drive, docs, gmail | ready |
