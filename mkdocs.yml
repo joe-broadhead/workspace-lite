@@ -123,6 +123,7 @@ nav:
       - Shared Guardrails: workflows/guardrails.md
       - Meeting Pack: workflows/meeting-pack.md
       - Weekly Review: workflows/weekly-review.md
+      - Inbox Thread to Doc: workflows/inbox-thread-to-doc.md
   - Operations:
       - Diagnostics: operations/diagnostics.md
       - Quotas & Limits: operations/quotas.md

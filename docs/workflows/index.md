@@ -58,3 +58,4 @@ Every recipe has exactly these `##` sections, in this order:
 |---|---|---|
 | [Meeting Pack](meeting-pack.md) | calendar, drive, docs, gmail, tasks | ready |
 | [Weekly Review](weekly-review.md) | calendar, tasks, drive, docs, gmail | ready |
+| [Inbox Thread to Doc and Tasks](inbox-thread-to-doc.md) | gmail, docs, drive, tasks | ready |
