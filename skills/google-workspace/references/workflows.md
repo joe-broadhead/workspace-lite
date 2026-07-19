@@ -8,6 +8,8 @@ Structured cross-service recipes live in `docs/workflows/` (rendered on the docs
 - **Weekly Review** (`docs/workflows/weekly-review.md`) — bounded week of calendar/tasks (drive/gmail opt-in, gmail query needs explicit approval) into a new review doc, optional follow-up tasks.
 - **Inbox Thread to Doc and Tasks** (`docs/workflows/inbox-thread-to-doc.md`) — one bounded Gmail thread into a structured summary doc, optional tasks from action items, optional draft reply (never sent; thread state untouched).
 
+When creating Docs, Sheets, or Slides artifacts — inside a recipe or ad hoc — follow the structure and style templates in `docs/workflows/artifact-templates.md` (meeting notes, weekly review, project brief, decision memo; project/decision/KPI trackers; status, kickoff, and doc-to-deck decks) instead of producing minimally valid files.
+
 All recipes (and the ad-hoc sequences below) inherit the shared guardrails in `docs/workflows/guardrails.md`: draft-first email, no send/share/destructive action without an explicit per-gate confirmation, create new artifacts instead of mutating existing ones, bound every read (date ranges + maxResults), and never route data outside the user-owned proxies or escalate token classes.
 
 ## Email

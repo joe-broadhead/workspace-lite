@@ -124,6 +124,7 @@ nav:
       - Meeting Pack: workflows/meeting-pack.md
       - Weekly Review: workflows/weekly-review.md
       - Inbox Thread to Doc: workflows/inbox-thread-to-doc.md
+      - Artifact Templates: workflows/artifact-templates.md
   - Operations:
       - Diagnostics: operations/diagnostics.md
       - Quotas & Limits: operations/quotas.md

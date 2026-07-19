@@ -13,7 +13,7 @@ import { ALL_SERVICES } from '../scripts/setup-services.mjs'
  */
 
 const WORKFLOWS_DIR = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'docs', 'workflows')
-const NON_RECIPES = new Set(['index.md', 'guardrails.md'])
+const NON_RECIPES = new Set(['index.md', 'guardrails.md', 'artifact-templates.md'])
 const TOKEN_CLASSES = ['read', 'write', 'send', 'share', 'destructive', 'admin']
 const REQUIRED_SECTIONS = [
   'Outcome',
