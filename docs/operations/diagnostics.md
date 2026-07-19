@@ -12,6 +12,7 @@ All doctor output is **redaction-safe by construction**: it prints environment v
 | Tools return errors, "is the proxy reachable and my token valid?" | `wslite doctor --live` | Yes |
 | "I pushed code but behavior didn't change", post-deploy verification | `wslite doctor --deployments` | No (needs local `clasp`) |
 | Full health check (e.g. after `setup.sh` or a redeploy) | `wslite doctor --live --deployments` | Yes |
+| Doctor found drift and you want guided fixes | `wslite repair` (preview with `--dry-run`) | Partly |
 
 Escalate to [Troubleshooting](troubleshooting.md) only after doctor has localized the failure — its sections map directly onto doctor's advice lines (redeploy, rotate token, fix URL wiring).
 
@@ -72,6 +73,25 @@ The most common real-world finding is `stale` after a `clasp push` without a red
 ## Exit codes
 
 `doctor` exits 0 only when every service is configured and — with `--live`/`--deployments` — ready and current. `clasp-unavailable` and `version-unavailable` do not fail the run. Use `--json` for machine-readable output (same redaction rules apply).
+
+## Guided repair (`wslite repair`)
+
+Once doctor has localized a failure, `wslite repair` (also `npm run repair`) handles the common drift states with guided, confirmed fixes. Run `wslite repair --dry-run` first to see findings and proposals without changing anything.
+
+| Drift | Repair behavior |
+|---|---|
+| `.env` has CRLF line endings | Confirmed rewrite with LF (idempotent) |
+| `.env` has malformed `GOOGLE_WORKSPACE_*` lines | Manual — reported by line number only (contents may hold tokens) |
+| `.clasp.json` missing, canonical project exists by title | Confirmed write of `.clasp.json` from `clasp list` |
+| `.clasp.json` missing, no matching project | Manual — rerun `setup.sh --services <svc>` |
+| Token missing, `BootstrapSecret.gs` present | Confirmed bootstrap; **rotation only after an additional interactive prompt** |
+| Token missing, no local `BootstrapSecret.gs` | Manual — rerun `setup.sh --services <svc>` |
+| Health probe failing / wrong-service URL | Manual — redeploy command or `.env` fix printed |
+| Deployment stale / `@HEAD` / not listed | Manual — exact `deploy-single.sh` command printed |
+
+**Repair vs rerunning setup**: use `repair` when an install used to work and drifted — it only touches the specific broken thing, shows what will change, and asks first. Rerun `bash ./scripts/setup.sh` (optionally `--services <svc>`) when a service was never fully installed, its Apps Script project or bootstrap secret is gone, or repair's manual guidance points you there — setup is idempotent and skips healthy services. Neither ever touches your Workspace content.
+
+Repair exits 0 only when nothing needed fixing or every finding was repaired, so it chains cleanly: `wslite repair && wslite doctor --live`.
 
 ## Sharing diagnostics safely (support bundles)
 

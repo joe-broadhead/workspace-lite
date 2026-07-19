@@ -1,5 +1,5 @@
 import { Command, CommanderError, Option } from 'commander'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import {
   effectiveActions,
   keyToFlagName,
@@ -11,8 +11,10 @@ import { findToolByName, findToolsByAction, loadCatalogTools, toolsByService } f
 import { executeRaw, executeTool, type ExecuteOpts } from './execute.js'
 import { EXIT } from './exit-codes.js'
 import { probeService, type FetchLike, type LiveProbeResult } from './doctor.js'
-import { checkDeployment, type DeploymentCheck, type ExecLike } from './deployments.js'
+import { checkDeployment, defaultExec, repoRoot, type DeploymentCheck, type ExecLike } from './deployments.js'
+import { applyRepair, diagnoseRepairs, type FsLike, type RepairIO } from './repair.js'
 import { createProxyClient } from '@workspace-lite/shared/proxy-client'
+import { interactivePrompt } from './prompt.js'
 import { renderResult } from './render.js'
 
 export interface GlobalOpts {
@@ -33,6 +35,8 @@ export interface ProgramDeps {
   fetchImpl?: FetchLike
   /** Injected for doctor --deployments tests — defaults to spawning clasp. */
   execImpl?: ExecLike
+  /** Injected for repair tests — defaults to real file access. */
+  fsImpl?: FsLike
   /** Capture exit instead of process.exit (tests). */
   exit?: (code: number) => void
 }
@@ -216,6 +220,86 @@ export function buildProgram(deps: ProgramDeps = {}): Command {
         }
       }
       finish(allConfigured && allReady && allCurrent ? EXIT.SUCCESS : EXIT.FAILURE)
+    })
+
+  program
+    .command('repair')
+    .description('Diagnose common install drift; apply safe repairs with confirmation or print manual steps')
+    .option('--dry-run', 'Show findings and proposals without applying anything')
+    .option('--service <service>', 'Limit repair to one service')
+    .action(async (cmdOpts: { dryRun?: boolean; service?: string }) => {
+      const globals = program.opts() as GlobalOpts
+      const catalogServices: string[] = [...byService.keys()].sort()
+      const installed = (service: string) => {
+        const prefix = `GOOGLE_WORKSPACE_${service.toUpperCase()}`
+        return Boolean(
+          env[`${prefix}_PROXY_URL`] || env[`${prefix}_PROXY_TOKEN`] ||
+          ['READ', 'WRITE', 'SEND', 'SHARE', 'DESTRUCTIVE', 'ADMIN'].some((c) => env[`${prefix}_PROXY_${c}_TOKEN`]),
+        )
+      }
+      let services: string[]
+      if (cmdOpts.service) {
+        if (!catalogServices.includes(cmdOpts.service)) {
+          process.stderr.write(`Unknown service "${cmdOpts.service}". Valid services: ${catalogServices.join(', ')}\n`)
+          finish(EXIT.USAGE)
+        }
+        services = [cmdOpts.service]
+      } else {
+        services = catalogServices.filter(installed)
+      }
+      const tty = isTty(deps)
+      const promptFn = deps.prompt ?? interactivePrompt
+      const canPrompt = tty || deps.prompt !== undefined
+      const io: RepairIO = {
+        root: repoRoot(),
+        env,
+        fs: deps.fsImpl ?? {
+          exists: (p) => existsSync(p),
+          readFile: (p) => readFileSync(p, 'utf8'),
+          writeFile: (p, c) => writeFileSync(p, c),
+        },
+        fetchImpl: deps.fetchImpl ?? (fetch as unknown as FetchLike),
+        execImpl: deps.execImpl ?? defaultExec,
+        // Rotation is interactive-only: without a prompt channel it is
+        // refused inside applyRepair — never automatic, even with --yes.
+        promptRotate: canPrompt
+          ? (service) => promptFn(`Rotate the primary token for ${service}? This invalidates the previous primary token.`)
+          : undefined,
+      }
+      const findings = await diagnoseRepairs(services, io)
+      const results: Array<Record<string, unknown>> = []
+      let allResolved = true
+      for (const finding of findings) {
+        const label = finding.service ? `${finding.service}: ` : '.env: '
+        if (!globals.json) {
+          process.stdout.write(`${label}${finding.summary}\n  ↳ ${finding.action === 'confirm' ? 'proposed' : 'manual'}: ${finding.proposal}\n`)
+        }
+        if (cmdOpts.dryRun || finding.action !== 'confirm') {
+          results.push({ ...finding, data: undefined, applied: false })
+          allResolved = false
+          continue
+        }
+        let approved = Boolean(globals.yes)
+        if (!approved && canPrompt) {
+          approved = await promptFn(`Apply this repair? ${label}${finding.proposal}`)
+        }
+        if (!approved) {
+          results.push({ ...finding, data: undefined, applied: false, outcome: 'skipped (not confirmed)' })
+          if (!globals.json) process.stdout.write('  ↳ skipped (not confirmed)\n')
+          allResolved = false
+          continue
+        }
+        const applied = await applyRepair(finding, io)
+        results.push({ ...finding, data: undefined, applied: applied.ok, outcome: applied.outcome })
+        if (!applied.ok) allResolved = false
+        if (!globals.json) process.stdout.write(`  ↳ ${applied.ok ? '✓' : '✗'} ${applied.outcome}\n`)
+      }
+      if (globals.json) {
+        process.stdout.write(JSON.stringify({ ok: findings.length === 0 || allResolved, dryRun: Boolean(cmdOpts.dryRun), findings: results }, null, 2) + '\n')
+      } else if (findings.length === 0) {
+        process.stdout.write(`No repairs needed${services.length ? ` for: ${services.join(', ')}` : ''}.\n`)
+      }
+      finish(findings.length === 0 || allResolved ? EXIT.SUCCESS : EXIT.FAILURE)
     })
 
   program

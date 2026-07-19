@@ -33,7 +33,7 @@ node packages/cli/dist/index.js doctor --live         # proxy health + token che
 node packages/cli/dist/index.js doctor --deployments  # stale/@HEAD deployment detection (needs clasp)
 ```
 
-(Build first with `npm run build` if `packages/cli/dist` is missing.) Doctor names the failing service and failure kind — missing env var, unreachable URL, wrong-service wiring, rejected token, or stale deployment — and each failure comes with a remediation hint. Follow the hint; only fall back to the manual procedures below when doctor cannot localize the problem. Interpretation tables live in `docs/operations/diagnostics.md`.
+(Build first with `npm run build` if `packages/cli/dist` is missing.) Doctor names the failing service and failure kind — missing env var, unreachable URL, wrong-service wiring, rejected token, or stale deployment — and each failure comes with a remediation hint. For the common drift states, `node packages/cli/dist/index.js repair --dry-run` proposes guided fixes; without `--dry-run` it applies safe file writes after per-finding confirmation, prints manual commands for everything else, and never rotates a token without an interactive prompt. Follow the hints; only fall back to the manual procedures below when doctor/repair cannot localize the problem. Interpretation tables live in `docs/operations/diagnostics.md`.
 
 Doctor output is redaction-safe (env var names, error codes, correlationIds, fingerprinted deployment IDs only) and may be shared with the user or pasted into issues verbatim. Everything else stays private: never paste token values, `.env` contents, full deployment URLs, or script IDs.
 
