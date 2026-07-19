@@ -7,7 +7,7 @@ Recipes live in two places, deliberately aligned:
 - **`docs/workflows/<recipe>.md`** (this section) — the authoritative, full recipe.
 - **`skills/google-workspace/references/workflows.md`** — the agent skill points here for flagship recipes and carries only short tool sequences of its own.
 
-Every recipe follows the format below, enforced by `tests/workflow-recipes.test.ts` — a new recipe that misses a section or misdeclares a service fails CI. All recipes inherit the [shared guardrails](guardrails.md); a recipe may tighten them, never loosen them.
+Every recipe follows the format below, enforced by `tests/workflow-recipes.test.ts` — a new recipe that misses a section or misdeclares a service fails CI. All recipes inherit the [shared guardrails](guardrails.md); a recipe may tighten them, never loosen them. Recipes that produce Docs/Sheets/Slides artifacts follow the [artifact templates](artifact-templates.md) for structure and style.
 
 ## Frontmatter
 
