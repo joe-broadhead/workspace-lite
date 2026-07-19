@@ -66,7 +66,9 @@ if ! clasp redeploy "$env_id" -V "$V" -d "$MSG" 2>&1 | tail -1; then
 fi
 
 echo "Verifying..."
-state=$(clasp deployments 2>&1 | grep "$env_id" | sed -n 's/.*\(@[0-9][0-9]*\).*/\1/p')
+# || true: with pipefail, a missing env_id would otherwise kill the script
+# before the warning below can explain what happened.
+state=$(clasp deployments 2>&1 | { grep "$env_id" || true; } | sed -n 's/.*\(@[0-9][0-9]*\).*/\1/p')
 if [ "$state" != "@$V" ]; then
   echo "WARNING: Deployment may have changed ID. Expected @$V, got $state"
 else
