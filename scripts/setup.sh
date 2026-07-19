@@ -202,21 +202,6 @@ windows_path_if_needed() {
   fi
 }
 
-json_array() {
-  node -e 'console.log(JSON.stringify(process.argv.slice(1)))' "$@"
-}
-
-opencode_command_json() {
-  local svc="$1"
-  local script_path="$ROOT/packages/$svc/src/index.ts"
-
-  if is_windows_shell; then
-    local tsx_cmd="$ROOT/node_modules/.bin/tsx.cmd"
-    json_array "$(windows_path_if_needed "$tsx_cmd")" "$(windows_path_if_needed "$script_path")"
-  else
-    json_array "npx" "tsx" "$script_path"
-  fi
-}
 
 # ── Prerequisites ──
 banner "Prerequisites"
@@ -449,31 +434,18 @@ fi
 # ── Config output ──
 banner "OpenCode Config"
 echo ""
-echo "Add these entries to your opencode.jsonc under \"mcp\":"
+echo "Merge the \"mcp\" object below into your opencode.jsonc:"
 echo ""
-
-for svc in "${SERVICES[@]}"; do
-  env_name=$(echo "$svc" | tr '[:lower:]' '[:upper:]')
-  name="google-${svc}"
-  command_json="$(opencode_command_json "$svc")"
-  cat <<EOF
-    "$name": {
-      "type": "local",
-      "command": $command_json,
-      "environment": {
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_URL": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_URL}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_TOKEN}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_READ_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_READ_TOKEN}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_WRITE_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_WRITE_TOKEN}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_SEND_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_SEND_TOKEN}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_SHARE_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_SHARE_TOKEN}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_DESTRUCTIVE_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_DESTRUCTIVE_TOKEN}",
-        "GOOGLE_WORKSPACE_${env_name}_PROXY_ADMIN_TOKEN": "{env:GOOGLE_WORKSPACE_${env_name}_PROXY_ADMIN_TOKEN}"
-      }
-    },
-EOF
-  echo ""
-done
+CONFIG_SERVICES=$(IFS=,; echo "${SERVICES[*]}")
+WINDOWS_FLAG=""
+if is_windows_shell; then
+  WINDOWS_FLAG="--windows"
+fi
+node "$ROOT/scripts/client-config.mjs" --client opencode --services "$CONFIG_SERVICES" \
+  --root "$(windows_path_if_needed "$ROOT")" $WINDOWS_FLAG 2>/dev/null
+echo ""
+echo "For Claude Code, Claude Desktop, or Cursor, generate mcpServers-style config with:"
+echo "  node scripts/client-config.mjs --client claude-code --services $CONFIG_SERVICES"
 
 # ── Skill ──
 banner "Install skills"

@@ -98,6 +98,7 @@ nav:
       - Quickstart: getting-started/quickstart.md
       - Setup Script: getting-started/setup-script.md
       - CLI (wslite): getting-started/cli.md
+      - MCP Client Config: getting-started/client-config.md
   - Architecture:
       - Overview: architecture/overview.md
       - Service Registry: architecture/registry.md

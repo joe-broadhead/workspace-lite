@@ -79,7 +79,7 @@ The script automates:
 | 3. Push code | Pushes `Auth.gs`, `Code.gs`, `Response.gs`, and service files to each project |
 | 4. Deploy guide | Prints Apps Script editor URLs and manual web app deployment instructions |
 | 5. Token bootstrap | Collects deployment URLs, bootstraps auth tokens, appends successful entries to `.env` |
-| 6. Config output | Prints ready-to-paste OpenCode `mcp` JSON |
+| 6. Config output | Prints an OpenCode `mcp` JSON block for the selected services (other clients: see [MCP Client Config](client-config.md)) |
 | 7. Skill setup | Prints symlink commands for the `google-workspace` and `workspace-lite-installer` skills |
 
 ---
