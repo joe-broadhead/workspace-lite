@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Scenario-driven fake clasp for deterministic installer tests (JOE-147).
+#
+# Behavior is selected per subcommand via environment variables that name a
+# fixture file in FAKE_CLASP_FIXTURES (this directory when tests set it):
+#   FAKE_CLASP_LIST         list-<name>.json      (default: has-drive)
+#   FAKE_CLASP_DEPLOYMENTS  deployments-<name>.txt (default: multi-version)
+#   FAKE_CLASP_VERSION      version-<name>.txt    (default: ok)
+#   FAKE_CLASP_REDEPLOY     ok | fail             (default: ok)
+# Every invocation is appended to FAKE_CLASP_LOG (one line, args joined).
+set -euo pipefail
+
+if [ -n "${FAKE_CLASP_LOG:-}" ]; then
+  printf '%s\n' "$*" >> "$FAKE_CLASP_LOG"
+fi
+
+fixtures="${FAKE_CLASP_FIXTURES:?FAKE_CLASP_FIXTURES not set}"
+
+case "${1:-}" in
+  list)
+    cat "$fixtures/list-${FAKE_CLASP_LIST:-has-drive}.json"
+    ;;
+  deployments)
+    cat "$fixtures/deployments-${FAKE_CLASP_DEPLOYMENTS:-multi-version}.txt"
+    ;;
+  version)
+    name="${FAKE_CLASP_VERSION:-ok}"
+    cat "$fixtures/version-$name.txt"
+    if [ "$name" = "auth-error" ]; then exit 1; fi
+    ;;
+  redeploy)
+    if [ "${FAKE_CLASP_REDEPLOY:-ok}" = "fail" ]; then
+      echo "Redeploy failed: deployment not found."
+      exit 1
+    fi
+    echo "Deployed."
+    ;;
+  push)
+    echo "Pushed 8 files."
+    ;;
+  create)
+    # Mimic clasp v3: write .clasp.json in cwd and clobber appsscript.json
+    # with a default manifest — the behavior setup.sh's backup dance guards
+    # against.
+    printf '{\n  "scriptId": "NEWLY-CREATED-SCRIPT-ID-000000000000",\n  "rootDir": ""\n}\n' > .clasp.json
+    printf '{\n  "timeZone": "America/New_York",\n  "runtimeVersion": "V8"\n}\n' > appsscript.json
+    echo "Created new standalone script."
+    ;;
+  *)
+    echo "fake clasp: unhandled subcommand: ${1:-<none>}" >&2
+    exit 1
+    ;;
+esac

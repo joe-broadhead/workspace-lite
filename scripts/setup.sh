@@ -52,6 +52,10 @@ if ! SELECTED_SERVICES="$(node "$ROOT/scripts/setup-services.mjs" \
     ${PROFILE:+--profile "$PROFILE"} ${SERVICES_ARG:+--services "$SERVICES_ARG"})"; then
   exit 1
 fi
+if [ -z "$SELECTED_SERVICES" ]; then
+  echo "ERROR: service selection resolved to nothing (scripts/setup-services.mjs produced no output)."
+  exit 1
+fi
 read -r -a SERVICES <<< "$SELECTED_SERVICES"
 
 banner() { echo -e "${BLUE}=== $1${NC}"; }

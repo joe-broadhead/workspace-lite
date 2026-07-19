@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Fake curl for sandboxed bootstrap requests (setup.sh token phase).
+#   FAKE_CURL_FIRST   fixture served for rotate:false requests (default: bootstrap-token.json)
+#   FAKE_CURL_ROTATE  fixture served for rotate:true requests  (default: bootstrap-token.json)
+# Invocations append to FAKE_CURL_LOG.
+set -euo pipefail
+
+fixtures="${FAKE_CLASP_FIXTURES:?FAKE_CLASP_FIXTURES not set}"
+if [ -n "${FAKE_CURL_LOG:-}" ]; then
+  printf '%s\n' "$*" >> "$FAKE_CURL_LOG"
+fi
+
+if printf '%s' "$*" | grep -q '"rotate":true'; then
+  cat "$fixtures/${FAKE_CURL_ROTATE:-bootstrap-token.json}"
+else
+  cat "$fixtures/${FAKE_CURL_FIRST:-bootstrap-token.json}"
+fi

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Fake npm for sandboxed setup.sh runs — install/build are not under test.
+echo "fake npm $*"
+exit 0
