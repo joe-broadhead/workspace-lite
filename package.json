@@ -48,7 +48,8 @@
     "generate:tool-catalog": "node scripts/generate-tool-catalog.mjs",
     "smoke:live": "node scripts/live-smoke/run.mjs",
     "doctor": "node packages/cli/dist/index.js doctor",
-    "repair": "node packages/cli/dist/index.js repair"
+    "repair": "node packages/cli/dist/index.js repair",
+    "security:audit": "node packages/cli/dist/index.js security audit"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
