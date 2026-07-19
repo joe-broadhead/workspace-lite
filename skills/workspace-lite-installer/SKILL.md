@@ -21,6 +21,7 @@ Use this skill to help a user install, configure, update, or troubleshoot the `w
 - The user must complete Google account browser auth, review OAuth scopes, and confirm web app deployment settings in the Apps Script GUI.
 - Never print, commit, or paste `.env`, `.clasprc.json`, `.clasp.json`, `BootstrapSecret.gs`, bearer tokens, setup keys, deployment URLs from private installs, or script IDs into public output.
 - Ask before rotating tokens, deleting Apps Script properties, creating replacement deployments, or changing OpenCode config.
+- Security posture changes are **recommend-only**: when a user wants to narrow token classes (lockdown profiles in `docs/project/lockdown-spec.md`), print the exact steps — mint the class token in the Apps Script editor, set `PROXY_AUTH_TOKEN_CLASSES`, remove the primary from agent-facing env — and perform a specific mutation only when the user explicitly asks for that mutation. Remember the client falls back to the primary token: a class token next to the primary narrows nothing.
 - Supported platforms: macOS, Linux, and Windows through Git Bash or MSYS2. Native PowerShell can run MCP servers after environment variables are persisted, but setup and deploy helper scripts expect bash.
 
 ## Diagnose Before You Repair
