@@ -5,6 +5,7 @@
 Structured cross-service recipes live in `docs/workflows/` (rendered on the docs site under "Workflow Recipes"). Each recipe declares its services and token classes up front and specifies preflight, step sequence, confirmation gates, partial-failure handling, cleanup, and validation. When a user asks for one of these workflows, follow the recipe rather than improvising:
 
 - **Meeting Pack** (`docs/workflows/meeting-pack.md`) — folder + notes doc for a meeting, optional agenda draft and follow-up tasks.
+- **Weekly Review** (`docs/workflows/weekly-review.md`) — bounded week of calendar/tasks (drive/gmail opt-in, gmail query needs explicit approval) into a new review doc, optional follow-up tasks.
 
 All recipes (and the ad-hoc sequences below) inherit the shared guardrails in `docs/workflows/guardrails.md`: draft-first email, no send/share/destructive action without an explicit per-gate confirmation, create new artifacts instead of mutating existing ones, bound every read (date ranges + maxResults), and never route data outside the user-owned proxies or escalate token classes.
 

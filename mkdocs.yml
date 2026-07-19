@@ -122,6 +122,7 @@ nav:
       - Recipe Format: workflows/index.md
       - Shared Guardrails: workflows/guardrails.md
       - Meeting Pack: workflows/meeting-pack.md
+      - Weekly Review: workflows/weekly-review.md
   - Operations:
       - Diagnostics: operations/diagnostics.md
       - Quotas & Limits: operations/quotas.md
