@@ -29,6 +29,11 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 - Distribution decision record (`docs/project/distribution-decision.md`): source-first for `v0.0.x`, no npm publishing yet, generated client config as the distribution surface, with explicit revisit triggers (JOE-157).
 - Private live smoke harness (`npm run smoke:live`): seed-first suites for all 8 services driving the wslite CLI against the maintainer's own deployments, with rate-limit backoff, a send-recipient guard, always-run cleanup, container-listing leftover verification, and sanitized evidence output (JOE-160).
 
+### Changed
+
+- Live smoke harness: transient `CLIENT_ERROR`/`INTERNAL_ERROR` results now get one paced retry (mirroring the existing rate-limit backoff), and failure notes include the underlying error message — full post-rotation smoke surfaced flakes that were environmental, not tool defects.
+- Agent skill accuracy pass from live verification: `slides_add_slide` takes `titleText`+`bodyText` directly; `docs_set_text` is destructive-gated even on new docs (prefer `docs_insert_*`); `gmail_update_draft` returns a new draft ID; `calendar_create_event` should always pass explicit `sendUpdates`; Sheets date-string coercion; rate-limit and trash-first semantics added to the skill's critical rules.
+
 ### Security
 
 - Replaced real Apps Script deployment IDs committed in installer-skill examples and CLI test fixtures with synthetic values; the affected live deployments are being rotated to new IDs (repo hardening audit, 2026-07-20).

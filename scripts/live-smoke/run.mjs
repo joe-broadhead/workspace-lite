@@ -87,6 +87,13 @@ async function runCli(tool, params, { gated = false, pace, selfEmail }) {
       await delay(70_000)
       continue
     }
+    // Transient Apps Script/network hiccups under sustained load (HTML error
+    // pages, fetch failures, internal errors) deserve one paced retry —
+    // they are not tool defects and real agents retry them too.
+    if (attempt < 3 && (body?.error?.code === 'CLIENT_ERROR' || body?.error?.code === 'INTERNAL_ERROR')) {
+      await delay(15_000)
+      continue
+    }
     await delay(pace)
     return { code, body }
   }
@@ -119,7 +126,9 @@ async function runSteps(steps, ctx, record, options) {
 
     const { body } = result
     const expected = step.expect ?? 'ok'
-    const failureNote = body.error ? `${body.error.code}${body.error.correlationId ? ` corr=${body.error.correlationId}` : ''}` : ''
+    const failureNote = body.error
+      ? `${body.error.code}${body.error.correlationId ? ` corr=${body.error.correlationId}` : ''}${body.error.message ? ` — ${String(body.error.message).slice(0, 100)}` : ''}`
+      : ''
     if (expected === 'ok') {
       if (body.ok) {
         if (step.save) {
