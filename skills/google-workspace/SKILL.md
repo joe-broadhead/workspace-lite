@@ -43,7 +43,7 @@ Tools are prefixed by service: `drive_*`, `gmail_*`, `calendar_*`, `sheets_*`, `
 | Protect sheets/ranges | `sheets_list_protections` → `sheets_protect_range` / `sheets_protect_sheet` / `sheets_remove_protection` |
 | Conditional fmt | `sheets_get_conditional_formatting` → read existing rules |
 | Create slides | `slides_create_presentation` → `slides_batch` for compound setup |
-| Build slides | `slides_add_slide` with titleText → `slides_insert_text_box` for body → `slides_insert_image`/`slides_insert_table` for visuals |
+| Build slides | `slides_add_slide` with `titleText` + `bodyText` (one call per slide) → `slides_insert_text_box` only for extra boxes → `slides_insert_image`/`slides_insert_table` for visuals |
 | Slide background | `slides_set_slide_background` with hex color |
 | Tune slide elements | `slides_get_element` → `slides_update_element_geometry` / `slides_set_element_alt_text` / `slides_set_element_link` |
 | Write document | `docs_create_document` → `docs_batch` for compound setup |
@@ -78,3 +78,5 @@ Read the relevant reference file before executing complex multi-tool workflows.
 - **Use `sheets_batch`** for compound spreadsheet operations (one round-trip vs many)
 - **Use `sheets_batch_get`** to read multiple ranges in a single API call
 - **Handle errors**: partial failures in `sheets_batch` / `drive_batch` / `calendar_batch` etc. are collected per-operation — check `results[].success`
+- **Rate limits**: each service allows ~100 weighted request units per 60s; on `RATE_LIMITED`, wait ~60–70s and retry once — batches cost the sum of their child operations
+- **Deletes are trash-first** for Drive (`drive_trash_file` is recoverable; prefer it over `drive_delete_file`); deleted Tasks lists may linger in listings briefly while `tasks_get_tasklist` already returns NOT_FOUND

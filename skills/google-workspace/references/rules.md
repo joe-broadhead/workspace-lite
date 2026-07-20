@@ -36,6 +36,10 @@
 - `slides_update_element_geometry` adjusts common position/size/rotation fields; `slides_update_element_transform` is for affine transform fields
 - `slides_set_element_link` requires exactly one of `linkUrl`, `targetSlideIndex`, or `clear`
 - `docs_get_as_json` returns full structured document tree — use for programmatic access, `docs_get_document` for text reading
+- `docs_set_text` replaces the entire body and is **destructive-gated even on a freshly created empty doc** — prefer `docs_insert_paragraph` / `docs_insert_list` (plain writes) to populate new docs
+- `gmail_update_draft` returns a **new draft ID** — never reuse a stored draft ID after updating; use the ID from the latest response
+- `calendar_create_event` — always pass an explicit `sendUpdates` (`"none"` unless the user approved emailing guests); adding `guests` may trigger invite emails
+- `sheets_write_range` coerces `YYYY-MM-DD` strings to date cells; reads return ISO timestamps for them — expected, not corruption
 - `docs_create_bookmark` and `docs_create_named_range` add navigation structure without raw batchUpdate passthroughs; `docs_list_table_of_contents` inspects existing TOC elements because Docs does not expose supported TOC creation
 - `sheets_batch` executes up to 20 operations in one round-trip — use for compound setup
 - `sheets_read_range` returns values as a 2D array with sheet name, range, and row/col counts
