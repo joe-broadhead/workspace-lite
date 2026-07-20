@@ -4,6 +4,9 @@
 set -euo pipefail
 
 REPO="${1:?Usage: $0 /path/to/workspace-lite \"deploy message\"}"
+# Canonicalize: the per-service loop cds around, so a relative path would
+# break after the first iteration.
+REPO="$(cd "$REPO" && pwd)"
 MSG="${2:-Deploy $(date +%Y-%m-%d)}"
 
 if [ ! -d "$REPO/packages/drive/apps-script" ]; then

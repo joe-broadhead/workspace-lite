@@ -29,8 +29,15 @@ The first public source release target is `v0.0.0`. The project will iterate thr
 - Distribution decision record (`docs/project/distribution-decision.md`): source-first for `v0.0.x`, no npm publishing yet, generated client config as the distribution surface, with explicit revisit triggers (JOE-157).
 - Private live smoke harness (`npm run smoke:live`): seed-first suites for all 8 services driving the wslite CLI against the maintainer's own deployments, with rate-limit backoff, a send-recipient guard, always-run cleanup, container-listing leftover verification, and sanitized evidence output (JOE-160).
 
+### Security
+
+- Replaced real Apps Script deployment IDs committed in installer-skill examples and CLI test fixtures with synthetic values; the affected live deployments are being rotated to new IDs (repo hardening audit, 2026-07-20).
+- All GitHub Actions are now pinned to full commit SHAs instead of major-version tags.
+
 ### Fixed
 
+- `deploy-all.sh` and `verify-deployments.sh` canonicalize the repo path argument, fixing breakage when invoked with a relative path (their per-service loops cd between directories); `deploy-single.sh` canonicalizes too for consistency (repo hardening audit).
+- `docs/architecture/overview.md` now describes the shipped catalog architecture (`shared/src/catalog/` SSOT, generated `Code.gs`, shared `proxy-client`, `packages/cli`) instead of the pre-migration per-package `proxy.ts`/`src/tools/` layout.
 - `scripts/setup-services.mjs` and `scripts/client-config.mjs` now run their CLI entry when invoked through a symlinked path (e.g. macOS `/var` → `/private/var`): the direct-run guard compares realpaths. `setup.sh` also fails loudly if service selection resolves to empty instead of continuing with an empty list (JOE-147).
 - `deploy-single.sh` no longer dies silently under `pipefail` when the `.env` deployment ID is missing from `clasp deployments`; it prints the intended changed-ID warning (JOE-147).
 - `gmail_list_labels` no longer fails with INTERNAL_ERROR when user labels exist; the response no longer includes `messageCount`, which relied on a method that does not exist on Apps Script `GmailLabel` (JOE-824).

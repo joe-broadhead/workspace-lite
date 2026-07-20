@@ -259,9 +259,9 @@ Update ALL 8 service Auth.gs files + the shared template, then run `scripts/depl
 ### Understanding clasp deployments output
 
 ```
-- AKfycbzPjNDKUz1yT_o7xHL-8Rfq5wZffP3lH8cCrqybBkaw @HEAD
-- AKfycbxkDX7CMDSECk55CWHs7uiMukJo1H2UAIkgthADUDtKHJFDVX_DocowmWE9Oe41JGDB_g @4 - Enable all token classes
-- AKfycbwn1BWbPGS0iFj0C6AkJzhkCYEuICUNsEFj7tur1XkqDpmUnzHC3_d2EY-Sit6_FCL5NA @4 - Enable all token classes
+- AKfycbEXAMPLEheadEXAMPLEheadEXAMPLEheadEXAMPLE @HEAD
+- AKfycbEXAMPLEversion4aEXAMPLEversion4aEXAMPLEversion4aEXAMPLE1 @4 - Enable all token classes
+- AKfycbEXAMPLEversion4bEXAMPLEversion4bEXAMPLEversion4bEXAMPLE2 @4 - Enable all token classes
 ```
 
 - `@HEAD` row is the live code at the script editor URL (always latest push). Never use this for MCP PROXY_URL.

@@ -9,9 +9,9 @@ import {
   type ExecLike,
 } from '../../packages/cli/src/deployments.js'
 
-const ID_V15 = 'AKfycbx4EfJ5pNdhcQW6PDmEe5AxsbR-S96jczI8z4ZAYgyOlHuXdOWNcA0lQQvwuM5nLgU'
-const ID_V3 = 'AKfycbyKNo1i4NHp238z5tI_lBNvKlwqYBwuir5YKBObOpaJKNpQqOlM8TiCAh0WBHDceEZF'
-const ID_HEAD = 'AKfycbw9geuAPvdOutPdEgn90M9ZlZyghcZGqQZGz0OGwuk'
+const ID_V15 = 'AKfycbSYNTHETICv15SYNTHETICv15SYNTHETICv15SYNTHETICv15SYNTHETICv15test'
+const ID_V3 = 'AKfycbSYNTHETICv03SYNTHETICv03SYNTHETICv03SYNTHETICv03SYNTHETICv03test'
+const ID_HEAD = 'AKfycbSYNTHETICheadSYNTHETICheadSYNTHETICheadtest'
 const URL_V15 = `https://script.google.com/macros/s/${ID_V15}/exec`
 
 // Verbatim clasp v3 output shape observed live.
