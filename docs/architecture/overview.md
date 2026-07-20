@@ -33,49 +33,56 @@ graph LR
 
 ```
 workspace-lite/
-├── shared/                     # Shared TypeScript package
-│   └── src/
-│       ├── schemas.ts          # Zod schemas for all services
-│       ├── response.ts         # ProxyResponse interface, format helpers
-│       └── index.ts            # Barrel exports
+├── shared/                       # Shared TypeScript package (single source of truth)
+│   ├── src/
+│   │   ├── catalog/              # Catalog SSOT: every tool's schema, action, risk, formatter
+│   │   │   ├── index.ts          # ToolSpec type, catalog assembly, registerCatalogTools
+│   │   │   ├── risk.ts           # TokenClass / risk-class resolution
+│   │   │   ├── helpers.ts        # Catalog helpers (naming, actions, flags)
+│   │   │   └── services/         # drive.ts, gmail.ts, … one file per service (218 tools)
+│   │   ├── schemas.ts            # Zod schemas referenced by catalog entries
+│   │   ├── proxy-client.ts       # createProxyClient: class-token selection + HTTPS POST
+│   │   ├── response.ts           # ProxyResponse interface, format helpers
+│   │   └── index.ts              # Barrel exports
+│   └── apps-script/              # Shared Auth.gs / Response.gs templates (copied per service)
 ├── packages/
-│   ├── drive/                  # 44 tools
-│   │   ├── src/
-│   │   │   ├── index.ts        # MCP server entry: McpServer + StdioServerTransport
-│   │   │   ├── proxy.ts        # fetch() to Apps Script with token auth, 30s timeout
-│   │   │   └── tools/          # drive-list.ts, drive-read.ts, drive-write.ts, drive-manage.ts, drive-batch.ts
-│   │   └── apps-script/        # Auth.gs, Code.gs, Response.gs, DriveService.gs, .clasp.json
-│   ├── gmail/                  # 39 tools
-│   ├── calendar/               # 22 tools
-│   ├── sheets/                 # 33 tools
-│   ├── slides/                 # 25 tools
-│   ├── docs/                   # 26 tools
-│   ├── tasks/                  # 13 tools
-│   └── forms/                  # 16 tools
-├── scripts/
-│   └── setup.sh                # One-shot setup: clasp login → create → push → deploy guide → bootstrap
+│   ├── drive/                    # 44 tools
+│   │   ├── src/index.ts          # Thin MCP entry: registerCatalogTools(service) + stdio transport
+│   │   └── apps-script/          # Code.gs (generated), Auth.gs, Response.gs, DriveService.gs
+│   ├── gmail/                    # 39 tools   ── every service package has the same two-file shape
+│   ├── calendar/                 # 22 tools
+│   ├── sheets/                   # 33 tools
+│   ├── slides/                   # 25 tools
+│   ├── docs/                     # 26 tools
+│   ├── tasks/                    # 13 tools
+│   ├── forms/                    # 16 tools
+│   └── cli/                      # wslite CLI: second frontend over the same catalog
+│       └── src/                  # program.ts, doctor.ts, deployments.ts, repair.ts, security-audit.ts
+├── config/
+│   └── service-registry.json     # Canonical service metadata (titles, scopes, health identity)
+├── scripts/                      # setup.sh (+ --profile/--services), setup-services.mjs,
+│                                 # client-config.mjs, generate-proxy-shell.mjs, validators
 ├── skills/
-│   ├── google-workspace/       # OpenCode usage skill
-│   │   ├── SKILL.md            # Fast-start index, tool catalog pointers, safety rules
-│   │   └── references/         # tool-catalog.md, workflows.md, rules.md
-│   └── workspace-lite-installer/ # OpenCode install/operator skill
-│       └── SKILL.md            # Setup, clasp push, deployment refresh, scope-review boundaries
-├── tsconfig.base.json           # Shared TypeScript config
-├── package.json                 # Workspace root: build, typecheck, dev scripts
-└── mkdocs.yml                   # Documentation config
+│   ├── google-workspace/         # Agent usage skill (tool-catalog.md is generated)
+│   └── workspace-lite-installer/ # Install/operate skill + hardened deploy scripts
+├── tests/                        # Node test runner suites incl. fake-clasp installer harness
+├── tsconfig.base.json
+├── package.json                  # Workspace root: build, validate, doctor/repair/security:audit
+└── mkdocs.yml
 ```
+
+The catalog is the load-bearing design: each tool exists exactly once in `shared/src/catalog/services/<service>.ts` as a `ToolSpec` (name, description, Zod schema, backend action, risk class, formatter, validators). Both frontends consume it — the MCP servers via `registerCatalogTools`, the `wslite` CLI via the same specs — so tool behavior cannot drift between surfaces.
 
 Each service package follows an identical structure:
 
 | File | Purpose |
 |------|---------|
-| `src/index.ts` | Creates an `McpServer`, registers tools, connects via `StdioServerTransport` |
-| `src/proxy.ts` | Reads env vars, exports `callProxy(action, params)` that POSTs to the Apps Script web app |
-| `src/tools/` | Tool registration functions, organized by domain (read, write, manage, list, batch) |
-| `apps-script/Code.gs` | `doGet` (bootstrap + health), `doPost` (validate, rate-limit, dispatch) |
-| `apps-script/Auth.gs` | Token generation, bootstrapping, validation, rate limiting |
-| `apps-script/Response.gs` | `ok()`, `err()`, `respond()` helpers for structured JSON responses |
-| `apps-script/{Service}Service.gs` | Action dispatcher: `handle(action, params)` with large `switch` statement |
+| `src/index.ts` | Thin MCP entry: `McpServer` + `registerCatalogTools(service)` + `StdioServerTransport` |
+| `shared/src/proxy-client.ts` | Reads env vars, selects the narrowest matching class token, POSTs to the Apps Script web app |
+| `apps-script/Code.gs` | **Generated** from `config/service-registry.json` (`npm run generate:proxy-shell`): `doGet` health/bootstrap, `doPost` validate → rate-limit → dispatch |
+| `apps-script/Auth.gs` | Copy of the shared template: token classes, bootstrapping, validation, throttling |
+| `apps-script/Response.gs` | Copy of the shared template: structured JSON response helpers |
+| `apps-script/{Service}Service.gs` | Action policies (`ACTION_POLICIES` with risk classes and allowlists) + action handlers |
 
 ---
 
@@ -149,7 +156,7 @@ The authentication model eliminates OAuth from every API call by leveraging Apps
 ```
 ┌──────────────┐     POST /exec
 │  MCP Server   │─────{ token, action, params }───►┌──────────────────────────┐
-│  (proxy.ts)   │                                   │  Apps Script (Code.gs)  │
+│ (proxy-client)│                                   │  Apps Script (Code.gs)  │
 └──────────────┘                                   │  doPost(e):              │
                                                     │  1. validateRequest(e)  │
                                                     │     → Parse token from  │
@@ -253,7 +260,7 @@ sequenceDiagram
     participant Agent
     participant Server as MCP Server (TS)
     participant Zod
-    participant Proxy as proxy.ts
+    participant Proxy as proxy-client
     participant WebApp as Apps Script Web App
     participant Auth as Auth.gs
     participant Cache as CacheService

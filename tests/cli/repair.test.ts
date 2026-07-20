@@ -14,8 +14,8 @@ import type { ExecLike } from '../../packages/cli/src/deployments.js'
 
 const ROOT = '/repo'
 const SCRIPT_ID = '1a2b3c4d5e6f7g8h9i0jSCRIPTIDSCRIPTIDSCRIPTID'
-const DEPLOY_ID = 'AKfycbx4EfJ5pNdhcQW6PDmEe5AxsbR-S96jczI8z4ZAYgyOlHuXdOWNcA0lQQvwuM5nLgU'
-const OLD_DEPLOY_ID = 'AKfycbyKNo1i4NHp238z5tI_lBNvKlwqYBwuir5YKBObOpaJKNpQqOlM8TiCAh0WBHDceEZF'
+const DEPLOY_ID = 'AKfycbSYNTHETICv15SYNTHETICv15SYNTHETICv15SYNTHETICv15SYNTHETICv15test'
+const OLD_DEPLOY_ID = 'AKfycbSYNTHETICv03SYNTHETICv03SYNTHETICv03SYNTHETICv03SYNTHETICv03test'
 const EXEC_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`
 const SECRET = 'test-setup-key-value-test-setup-key-value'
 const TOKEN = 'recovered-token-recovered-token-recovered-token-recovered-token-1234'

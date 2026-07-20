@@ -17,7 +17,7 @@ import type { ProxyClient } from '@workspace-lite/shared/proxy-client'
  * token values, and never full proxy URLs or deployment IDs.
  */
 
-export interface ProbeSpec {
+interface ProbeSpec {
   action: string
   params: Record<string, unknown>
   /** BAD_REQUEST proves auth for services without zero-arg reads. */

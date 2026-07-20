@@ -137,6 +137,7 @@ nav:
       - Public Release Readiness: project/public-release.md
       - Distribution Decision: project/distribution-decision.md
       - Lockdown Spec: project/lockdown-spec.md
+      - CLI Parity Design: project/cli-mcp-parity-design.md
       - Release Process: project/release-process.md
       - Changelog: project/changelog.md
       - Contributing: project/contributing.md

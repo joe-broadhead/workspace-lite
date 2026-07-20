@@ -7,7 +7,7 @@ import type { FsLike } from '../../packages/cli/src/repair.js'
 import type { FetchLike } from '../../packages/cli/src/doctor.js'
 
 const ROOT = repoRoot()
-const DEPLOY_ID = 'AKfycbx4EfJ5pNdhcQW6PDmEe5AxsbR-S96jczI8z4ZAYgyOlHuXdOWNcA0lQQvwuM5nLgU'
+const DEPLOY_ID = 'AKfycbSYNTHETICv15SYNTHETICv15SYNTHETICv15SYNTHETICv15SYNTHETICv15test'
 const EXEC_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`
 
 function fakeFs(files: Record<string, string>): FsLike & { store: Map<string, string> } {

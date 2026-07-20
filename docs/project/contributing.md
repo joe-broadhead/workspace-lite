@@ -2,7 +2,7 @@
 
 Thanks for considering a contribution to `workspace-lite`.
 
-This project keeps TypeScript MCP servers, Apps Script proxies, generated registry metadata, docs, and safety validators in sync. Changes should update all affected surfaces together.
+This repository is a TypeScript monorepo plus Apps Script source. Contributions should keep local MCP behavior, Apps Script proxy behavior, docs, and safety validators in sync — changes should update all affected surfaces together.
 
 ## Development Setup
 
@@ -17,7 +17,7 @@ Use Node.js 20 or newer.
 
 ## Local Validation
 
-Run the same gates used by CI before opening a pull request:
+Run the full project gate (the same one CI runs) before opening a pull request:
 
 ```bash
 npm run validate

@@ -5,6 +5,7 @@ set -euo pipefail
 
 REPO="${1:?Usage: $0 /path/to/workspace-lite <service> \"deploy message\"}"
 SVC="${2:?Usage: $0 /path/to/workspace-lite <service> \"deploy message\"}"
+REPO="$(cd "$REPO" && pwd)"
 MSG="${3:-Deploy $SVC $(date +%Y-%m-%d)}"
 
 if [ ! -d "$REPO/packages/drive/apps-script" ]; then

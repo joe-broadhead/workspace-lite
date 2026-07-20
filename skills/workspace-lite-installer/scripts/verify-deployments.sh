@@ -4,6 +4,9 @@
 set -euo pipefail
 
 REPO="${1:?Usage: $0 /path/to/workspace-lite}"
+# Canonicalize: the per-service loop cds around, so a relative path would
+# break after the first iteration.
+REPO="$(cd "$REPO" && pwd)"
 
 if [ ! -d "$REPO/packages/drive/apps-script" ]; then
   echo "ERROR: $REPO does not appear to be a workspace-lite repository"
